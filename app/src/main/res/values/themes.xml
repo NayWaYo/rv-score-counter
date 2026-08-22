@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Thème Material3 minimal requis par le manifest ; le vrai thème est géré par Compose -->
+    <style name="Theme.RvScoreCounter" parent="android:style/Theme.Material.NoActionBar" />
+</resources>

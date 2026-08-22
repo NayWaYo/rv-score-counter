@@ -1,0 +1,117 @@
+# generated: 2026-08-09T20:05:55+02:00
+# last_updated: 2026-08-09T20:07:19+02:00
+# project: rv-score-counter
+# project_key: NOKEY
+# tracking_system: file-system
+# story_location: _bmad-output/implementation-artifacts
+
+# STATUS DEFINITIONS:
+# ==================
+# Epic Status:
+#   - backlog: Epic not yet started
+#   - in-progress: Epic actively being worked on
+#   - done: All stories in epic completed
+#
+# Epic Status Transitions:
+#   - backlog -> in-progress: Automatically when first story is created (via create-story)
+#   - in-progress -> done: Manually when all stories reach 'done' status
+#
+# Story Status:
+#   - backlog: Story only exists in epic file
+#   - ready-for-dev: Story file created in stories folder
+#   - in-progress: Developer actively working on implementation
+#   - review: Ready for code review (via Dev's code-review workflow)
+#   - done: Story completed
+#
+# Retrospective Status:
+#   - optional: Can be completed but not required
+#   - done: Retrospective has been completed
+#
+# Action Item Status:
+#   - open: Committed during a retrospective, not yet addressed
+#   - in-progress: Actively being worked on
+#   - done: Completed
+#
+# WORKFLOW NOTES:
+# ===============
+# - Epic transitions to 'in-progress' automatically when first story is created
+# - Stories can be worked in parallel if team capacity allows
+# - Developer typically creates next story after previous one is 'done' to incorporate learnings
+# - Dev moves story to 'review', then runs code-review (fresh context, different LLM recommended)
+# - Retrospective appends its action items to action_items; sprint-status surfaces open ones
+
+generated: "2026-08-09T20:05:55+02:00"
+last_updated: "2026-08-22T14:00:00+02:00"
+project: rv-score-counter
+project_key: NOKEY
+tracking_system: file-system
+story_location: _bmad-output/implementation-artifacts
+
+development_status:
+
+  # -------------------------------------------------------
+  # Epic 1: Fondation & Infrastructure (5 stories)
+  # -------------------------------------------------------
+  epic-1: in-progress
+
+  1-1-scaffolding-du-projet-android: done
+  1-2-schema-de-base-de-donnees-room: review
+  1-3-interface-gameengine-et-implementation-papayoo: backlog
+  1-4-systeme-de-design-theme-sombre-et-tokens: backlog
+  1-5-navigation-graph-et-reprise-automatique: backlog
+
+  epic-1-retrospective: optional
+
+  # -------------------------------------------------------
+  # Epic 2: Creation de Partie (3 stories)
+  # -------------------------------------------------------
+  epic-2: backlog
+
+  2-1-ecran-d-accueil-grille-de-tuiles-jeux: backlog
+  2-2-creation-de-partie-ajout-et-reordonnancement-des-participants: backlog
+  2-3-confirmation-de-partie-et-initialisation-de-l-etat: backlog
+
+  epic-2-retrospective: optional
+
+  # -------------------------------------------------------
+  # Epic 3: Saisie de Manche (4 stories)
+  # -------------------------------------------------------
+  epic-3: backlog
+
+  3-1-de-virtuel-tirage-de-la-couleur-du-7: backlog
+  3-2-saisie-des-scores-ordre-libre-et-clavier-numerique: backlog
+  3-3-pre-remplissage-automatique-du-dernier-participant: backlog
+  3-4-validation-de-manche-et-persistance: backlog
+
+  epic-3-retrospective: optional
+
+  # -------------------------------------------------------
+  # Epic 4: Suivi de Partie en cours (3 stories)
+  # -------------------------------------------------------
+  epic-4: backlog
+
+  4-1-ecran-partie-en-cours-classement-temps-reel: backlog
+  4-2-ajout-de-participant-en-cours-de-partie: backlog
+  4-3-historique-des-manches-dans-la-partie: backlog
+
+  epic-4-retrospective: optional
+
+  # -------------------------------------------------------
+  # Epic 5: Cloture & Relance (2 stories)
+  # -------------------------------------------------------
+  epic-5: backlog
+
+  5-1-cloture-de-partie-et-resultats-finaux: backlog
+  5-2-relance-rapide-rejouer-avec-les-memes-joueurs: backlog
+
+  epic-5-retrospective: optional
+
+  # -------------------------------------------------------
+  # Epic 6: Historique (2 stories)
+  # -------------------------------------------------------
+  epic-6: backlog
+
+  6-1-ecran-historique-liste-des-parties-passees: backlog
+  6-2-detail-de-partie-scores-par-manche-avec-couleur-du-7: backlog
+
+  epic-6-retrospective: optional
