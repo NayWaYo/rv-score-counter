@@ -56,7 +56,7 @@ development_status:
 
   1-1-scaffolding-du-projet-android: done
   1-2-schema-de-base-de-donnees-room: done
-  1-3-interface-gameengine-et-implementation-papayoo: backlog
+  1-3-interface-gameengine-et-implementation-papayoo: ready-for-dev
   1-4-systeme-de-design-theme-sombre-et-tokens: backlog
   1-5-navigation-graph-et-reprise-automatique: backlog
 
