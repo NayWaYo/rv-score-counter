@@ -10,6 +10,7 @@ navigation = "2.9.8"
 coroutines = "1.11.0"
 kotlin-serialization = "1.7.3"
 lifecycle = "2.9.0"
+junit = "4.13.2"
 
 [libraries]
 # Compose (versions gérées par BOM — ne pas spécifier de version)
@@ -41,6 +42,9 @@ kotlinx-coroutines-test = { group = "org.jetbrains.kotlinx", name = "kotlinx-cor
 
 # Serialization
 kotlinx-serialization-json = { group = "org.jetbrains.kotlinx", name = "kotlinx-serialization-json", version.ref = "kotlin-serialization" }
+
+# Testing
+junit = { group = "junit", name = "junit", version.ref = "junit" }
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }

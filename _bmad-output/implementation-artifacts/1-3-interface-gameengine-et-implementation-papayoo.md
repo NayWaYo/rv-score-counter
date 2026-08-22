@@ -2,15 +2,16 @@
 story_id: "1.3"
 story_key: "1-3-interface-gameengine-et-implementation-papayoo"
 epic: 1
-status: ready-for-dev
+status: done
 created: 2026-08-22
+baseline_commit: 6c6a21aab136935711f0e6c0163d5edea19cceaf
 ---
 
 # Story 1.3 : Interface GameEngine et implémentation Papayoo
 
 **Epic :** 1 — Fondation & Infrastructure  
 **Story ID :** 1.3  
-**Status :** ready-for-dev
+**Status :** done
 
 ## Story
 
@@ -40,40 +41,45 @@ Afin que la logique métier du jeu soit isolée et extensible pour les futurs je
 
 ## Tasks / Subtasks
 
-- [ ] **T1 — Définir le contrat domaine** (AC: 1, 3)
-  - [ ] Créer `domain/engine/GameEngine.kt` avec exactement les quatre propriétés et les deux opérations des AC.
-  - [ ] Créer `domain/engine/RoundValidation.kt` sous forme de résultat scellé avec `Success` et `Error(difference: Int)`.
-  - [ ] Définir `difference = somme réelle - totalPointsPerRound` : négatif sous 250, positif au-dessus de 250.
-  - [ ] Réutiliser `domain/model/ParticipantId.kt`; ne pas créer de second type d'identifiant.
+- [x] **T1 — Définir le contrat domaine** (AC: 1, 3)
+  - [x] Créer `domain/engine/GameEngine.kt` avec exactement les quatre propriétés et les deux opérations des AC.
+  - [x] Créer `domain/engine/RoundValidation.kt` sous forme de résultat scellé avec `Success` et `Error(difference: Int)`.
+  - [x] Définir `difference = somme réelle - totalPointsPerRound` : négatif sous 250, positif au-dessus de 250.
+  - [x] Réutiliser `domain/model/ParticipantId.kt`; ne pas créer de second type d'identifiant.
 
-- [ ] **T2 — Implémenter les règles Papayoo** (AC: 2, 3, 4)
-  - [ ] Créer `game/papayoo/PapayooEngine.kt` et implémenter `GameEngine`.
-  - [ ] Centraliser l'identifiant `"papayoo"` dans une constante réutilisable par le moteur et le binding DI.
-  - [ ] Implémenter `precomputeLastScore` par `totalPointsPerRound - entered.values.sum()`.
-  - [ ] Implémenter `validateRound` comme une fonction pure et sans état mutable.
-  - [ ] Ne pas ajouter ici la persistance, le contrôle du nombre de joueurs ou un use case : ces responsabilités appartiennent aux stories consommatrices.
+- [x] **T2 — Implémenter les règles Papayoo** (AC: 2, 3, 4)
+  - [x] Créer `game/papayoo/PapayooEngine.kt` et implémenter `GameEngine`.
+  - [x] Centraliser l'identifiant `"papayoo"` dans une constante réutilisable par le moteur et le binding DI.
+  - [x] Implémenter `precomputeLastScore` par `totalPointsPerRound - entered.values.sum()`.
+  - [x] Implémenter `validateRound` comme une fonction pure et sans état mutable.
+  - [x] Ne pas ajouter ici la persistance, le contrôle du nombre de joueurs ou un use case : ces responsabilités appartiennent aux stories consommatrices.
 
-- [ ] **T3 — Enregistrer le moteur avec Hilt/Dagger** (AC: 5)
-  - [ ] Créer `di/EngineModule.kt`, installé dans `SingletonComponent`.
-  - [ ] Utiliser le multibinding Dagger `@IntoMap` avec `@StringKey(PapayooEngine.GAME_ID)` afin que chaque futur jeu contribue sa propre entrée sans modifier un registre central.
-  - [ ] Rendre `PapayooEngine` constructible par Hilt (`@Inject constructor`).
-  - [ ] Ne pas ajouter `@Singleton` au moteur sans besoin mesuré : il est sans état et peu coûteux.
+- [x] **T3 — Enregistrer le moteur avec Hilt/Dagger** (AC: 5)
+  - [x] Créer `di/EngineModule.kt`, installé dans `SingletonComponent`.
+  - [x] Utiliser le multibinding Dagger `@IntoMap` avec `@StringKey(PapayooEngine.GAME_ID)` afin que chaque futur jeu contribue sa propre entrée sans modifier un registre central.
+  - [x] Rendre `PapayooEngine` constructible par Hilt (`@Inject constructor`).
+  - [x] Ne pas ajouter `@Singleton` au moteur sans besoin mesuré : il est sans état et peu coûteux.
 
-- [ ] **T4 — Ajouter les tests JVM du moteur** (AC: 2, 3, 4, 5)
-  - [ ] Déclarer `junit = "4.13.2"` dans `[versions]`, puis `junit = { group = "junit", name = "junit", version.ref = "junit" }` dans `[libraries]` de `gradle/libs.versions.toml`.
-  - [ ] Ajouter `testImplementation(libs.junit)` dans `app/build.gradle.kts`; ne modifier aucune autre dépendance.
-  - [ ] Créer `app/src/test/java/com/rvetiveau/rvscorecount/game/papayoo/PapayooEngineTest.kt`.
-  - [ ] Tester les métadonnées `papayoo`, 3, 8 et 250.
-  - [ ] Tester `validateRound` pour une somme exacte, inférieure et supérieure à 250, y compris un score nul valide.
-  - [ ] Vérifier le signe de `difference` : par exemple 240 donne `-10`, 260 donne `10`.
-  - [ ] Tester `precomputeLastScore` pour un complément positif (`100 -> 150`), zéro (`250 -> 0`) et négatif (`300 -> -50`).
-  - [ ] Faire vérifier le binding `Map<String, GameEngine>` par la compilation KSP; ne pas introduire un test instrumenté uniquement pour Hilt.
+- [x] **T4 — Ajouter les tests JVM du moteur** (AC: 2, 3, 4, 5)
+  - [x] Déclarer `junit = "4.13.2"` dans `[versions]`, puis `junit = { group = "junit", name = "junit", version.ref = "junit" }` dans `[libraries]` de `gradle/libs.versions.toml`.
+  - [x] Ajouter `testImplementation(libs.junit)` dans `app/build.gradle.kts`; ne modifier aucune autre dépendance.
+  - [x] Créer `app/src/test/java/com/rvetiveau/rvscorecount/game/papayoo/PapayooEngineTest.kt`.
+  - [x] Tester les métadonnées `papayoo`, 3, 8 et 250.
+  - [x] Tester `validateRound` pour une somme exacte, inférieure et supérieure à 250, y compris un score nul valide.
+  - [x] Vérifier le signe de `difference` : par exemple 240 donne `-10`, 260 donne `10`.
+  - [x] Tester `precomputeLastScore` pour un complément positif (`100 -> 150`), zéro (`250 -> 0`) et négatif (`300 -> -50`).
+  - [x] Faire vérifier le binding `Map<String, GameEngine>` par la compilation KSP; ne pas introduire un test instrumenté uniquement pour Hilt.
 
-- [ ] **T5 — Vérifier l'architecture et le build** (AC: 5, 6)
-  - [ ] Vérifier qu'aucun fichier sous `domain/` n'importe `game`, `data`, `ui`, Room, Compose ou Android.
-  - [ ] Vérifier que `PapayooEngine` n'est référencé hors de `game/papayoo/` que par `di/EngineModule.kt` et les tests.
-  - [ ] Exécuter `./gradlew.bat testDebugUnitTest`.
-  - [ ] Exécuter `./gradlew.bat kspDebugKotlin` puis `./gradlew.bat assembleDebug`.
+- [x] **T5 — Vérifier l'architecture et le build** (AC: 5, 6)
+  - [x] Vérifier qu'aucun fichier sous `domain/` n'importe `game`, `data`, `ui`, Room, Compose ou Android.
+  - [x] Vérifier que `PapayooEngine` n'est référencé hors de `game/papayoo/` que par `di/EngineModule.kt` et les tests.
+  - [x] Exécuter `./gradlew.bat testDebugUnitTest`.
+  - [x] Exécuter `./gradlew.bat kspDebugKotlin` puis `./gradlew.bat assembleDebug`.
+
+### Review Findings
+
+- [x] [Review][Patch] Documenter la précondition de bornage des scores — décision utilisateur : conserver le contrat `Int`; les futurs use cases doivent garantir des valeurs métier bornées avant d'appeler le moteur. [app/src/main/java/com/rvetiveau/rvscorecount/game/papayoo/PapayooEngine.kt:14]
+- [x] [Review][Patch] Supprimer la completion note générique non traçable [_bmad-output/implementation-artifacts/1-3-interface-gameengine-et-implementation-papayoo.md:220]
 
   Contrôle PowerShell attendu pour AD-1 :
 
@@ -204,16 +210,37 @@ Ne mettre à niveau aucune dépendance pour cette story. Le dépôt compile avec
 
 ### Agent Model Used
 
-À renseigner par l'agent d'implémentation.
+Claude Sonnet 4.5 (GitHub Copilot)
 
 ### Debug Log References
 
+- `./gradlew.bat testDebugUnitTest` → BUILD SUCCESSFUL (8 tests, `PapayooEngineTest`)
+- `./gradlew.bat kspDebugKotlin` → BUILD SUCCESSFUL (multibinding `Map<String, GameEngine>` généré sans conflit de clé)
+- `./gradlew.bat assembleDebug` → BUILD SUCCESSFUL
+- Contrôle PowerShell AD-1 (imports interdits sous `domain/`) → aucune correspondance
+- Contrôle des références à `PapayooEngine` hors de `game/papayoo/` → limitées à `di/EngineModule.kt` et `PapayooEngineTest.kt`
+
 ### Completion Notes List
 
-- Ultimate context engine analysis completed - comprehensive developer guide created.
+- Interface `GameEngine` et `RoundValidation` (résultat scellé) créées dans `domain/engine/`, sans dépendance vers `game`/`data`/`ui`/Room/Compose/Android.
+- `PapayooEngine` implémente `GameEngine` avec `gameId = "papayoo"`, `minPlayers = 3`, `maxPlayers = 8`, `totalPointsPerRound = 250`; `validateRound` et `precomputeLastScore` sont des fonctions pures sans état mutable.
+- `EngineModule` assemble le multibinding Dagger (`@IntoMap` + `@StringKey`) exposant `Map<String, GameEngine>` sans registre central.
+- Alias JUnit 4.13.2 ajouté à `gradle/libs.versions.toml`; `testImplementation(libs.junit)` ajouté à `app/build.gradle.kts` (seule dépendance modifiée).
+- 8 tests JVM couvrent métadonnées, `validateRound` (succès exact, succès score nul, écart négatif, écart positif) et `precomputeLastScore` (positif, zéro, négatif).
+- Tous les tests passent, la compilation KSP valide le graphe Hilt, et `assembleDebug` réussit.
 
 ### File List
+
+- `app/src/main/java/com/rvetiveau/rvscorecount/domain/engine/GameEngine.kt` (NEW)
+- `app/src/main/java/com/rvetiveau/rvscorecount/domain/engine/RoundValidation.kt` (NEW)
+- `app/src/main/java/com/rvetiveau/rvscorecount/game/papayoo/PapayooEngine.kt` (NEW)
+- `app/src/main/java/com/rvetiveau/rvscorecount/di/EngineModule.kt` (NEW)
+- `app/src/test/java/com/rvetiveau/rvscorecount/game/papayoo/PapayooEngineTest.kt` (NEW)
+- `gradle/libs.versions.toml` (UPDATE — alias JUnit)
+- `app/build.gradle.kts` (UPDATE — `testImplementation(libs.junit)`)
 
 ### Change Log
 
 - 2026-08-22 : Story créée et marquée `ready-for-dev`.
+- 2026-08-22 : Implémentation complète (T1–T5) : `GameEngine`, `RoundValidation`, `PapayooEngine`, `EngineModule`, tests JVM. Statut passé à `review`.
+- 2026-08-22 : Revue de code terminée, 2 constats résolus et validations complètes réussies. Statut passé à `done`.

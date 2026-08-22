@@ -77,4 +77,5 @@ dependencies {
 
     // Tests
     testImplementation(libs.kotlinx.coroutines.test)
+    testImplementation(libs.junit)
 }
