@@ -11,6 +11,9 @@ private val DarkColorScheme = darkColorScheme(
     primary = Accent,
     onPrimary = OnAccent,
     error = Error,
+    onBackground = InkPrimary,
+    onSurface = InkPrimary,
+    onSurfaceVariant = InkPrimary,
 )
 
 @Composable
