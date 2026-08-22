@@ -6,7 +6,7 @@ baseline_commit: 1bdafc1965bfabcd6768054d9cf6c620fcb63386
 
 **Epic :** 1 — Fondation & Infrastructure
 **Story ID :** 1.2
-**Status :** review
+**Status :** done
 
 ---
 
@@ -89,6 +89,13 @@ Afin que la couche de persistance soit prête à stocker l'état complet d'une P
   - [x] `./gradlew kspDebugKotlin` → pas d'erreur KSP
   - [x] `./gradlew assembleDebug` → build sans erreur
   - [x] Vérifier que `app/schemas/com.rvetiveau.rvscorecount.data.db.AppDatabase/1.json` est généré
+
+### Review Findings
+
+- [x] [Review][Patch] Garantir l'unicité de `(partyId, roundNumber)` afin d'empêcher plusieurs manches logiques portant le même numéro [app/src/main/java/com/rvetiveau/rvscorecount/data/entity/RoundEntity.kt:17]
+- [x] [Review][Patch] Refuser une manche sans aucun score afin de préserver l'invariant atomique Round + RoundScores [app/src/main/java/com/rvetiveau/rvscorecount/data/repository/PartyRepositoryImpl.kt:59]
+- [x] [Review][Patch] Vérifier que chaque participant scoré appartient à la partie de la manche [app/src/main/java/com/rvetiveau/rvscorecount/data/repository/PartyRepositoryImpl.kt:63]
+- [x] [Review][Patch] Remplacer les insertions `REPLACE` de Party et Participant, qui suppriment silencieusement leurs enfants via les cascades de clés étrangères en cas d'identifiant existant [app/src/main/java/com/rvetiveau/rvscorecount/data/dao/PartyDao.kt:12; app/src/main/java/com/rvetiveau/rvscorecount/data/dao/ParticipantDao.kt:11]
 
 ---
 
@@ -559,3 +566,4 @@ Claude Sonnet 4.5 (GitHub Copilot)
 ### Change Log
 
 - 2026-08-22 : Implémentation complète du schéma Room (entités, DAOs, converters, AppDatabase, modules Hilt, repository). Toutes les tâches T1–T9 complétées. Build vérifié (`kspDebugKotlin`, `assembleDebug`). Statut → review.
+- 2026-08-22 : Revue de code terminée. Quatre correctifs d'intégrité appliqués et validés par `kspDebugKotlin` et `assembleDebug`. Statut → done.

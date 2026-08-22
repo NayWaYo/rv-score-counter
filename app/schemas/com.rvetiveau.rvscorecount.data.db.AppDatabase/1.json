@@ -2,7 +2,7 @@
   "formatVersion": 1,
   "database": {
     "version": 1,
-    "identityHash": "d239c1c9262b3335e017d3721f16be0d",
+    "identityHash": "054171b738e57b89801fc68e9e2860a8",
     "entities": [
       {
         "tableName": "parties",
@@ -150,6 +150,16 @@
             ],
             "orders": [],
             "createSql": "CREATE INDEX IF NOT EXISTS `index_rounds_partyId` ON `${TABLE_NAME}` (`partyId`)"
+          },
+          {
+            "name": "index_rounds_partyId_roundNumber",
+            "unique": true,
+            "columnNames": [
+              "partyId",
+              "roundNumber"
+            ],
+            "orders": [],
+            "createSql": "CREATE UNIQUE INDEX IF NOT EXISTS `index_rounds_partyId_roundNumber` ON `${TABLE_NAME}` (`partyId`, `roundNumber`)"
           }
         ],
         "foreignKeys": [
@@ -244,7 +254,7 @@
     ],
     "setupQueries": [
       "CREATE TABLE IF NOT EXISTS room_master_table (id INTEGER PRIMARY KEY,identity_hash TEXT)",
-      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, 'd239c1c9262b3335e017d3721f16be0d')"
+      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, '054171b738e57b89801fc68e9e2860a8')"
     ]
   }
 }

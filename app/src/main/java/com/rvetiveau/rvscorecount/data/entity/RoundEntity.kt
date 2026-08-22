@@ -16,7 +16,10 @@ import java.util.UUID
         childColumns = ["partyId"],
         onDelete = ForeignKey.CASCADE
     )],
-    indices = [Index("partyId")]
+    indices = [
+        Index("partyId"),
+        Index(value = ["partyId", "roundNumber"], unique = true)
+    ]
 )
 data class RoundEntity(
     @PrimaryKey val id: String,

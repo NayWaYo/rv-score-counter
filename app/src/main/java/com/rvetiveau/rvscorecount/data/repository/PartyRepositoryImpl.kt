@@ -57,7 +57,15 @@ class PartyRepositoryImpl @Inject constructor(
 
     // Transaction requise (AD-3) : un Round sans ses RoundScores serait un état incohérent
     override suspend fun saveRound(round: Round, scores: Map<UUID, Int>) {
+        require(scores.isNotEmpty()) { "A round must contain at least one score" }
+
         appDatabase.withTransaction {
+            val participantIds = participantDao.getByPartyId(round.partyId.toString())
+                .mapTo(mutableSetOf()) { it.id }
+            require(scores.keys.all { it.toString() in participantIds }) {
+                "Every scored participant must belong to the round's party"
+            }
+
             roundDao.insert(round.toEntity())
             val scoreEntities = scores.map { (participantId, points) ->
                 RoundScore(roundId = round.id, participantId = participantId, points = points).toEntity()
