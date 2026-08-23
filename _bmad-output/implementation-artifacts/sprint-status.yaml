@@ -41,7 +41,7 @@
 # - Retrospective appends its action items to action_items; sprint-status surfaces open ones
 
 generated: "2026-08-09T20:05:55+02:00"
-last_updated: "2026-08-22T21:17:59+02:00"
+last_updated: "2026-08-23"
 project: rv-score-counter
 project_key: NOKEY
 tracking_system: file-system
@@ -52,15 +52,15 @@ development_status:
   # -------------------------------------------------------
   # Epic 1: Fondation & Infrastructure (5 stories)
   # -------------------------------------------------------
-  epic-1: in-progress
+  epic-1: done
 
   1-1-scaffolding-du-projet-android: done
   1-2-schema-de-base-de-donnees-room: done
   1-3-interface-gameengine-et-implementation-papayoo: done
   1-4-systeme-de-design-theme-sombre-et-tokens: done
-  1-5-navigation-graph-et-reprise-automatique: backlog
+  1-5-navigation-graph-et-reprise-automatique: done
 
-  epic-1-retrospective: optional
+  epic-1-retrospective: done
 
   # -------------------------------------------------------
   # Epic 2: Creation de Partie (3 stories)
@@ -115,3 +115,13 @@ development_status:
   6-2-detail-de-partie-scores-par-manche-avec-couleur-du-7: backlog
 
   epic-6-retrospective: optional
+
+action_items:
+  - epic: 1
+    action: "Appliquer un préflight de compatibilité avant toute implémentation fonctionnelle d'une story modifiant la stack."
+    owner: "Developer"
+    status: open
+  - epic: 1
+    action: "Maintenir la boucle code, revue indépendante et revalidation ciblée pour chaque story."
+    owner: "Équipe de développement"
+    status: open
