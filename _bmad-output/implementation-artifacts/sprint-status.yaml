@@ -65,9 +65,9 @@ development_status:
   # -------------------------------------------------------
   # Epic 2: Creation de Partie (3 stories)
   # -------------------------------------------------------
-  epic-2: backlog
+  epic-2: in-progress
 
-  2-1-ecran-d-accueil-grille-de-tuiles-jeux: backlog
+  2-1-ecran-d-accueil-grille-de-tuiles-jeux: done
   2-2-creation-de-partie-ajout-et-reordonnancement-des-participants: backlog
   2-3-confirmation-de-partie-et-initialisation-de-l-etat: backlog
 

@@ -1,6 +1,7 @@
 package com.rvetiveau.rvscorecount.game.papayoo
 
 import com.rvetiveau.rvscorecount.domain.engine.GameEngine
+import com.rvetiveau.rvscorecount.domain.engine.GameIds
 import com.rvetiveau.rvscorecount.domain.engine.RoundValidation
 import com.rvetiveau.rvscorecount.domain.model.ParticipantId
 import javax.inject.Inject
@@ -20,6 +21,6 @@ class PapayooEngine @Inject constructor() : GameEngine {
     }
 
     companion object {
-        const val GAME_ID = "papayoo"
+        const val GAME_ID = GameIds.PAPAYOO
     }
 }

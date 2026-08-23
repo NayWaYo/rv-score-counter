@@ -3,7 +3,6 @@
     <string name="app_name">rv-score-counter</string>
 
     <!-- Placeholders temporaires : remplacés écran par écran dans les epics 2 à 6 -->
-    <string name="route_placeholder_home">Accueil (à venir)</string>
     <string name="route_placeholder_setup">Création de partie — jeu %1$s (à venir)</string>
     <string name="route_placeholder_party">Partie en cours %1$s (à venir)</string>
     <string name="route_placeholder_round_entry">Saisie de manche — partie %1$s (à venir)</string>
@@ -14,4 +13,10 @@
     <!-- Démarrage : reprise automatique d'une Partie en cours -->
     <string name="root_error_message">Impossible de vérifier si une partie est en cours.</string>
     <string name="root_error_retry">Réessayer</string>
+
+    <!-- Accueil : grille de tuiles Jeux -->
+    <string name="home_title">Jeux</string>
+    <string name="game_name_papayoo">Papayoo</string>
+    <string name="history_content_description">Historique</string>
+    <string name="game_tile_content_description">Créer une partie de %1$s</string>
 </resources>
