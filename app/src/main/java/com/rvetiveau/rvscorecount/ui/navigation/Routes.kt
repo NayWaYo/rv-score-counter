@@ -1,3 +1,39 @@
 package com.rvetiveau.rvscorecount.ui.navigation
 
-sealed interface Routes
+import kotlinx.serialization.SerialName
+import kotlinx.serialization.Serializable
+
+/**
+ * Type-safe navigation destinations (AD-6). Identifiers are passed as [String]
+ * (UUID.toString()) so the domain model never leaks into the navigation layer.
+ */
+@Serializable
+sealed interface Routes {
+    @Serializable
+    @SerialName("home")
+    data object Home : Routes
+
+    @Serializable
+    @SerialName("setup")
+    data class Setup(val gameId: String) : Routes
+
+    @Serializable
+    @SerialName("party")
+    data class Party(val partyId: String) : Routes
+
+    @Serializable
+    @SerialName("roundEntry")
+    data class RoundEntry(val partyId: String) : Routes
+
+    @Serializable
+    @SerialName("results")
+    data class Results(val partyId: String) : Routes
+
+    @Serializable
+    @SerialName("history")
+    data object History : Routes
+
+    @Serializable
+    @SerialName("partyDetail")
+    data class PartyDetail(val partyId: String) : Routes
+}
