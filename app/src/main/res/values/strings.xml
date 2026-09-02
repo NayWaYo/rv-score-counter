@@ -3,7 +3,6 @@
     <string name="app_name">rv-score-counter</string>
 
     <!-- Placeholders temporaires : remplacés écran par écran dans les epics 2 à 6 -->
-    <string name="route_placeholder_setup">Création de partie — jeu %1$s (à venir)</string>
     <string name="route_placeholder_party">Partie en cours %1$s (à venir)</string>
     <string name="route_placeholder_round_entry">Saisie de manche — partie %1$s (à venir)</string>
     <string name="route_placeholder_results">Résultats finaux — partie %1$s (à venir)</string>
@@ -19,4 +18,17 @@
     <string name="game_name_papayoo">Papayoo</string>
     <string name="history_content_description">Historique</string>
     <string name="game_tile_content_description">Créer une partie de %1$s</string>
+
+    <!-- Création de Partie : ajout et réordonnancement des Participants -->
+    <string name="setup_title">Créer une partie</string>
+    <string name="setup_name_hint">Prénom du joueur</string>
+    <string name="setup_add_button">Ajouter</string>
+    <string name="setup_error_empty_name">Veuillez entrer un prénom</string>
+    <string name="setup_participant_count">%1$d/%2$d à %3$d</string>
+    <string name="setup_max_players_reached">Maximum %1$d joueurs atteint</string>
+    <string name="setup_start_button">Commencer</string>
+    <string name="setup_dealer_badge">Donneur M1</string>
+    <string name="setup_dealer_badge_content_description">Donneur</string>
+    <string name="setup_reorder_handle_content_description">Réorganiser %1$s, joueur %2$d sur %3$d</string>
+    <string name="setup_remove_participant_content_description">Supprimer %1$s</string>
 </resources>
