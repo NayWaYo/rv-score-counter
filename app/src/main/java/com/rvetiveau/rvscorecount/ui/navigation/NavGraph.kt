@@ -14,6 +14,7 @@ import androidx.navigation.compose.rememberNavController
 import androidx.navigation.toRoute
 import com.rvetiveau.rvscorecount.R
 import com.rvetiveau.rvscorecount.ui.screens.home.HomeRoute
+import com.rvetiveau.rvscorecount.ui.screens.setup.SetupRoute
 
 /**
  * Single NavHost registering every destination (AD-6, AC-3). Screen bodies are
@@ -36,7 +37,7 @@ fun RvScoreCounterNavHost(
         }
         composable<Routes.Setup> { backStackEntry ->
             val route: Routes.Setup = backStackEntry.toRoute()
-            RoutePlaceholder(stringResource(R.string.route_placeholder_setup, route.gameId))
+            SetupRoute(gameId = route.gameId)
         }
         composable<Routes.Party> { backStackEntry ->
             val route: Routes.Party = backStackEntry.toRoute()
