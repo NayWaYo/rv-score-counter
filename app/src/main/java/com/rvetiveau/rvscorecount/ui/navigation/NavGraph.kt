@@ -15,6 +15,7 @@ import androidx.navigation.toRoute
 import com.rvetiveau.rvscorecount.R
 import com.rvetiveau.rvscorecount.ui.screens.home.HomeRoute
 import com.rvetiveau.rvscorecount.ui.screens.party.PartyRoute
+import com.rvetiveau.rvscorecount.ui.screens.round.RoundEntryRoute
 import com.rvetiveau.rvscorecount.ui.screens.setup.SetupRoute
 import java.util.UUID
 
@@ -43,11 +44,14 @@ fun RvScoreCounterNavHost(
         }
         composable<Routes.Party> { backStackEntry ->
             val route: Routes.Party = backStackEntry.toRoute()
-            PartyRoute(partyId = UUID.fromString(route.partyId))
+            PartyRoute(
+                partyId = UUID.fromString(route.partyId),
+                onNavigate = { event -> navController.dispatch(event) }
+            )
         }
         composable<Routes.RoundEntry> { backStackEntry ->
             val route: Routes.RoundEntry = backStackEntry.toRoute()
-            RoutePlaceholder(stringResource(R.string.route_placeholder_round_entry, route.partyId))
+            RoundEntryRoute(partyId = UUID.fromString(route.partyId))
         }
         composable<Routes.Results> { backStackEntry ->
             val route: Routes.Results = backStackEntry.toRoute()

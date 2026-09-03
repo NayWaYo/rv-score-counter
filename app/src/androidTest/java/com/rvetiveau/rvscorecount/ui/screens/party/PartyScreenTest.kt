@@ -22,10 +22,10 @@ class PartyScreenTest {
     @get:Rule
     val composeTestRule = createComposeRule()
 
-    private fun setContent(state: PartyUiState, onRetry: () -> Unit = {}) {
+    private fun setContent(state: PartyUiState, onRetry: () -> Unit = {}, onStartRound: () -> Unit = {}) {
         composeTestRule.setContent {
             RvScoreCounterTheme {
-                PartyScreen(state = state, onRetry = onRetry)
+                PartyScreen(state = state, onRetry = onRetry, onStartRound = onStartRound)
             }
         }
     }
@@ -36,6 +36,23 @@ class PartyScreenTest {
 
         composeTestRule.onNodeWithTag("party_dealer_title").assertTextEquals("Manche 1 — Donneur : Alice")
         composeTestRule.onNodeWithTag("party_empty_state").assertTextEquals("Lancez la première manche pour commencer.")
+    }
+
+    @Test
+    fun startRoundButtonTriggersItsCallbackWhenLoaded() {
+        var started = false
+        setContent(PartyUiState.Loaded(dealerName = "Alice"), onStartRound = { started = true })
+
+        composeTestRule.onNodeWithTag("party_start_round_button").performClick()
+
+        assertTrue(started)
+    }
+
+    @Test
+    fun startRoundButtonIsHiddenWhenThePartyIsFinished() {
+        setContent(PartyUiState.Loaded(dealerName = "Alice", canStartRound = false))
+
+        composeTestRule.onNodeWithTag("party_start_round_button").assertDoesNotExist()
     }
 
     @Test

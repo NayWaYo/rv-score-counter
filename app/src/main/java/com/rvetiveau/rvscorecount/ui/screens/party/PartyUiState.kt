@@ -7,7 +7,10 @@ package com.rvetiveau.rvscorecount.ui.screens.party
  */
 sealed interface PartyUiState {
     data object Loading : PartyUiState
-    data class Loaded(val dealerName: String) : PartyUiState
+    data class Loaded(
+        val dealerName: String,
+        val canStartRound: Boolean = true
+    ) : PartyUiState
     data object LoadError : PartyUiState
     data object PartyNotFound : PartyUiState
     data object InconsistentParticipants : PartyUiState
