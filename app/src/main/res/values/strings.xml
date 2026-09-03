@@ -3,7 +3,6 @@
     <string name="app_name">rv-score-counter</string>
 
     <!-- Placeholders temporaires : remplacés écran par écran dans les epics 2 à 6 -->
-    <string name="route_placeholder_party">Partie en cours %1$s (à venir)</string>
     <string name="route_placeholder_round_entry">Saisie de manche — partie %1$s (à venir)</string>
     <string name="route_placeholder_results">Résultats finaux — partie %1$s (à venir)</string>
     <string name="route_placeholder_history">Historique (à venir)</string>
@@ -31,4 +30,13 @@
     <string name="setup_dealer_badge_content_description">Donneur</string>
     <string name="setup_reorder_handle_content_description">Réorganiser %1$s, joueur %2$d sur %3$d</string>
     <string name="setup_remove_participant_content_description">Supprimer %1$s</string>
+    <string name="setup_error_invalid_state">La configuration de la partie est devenue incohérente. Vérifiez vos joueurs et réessayez.</string>
+    <string name="setup_error_creation_failed">Impossible de créer la partie. Réessayez.</string>
+
+    <!-- Partie en cours : confirmation minimale (Manche 1 / Donneur) -->
+    <string name="party_dealer_title">Manche 1 — Donneur : %1$s</string>
+    <string name="party_empty_state">Lancez la première manche pour commencer.</string>
+    <string name="party_load_error">Impossible de charger la partie.</string>
+    <string name="party_not_found">Partie introuvable.</string>
+    <string name="party_inconsistent_participants">Les données de la partie sont incohérentes.</string>
 </resources>

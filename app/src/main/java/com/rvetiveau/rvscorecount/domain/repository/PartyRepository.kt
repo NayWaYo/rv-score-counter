@@ -10,6 +10,9 @@ import java.util.UUID
 interface PartyRepository {
     suspend fun createParty(party: Party)
     suspend fun updateParty(party: Party)
+    /** Atomic aggregate write (AC 1-3, 9): the Party (already IN_PROGRESS) and all its Participants
+     * commit in a single Room transaction, or none of them persist. */
+    suspend fun createPartyWithParticipants(party: Party, participants: List<Participant>)
     suspend fun getPartyById(id: UUID): Party?
     fun observeParty(id: UUID): Flow<Party?>
     suspend fun getPartyInProgress(): Party?

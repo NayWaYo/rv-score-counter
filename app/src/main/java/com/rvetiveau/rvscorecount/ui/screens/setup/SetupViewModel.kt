@@ -2,27 +2,41 @@ package com.rvetiveau.rvscorecount.ui.screens.setup
 
 import androidx.annotation.StringRes
 import androidx.lifecycle.ViewModel
+import androidx.lifecycle.viewModelScope
 import com.rvetiveau.rvscorecount.R
+import com.rvetiveau.rvscorecount.domain.model.ParticipantCreationData
+import com.rvetiveau.rvscorecount.domain.usecase.CreatePartyUseCase
 import com.rvetiveau.rvscorecount.domain.usecase.GetAvailableGamesUseCase
+import com.rvetiveau.rvscorecount.domain.usecase.InvalidPartyConfigurationException
+import com.rvetiveau.rvscorecount.ui.navigation.NavigationEvent
+import com.rvetiveau.rvscorecount.ui.navigation.Routes
 import dagger.hilt.android.lifecycle.HiltViewModel
 import java.util.UUID
 import javax.inject.Inject
+import kotlinx.coroutines.channels.Channel
+import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.flow.update
+import kotlinx.coroutines.launch
 
 /**
- * Owns the in-memory Participant draft for Création de Partie (AC 1-6, 9). No persistence:
- * Story 2.3 extends this same ViewModel to create the Party from [SetupUiState.participants].
+ * Owns the in-memory Participant draft for Création de Partie (AC 1-6, 9) and confirms it into
+ * a persisted Party (AC 1-4, 6-7): [SetupUiState.participants] is the sole listPosition source.
  */
 @HiltViewModel
 class SetupViewModel @Inject constructor(
-    private val getAvailableGamesUseCase: GetAvailableGamesUseCase
+    private val getAvailableGamesUseCase: GetAvailableGamesUseCase,
+    private val createPartyUseCase: CreatePartyUseCase
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(SetupUiState())
     val uiState: StateFlow<SetupUiState> = _uiState.asStateFlow()
+
+    private val _navigationEvents = Channel<NavigationEvent>(Channel.BUFFERED)
+    val navigationEvents: Flow<NavigationEvent> = _navigationEvents.receiveAsFlow()
 
     /** Idempotent: a recomposition or a duplicate call for the same gameId never resets the draft. */
     fun initialize(gameId: String) {
@@ -40,7 +54,7 @@ class SetupViewModel @Inject constructor(
     }
 
     fun onNameChanged(name: String) {
-        _uiState.update { it.copy(nameInput = name, messageRes = null) }
+        _uiState.update { it.copy(nameInput = name, messageRes = null, creationErrorRes = null) }
     }
 
     fun onAddParticipant() {
@@ -53,7 +67,8 @@ class SetupViewModel @Inject constructor(
                 it.copy(
                     participants = it.participants + ParticipantDraft(name = trimmedName),
                     nameInput = "",
-                    messageRes = null
+                    messageRes = null,
+                    creationErrorRes = null
                 )
             }
         }
@@ -65,7 +80,7 @@ class SetupViewModel @Inject constructor(
             if (participants.size == state.participants.size) {
                 state
             } else {
-                state.copy(participants = participants, messageRes = null)
+                state.copy(participants = participants, messageRes = null, creationErrorRes = null)
             }
         }
     }
@@ -78,8 +93,39 @@ class SetupViewModel @Inject constructor(
                 return@update state
             }
             val reordered = participants.toMutableList().apply { add(toIndex, removeAt(fromIndex)) }
-            state.copy(participants = reordered)
+            state.copy(participants = reordered, creationErrorRes = null)
         }
+    }
+
+    /** Guards a double tap: [SetupUiState.canStart] already excludes an in-flight or completed creation. */
+    fun onStartParty() {
+        val state = _uiState.value
+        if (!state.canStart) return
+        _uiState.update { it.copy(isCreatingParty = true, creationErrorRes = null) }
+
+        viewModelScope.launch {
+            try {
+                val participants = state.participants.map { ParticipantCreationData(id = it.id, name = it.name) }
+                createPartyUseCase(state.gameId, participants).fold(
+                    onSuccess = { partyId ->
+                        _uiState.update { it.copy(creationCompleted = true) }
+                        _navigationEvents.send(NavigationEvent.NavigateTo(Routes.Party(partyId.toString())))
+                    },
+                    onFailure = { failure -> setCreationError(failure) }
+                )
+            } finally {
+                _uiState.update { it.copy(isCreatingParty = false) }
+            }
+        }
+    }
+
+    private fun setCreationError(failure: Throwable) {
+        val messageRes = if (failure is InvalidPartyConfigurationException) {
+            R.string.setup_error_invalid_state
+        } else {
+            R.string.setup_error_creation_failed
+        }
+        _uiState.update { it.copy(creationErrorRes = messageRes) }
     }
 
     private fun setMessage(@StringRes messageRes: Int) {
