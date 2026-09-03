@@ -3,7 +3,11 @@ package com.rvetiveau.rvscorecount.ui.screens.party
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Button
 import androidx.compose.material3.MaterialTheme
@@ -25,7 +29,8 @@ import com.rvetiveau.rvscorecount.R
 fun PartyScreen(
     state: PartyUiState,
     modifier: Modifier = Modifier,
-    onRetry: () -> Unit = {}
+    onRetry: () -> Unit = {},
+    onStartRound: () -> Unit = {}
 ) {
     when (state) {
         is PartyUiState.Loading -> CenteredMessage(modifier) {
@@ -64,6 +69,7 @@ fun PartyScreen(
         is PartyUiState.Loaded -> Column(
             modifier = modifier
                 .fillMaxSize()
+                .verticalScroll(rememberScrollState())
                 .padding(16.dp)
         ) {
             Text(
@@ -80,6 +86,18 @@ fun PartyScreen(
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier.testTag("party_empty_state")
             )
+            if (state.canStartRound) {
+                Button(
+                    onClick = onStartRound,
+                    modifier = Modifier
+                        .padding(top = 16.dp)
+                        .fillMaxWidth()
+                        .heightIn(min = 56.dp)
+                        .testTag("party_start_round_button")
+                ) {
+                    Text(text = stringResource(R.string.party_start_round_button))
+                }
+            }
         }
     }
 }

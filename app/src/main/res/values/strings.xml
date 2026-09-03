@@ -3,7 +3,6 @@
     <string name="app_name">rv-score-counter</string>
 
     <!-- Placeholders temporaires : remplacés écran par écran dans les epics 2 à 6 -->
-    <string name="route_placeholder_round_entry">Saisie de manche — partie %1$s (à venir)</string>
     <string name="route_placeholder_results">Résultats finaux — partie %1$s (à venir)</string>
     <string name="route_placeholder_history">Historique (à venir)</string>
     <string name="route_placeholder_party_detail">Détail de partie %1$s (à venir)</string>
@@ -39,4 +38,20 @@
     <string name="party_load_error">Impossible de charger la partie.</string>
     <string name="party_not_found">Partie introuvable.</string>
     <string name="party_inconsistent_participants">Les données de la partie sont incohérentes.</string>
+    <string name="party_start_round_button">Nouvelle manche</string>
+
+    <!-- Saisie de Manche : Dé Virtuel (Story 3.1) -->
+    <string name="round_entry_title">Saisie de manche</string>
+    <string name="round_entry_suit_label">Couleur du 7</string>
+    <string name="die_roll">Lancer</string>
+    <string name="die_reroll">Relancer</string>
+    <string name="suit_spade">Pique</string>
+    <string name="suit_heart">Cœur</string>
+    <string name="suit_club">Trèfle</string>
+    <string name="suit_diamond">Carreau</string>
+    <string name="suit_spade_pictogram" translatable="false">♠</string>
+    <string name="suit_heart_pictogram" translatable="false">♥</string>
+    <string name="suit_club_pictogram" translatable="false">♣</string>
+    <string name="suit_diamond_pictogram" translatable="false">♦</string>
+    <string name="die_result_content_description">Couleur du 7 : %1$s</string>
 </resources>

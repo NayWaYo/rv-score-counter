@@ -41,7 +41,7 @@
 # - Retrospective appends its action items to action_items; sprint-status surfaces open ones
 
 generated: "2026-08-09T20:05:55+02:00"
-last_updated: "2026-09-02"
+last_updated: "2026-09-03"
 
 project: rv-score-counter
 project_key: NOKEY
@@ -77,9 +77,9 @@ development_status:
   # -------------------------------------------------------
   # Epic 3: Saisie de Manche (4 stories)
   # -------------------------------------------------------
-  epic-3: backlog
+  epic-3: in-progress
 
-  3-1-de-virtuel-tirage-de-la-couleur-du-7: backlog
+  3-1-de-virtuel-tirage-de-la-couleur-du-7: done
   3-2-saisie-des-scores-ordre-libre-et-clavier-numerique: backlog
   3-3-pre-remplissage-automatique-du-dernier-participant: backlog
   3-4-validation-de-manche-et-persistance: backlog

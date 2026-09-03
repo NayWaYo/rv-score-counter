@@ -6,15 +6,19 @@ import com.rvetiveau.rvscorecount.domain.model.PartyState
 import com.rvetiveau.rvscorecount.domain.model.Round
 import com.rvetiveau.rvscorecount.domain.model.RoundScore
 import com.rvetiveau.rvscorecount.domain.repository.PartyRepository
+import com.rvetiveau.rvscorecount.ui.navigation.NavigationEvent
+import com.rvetiveau.rvscorecount.ui.navigation.Routes
 import java.util.UUID
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import kotlinx.coroutines.test.resetMain
 import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.test.setMain
+import kotlinx.coroutines.withTimeoutOrNull
 import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
@@ -56,10 +60,14 @@ class PartyViewModelTest {
         override suspend fun getScoresByRoundId(roundId: UUID): List<RoundScore> = error("not used in this test")
     }
 
-    private fun aParty(id: UUID, dealerIndex: Int = 0) = Party(
+    private fun aParty(
+        id: UUID,
+        dealerIndex: Int = 0,
+        status: PartyState = PartyState.IN_PROGRESS
+    ) = Party(
         id = id,
         gameId = "papayoo",
-        status = PartyState.IN_PROGRESS,
+        status = status,
         currentDealerIndex = dealerIndex,
         createdAt = 0L
     )
@@ -179,5 +187,70 @@ class PartyViewModelTest {
         val state = vm.uiState.value
         check(state is PartyUiState.Loaded)
         assertEquals("Alice", state.dealerName)
+    }
+
+    @Test
+    fun `onStartRound emits the RoundEntry route with the exact initialized partyId`() = runTest {
+        val partyId = UUID.randomUUID()
+        val participants = listOf(aParticipant(partyId, "Alice", 0))
+        val vm = PartyViewModel(FakePartyRepository(party = aParty(partyId), participants = participants))
+        vm.initialize(partyId)
+
+        vm.onStartRound()
+
+        val event = vm.navigationEvents.first()
+        assertEquals(NavigationEvent.NavigateTo(Routes.RoundEntry(partyId.toString())), event)
+    }
+
+    @Test
+    fun `onStartRound does not navigate before the party has finished loading`() = runTest {
+        val partyId = UUID.randomUUID()
+        val vm = PartyViewModel(FakePartyRepository(party = null))
+        vm.initialize(partyId)
+
+        vm.onStartRound()
+
+        val event = withTimeoutOrNull(100) { vm.navigationEvents.first() }
+        assertTrue(event == null)
+    }
+
+    @Test
+    fun `onStartRound emits only once until the screen resumes`() = runTest {
+        val partyId = UUID.randomUUID()
+        val participants = listOf(aParticipant(partyId, "Alice", 0))
+        val vm = PartyViewModel(FakePartyRepository(party = aParty(partyId), participants = participants))
+        vm.initialize(partyId)
+
+        vm.onStartRound()
+        vm.onStartRound()
+
+        vm.navigationEvents.first()
+        assertTrue(withTimeoutOrNull(100) { vm.navigationEvents.first() } == null)
+
+        vm.onScreenResumed()
+        vm.onStartRound()
+        assertEquals(
+            NavigationEvent.NavigateTo(Routes.RoundEntry(partyId.toString())),
+            vm.navigationEvents.first()
+        )
+    }
+
+    @Test
+    fun `onStartRound does not navigate for a finished party`() = runTest {
+        val partyId = UUID.randomUUID()
+        val participants = listOf(aParticipant(partyId, "Alice", 0))
+        val vm = PartyViewModel(
+            FakePartyRepository(
+                party = aParty(partyId, status = PartyState.FINISHED),
+                participants = participants
+            )
+        )
+        vm.initialize(partyId)
+
+        vm.onStartRound()
+
+        val state = vm.uiState.value as PartyUiState.Loaded
+        assertTrue(!state.canStartRound)
+        assertTrue(withTimeoutOrNull(100) { vm.navigationEvents.first() } == null)
     }
 }
