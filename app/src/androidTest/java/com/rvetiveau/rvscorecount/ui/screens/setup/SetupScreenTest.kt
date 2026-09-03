@@ -40,21 +40,26 @@ class SetupScreenTest {
         participants: List<ParticipantDraft> = emptyList(),
         minPlayers: Int = 3,
         maxPlayers: Int = 8,
-        messageRes: Int? = null
+        messageRes: Int? = null,
+        isCreatingParty: Boolean = false,
+        creationErrorRes: Int? = null
     ) = SetupUiState(
         gameId = "papayoo",
         minPlayers = minPlayers,
         maxPlayers = maxPlayers,
         isInitialized = true,
         participants = participants,
-        messageRes = messageRes
+        messageRes = messageRes,
+        isCreatingParty = isCreatingParty,
+        creationErrorRes = creationErrorRes
     )
 
     private fun setContent(
         state: SetupUiState,
         onAddParticipant: () -> Unit = {},
         onRemoveParticipant: (UUID) -> Unit = {},
-        onMoveParticipant: (Int, Int) -> Unit = { _, _ -> }
+        onMoveParticipant: (Int, Int) -> Unit = { _, _ -> },
+        onStartParty: () -> Unit = {}
     ) {
         composeTestRule.setContent {
             RvScoreCounterTheme {
@@ -64,7 +69,7 @@ class SetupScreenTest {
                     onAddParticipant = onAddParticipant,
                     onRemoveParticipant = onRemoveParticipant,
                     onMoveParticipant = onMoveParticipant,
-                    onStartParty = {}
+                    onStartParty = onStartParty
                 )
             }
         }
@@ -114,6 +119,45 @@ class SetupScreenTest {
         setContent(stateWith(participants = listOf(draft("Alice"), draft("Bob"), draft("Charlie")), minPlayers = 3))
 
         composeTestRule.onNodeWithTag("setup_start_button").assertIsEnabled()
+    }
+
+    @Test
+    fun clickingStartInvokesTheCallback() {
+        var started = false
+        setContent(
+            stateWith(participants = listOf(draft("Alice"), draft("Bob"), draft("Charlie")), minPlayers = 3),
+            onStartParty = { started = true }
+        )
+
+        composeTestRule.onNodeWithTag("setup_start_button").performClick()
+
+        assertTrue(started)
+    }
+
+    @Test
+    fun disablesTheStartButtonWhileCreationIsInFlight() {
+        setContent(
+            stateWith(
+                participants = listOf(draft("Alice"), draft("Bob"), draft("Charlie")),
+                minPlayers = 3,
+                isCreatingParty = true
+            )
+        )
+
+        composeTestRule.onNodeWithTag("setup_start_button").assertIsNotEnabled()
+    }
+
+    @Test
+    fun showsTheCreationErrorMessageWithoutReplacingTheInputMessage() {
+        setContent(
+            stateWith(
+                participants = listOf(draft("Alice"), draft("Bob"), draft("Charlie")),
+                minPlayers = 3,
+                creationErrorRes = com.rvetiveau.rvscorecount.R.string.setup_error_creation_failed
+            )
+        )
+
+        composeTestRule.onNodeWithTag("setup_creation_error_message").assertTextEquals("Impossible de créer la partie. Réessayez.")
     }
 
     @Test

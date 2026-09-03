@@ -36,6 +36,15 @@ class PartyRepositoryImpl @Inject constructor(
         partyDao.update(party.toEntity())
     }
 
+    // Aggregate create (AC 1-3, 9) : a single transaction makes only the final IN_PROGRESS
+    // Party + its Participants observable; any failure or cancellation leaves no partial row.
+    override suspend fun createPartyWithParticipants(party: Party, participants: List<Participant>) {
+        appDatabase.withTransaction {
+            partyDao.insert(party.toEntity())
+            participantDao.insertAll(participants.map { it.toEntity() })
+        }
+    }
+
     override suspend fun getPartyById(id: UUID): Party? =
         partyDao.getById(id.toString())?.toDomain()
 

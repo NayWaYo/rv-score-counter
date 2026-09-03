@@ -23,6 +23,7 @@ class ResumePartyUseCaseTest {
     ) : PartyRepository {
         override suspend fun createParty(party: Party) = error("not used in this test")
         override suspend fun updateParty(party: Party) = error("not used in this test")
+        override suspend fun createPartyWithParticipants(party: Party, participants: List<Participant>) = error("not used in this test")
         override suspend fun getPartyById(id: UUID): Party? = error("not used in this test")
         override fun observeParty(id: UUID): Flow<Party?> = flowOf(null)
         override suspend fun getPartyInProgress(): Party? {

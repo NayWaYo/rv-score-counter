@@ -15,10 +15,14 @@ data class SetupUiState(
     val isInitialized: Boolean = false,
     val nameInput: String = "",
     val participants: List<ParticipantDraft> = emptyList(),
-    @StringRes val messageRes: Int? = null
+    @StringRes val messageRes: Int? = null,
+    val isCreatingParty: Boolean = false,
+    val creationCompleted: Boolean = false,
+    @StringRes val creationErrorRes: Int? = null
 ) {
     val canAdd: Boolean get() = isInitialized && participants.size < maxPlayers
-    val canStart: Boolean get() = isInitialized && participants.size >= minPlayers
+    val canStart: Boolean
+        get() = isInitialized && participants.size >= minPlayers && !isCreatingParty && !creationCompleted
     val isMaxReached: Boolean get() = isInitialized && !canAdd
 }
 

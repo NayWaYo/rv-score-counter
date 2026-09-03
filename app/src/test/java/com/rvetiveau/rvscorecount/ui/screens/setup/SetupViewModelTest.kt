@@ -3,16 +3,50 @@ package com.rvetiveau.rvscorecount.ui.screens.setup
 import com.rvetiveau.rvscorecount.R
 import com.rvetiveau.rvscorecount.domain.engine.GameEngine
 import com.rvetiveau.rvscorecount.domain.engine.RoundValidation
+import com.rvetiveau.rvscorecount.domain.model.Participant
 import com.rvetiveau.rvscorecount.domain.model.ParticipantId
+import com.rvetiveau.rvscorecount.domain.model.Party
+import com.rvetiveau.rvscorecount.domain.model.Round
+import com.rvetiveau.rvscorecount.domain.model.RoundScore
+import com.rvetiveau.rvscorecount.domain.repository.PartyRepository
+import com.rvetiveau.rvscorecount.domain.usecase.CreatePartyUseCase
 import com.rvetiveau.rvscorecount.domain.usecase.GetAvailableGamesUseCase
+import com.rvetiveau.rvscorecount.ui.navigation.NavigationEvent
+import com.rvetiveau.rvscorecount.ui.navigation.Routes
+import java.util.UUID
+import kotlin.coroutines.Continuation
+import kotlin.coroutines.resume
+import kotlin.coroutines.suspendCoroutine
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.flowOf
+import kotlinx.coroutines.test.UnconfinedTestDispatcher
+import kotlinx.coroutines.test.resetMain
+import kotlinx.coroutines.test.runTest
+import kotlinx.coroutines.test.setMain
+import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertThrows
 import org.junit.Assert.assertTrue
+import org.junit.Before
 import org.junit.Test
 
+@OptIn(ExperimentalCoroutinesApi::class)
 class SetupViewModelTest {
+
+    @Before
+    fun setUp() {
+        Dispatchers.setMain(UnconfinedTestDispatcher())
+    }
+
+    @After
+    fun tearDown() {
+        Dispatchers.resetMain()
+    }
 
     private class FakeGameEngine(
         override val gameId: String,
@@ -24,8 +58,54 @@ class SetupViewModelTest {
         override fun validateRound(scores: Map<ParticipantId, Int>): RoundValidation = RoundValidation.Success
     }
 
-    private fun viewModel(engine: GameEngine = FakeGameEngine("papayoo")): SetupViewModel =
-        SetupViewModel(GetAvailableGamesUseCase(mapOf(engine.gameId to engine))).also { it.initialize(engine.gameId) }
+    private open class FakePartyRepository(
+        private val failure: Throwable? = null
+    ) : PartyRepository {
+        var createCallCount = 0
+            private set
+
+        override suspend fun createParty(party: Party) = error("not used in this test")
+        override suspend fun updateParty(party: Party) = error("not used in this test")
+        override suspend fun createPartyWithParticipants(party: Party, participants: List<Participant>) {
+            createCallCount++
+            failure?.let { throw it }
+        }
+        override suspend fun getPartyById(id: UUID): Party? = error("not used in this test")
+        override fun observeParty(id: UUID): Flow<Party?> = flowOf(null)
+        override suspend fun getPartyInProgress(): Party? = error("not used in this test")
+        override suspend fun addParticipant(participant: Participant) = error("not used in this test")
+        override suspend fun getParticipantsByPartyId(partyId: UUID): List<Participant> = error("not used in this test")
+        override fun observeParticipants(partyId: UUID): Flow<List<Participant>> = flowOf(emptyList())
+        override suspend fun saveRound(round: Round, scores: Map<UUID, Int>) = error("not used in this test")
+        override suspend fun getRoundsByPartyId(partyId: UUID): List<Round> = error("not used in this test")
+        override suspend fun getScoresByRoundId(roundId: UUID): List<RoundScore> = error("not used in this test")
+    }
+
+    /** Suspends every createPartyWithParticipants call until the test resumes it, to observe the busy window. */
+    private class ControlledPartyRepository : FakePartyRepository() {
+        private val pendingCreates = mutableListOf<Continuation<Unit>>()
+
+        override suspend fun createPartyWithParticipants(party: Party, participants: List<Participant>) {
+            super.createPartyWithParticipants(party, participants)
+            suspendCoroutine<Unit> { continuation -> pendingCreates += continuation }
+        }
+
+        fun completeNext() {
+            pendingCreates.removeAt(0).resume(Unit)
+        }
+    }
+
+    private fun createPartyUseCase(engine: GameEngine, repository: PartyRepository = FakePartyRepository()): CreatePartyUseCase =
+        CreatePartyUseCase(repository, mapOf(engine.gameId to engine))
+
+    private fun viewModel(
+        engine: GameEngine = FakeGameEngine("papayoo"),
+        partyRepository: PartyRepository = FakePartyRepository()
+    ): SetupViewModel =
+        SetupViewModel(
+            GetAvailableGamesUseCase(mapOf(engine.gameId to engine)),
+            createPartyUseCase(engine, partyRepository)
+        ).also { it.initialize(engine.gameId) }
 
     private fun SetupViewModel.addName(name: String) {
         onNameChanged(name)
@@ -34,7 +114,8 @@ class SetupViewModelTest {
 
     @Test
     fun `default state before initialize disables start and add`() {
-        val vm = SetupViewModel(GetAvailableGamesUseCase(mapOf("papayoo" to FakeGameEngine("papayoo"))))
+        val engine = FakeGameEngine("papayoo")
+        val vm = SetupViewModel(GetAvailableGamesUseCase(mapOf("papayoo" to engine)), createPartyUseCase(engine))
 
         val state = vm.uiState.value
         assertFalse(state.isInitialized)
@@ -54,7 +135,8 @@ class SetupViewModelTest {
 
     @Test
     fun `initialize is idempotent across repeated calls`() {
-        val vm = SetupViewModel(GetAvailableGamesUseCase(mapOf("papayoo" to FakeGameEngine("papayoo"))))
+        val engine = FakeGameEngine("papayoo")
+        val vm = SetupViewModel(GetAvailableGamesUseCase(mapOf("papayoo" to engine)), createPartyUseCase(engine))
         vm.initialize("papayoo")
         vm.addName("Alice")
 
@@ -65,7 +147,8 @@ class SetupViewModelTest {
 
     @Test
     fun `fails fast when no engine is registered for the requested gameId`() {
-        val vm = SetupViewModel(GetAvailableGamesUseCase(mapOf("belote" to FakeGameEngine("belote"))))
+        val engine = FakeGameEngine("belote")
+        val vm = SetupViewModel(GetAvailableGamesUseCase(mapOf("belote" to engine)), createPartyUseCase(engine))
 
         assertThrows(IllegalStateException::class.java) { vm.initialize("papayoo") }
     }
@@ -216,5 +299,105 @@ class SetupViewModelTest {
         vm.onMoveParticipant(1, 1)
 
         assertEquals(listOf("Alice", "Bob"), vm.uiState.value.participants.map { it.name })
+    }
+
+    @Test
+    fun `confirms successfully and navigates to the exact created Party route`() = runTest {
+        val repository = FakePartyRepository()
+        val engine = FakeGameEngine("papayoo", minPlayers = 1, maxPlayers = 8)
+        val vm = viewModel(engine, repository)
+        vm.addName("Alice")
+
+        vm.onStartParty()
+
+        val event = vm.navigationEvents.first()
+        check(event is NavigationEvent.NavigateTo)
+        val route = event.route
+        check(route is Routes.Party)
+        assertEquals(1, repository.createCallCount)
+        // A well-formed UUID string proves the emitted route carries the created partyId, not a placeholder.
+        UUID.fromString(route.partyId)
+        assertFalse(vm.uiState.value.isCreatingParty)
+        assertFalse(vm.uiState.value.canStart)
+
+        vm.onStartParty()
+
+        assertEquals(1, repository.createCallCount)
+    }
+
+    @Test
+    fun `keeps the ordered draft and surfaces an inline error when creation fails`() = runTest {
+        val failure = IllegalStateException("Room write failed")
+        val repository = FakePartyRepository(failure = failure)
+        val engine = FakeGameEngine("papayoo", minPlayers = 1, maxPlayers = 8)
+        val vm = viewModel(engine, repository)
+        vm.addName("Alice")
+        vm.addName("Bob")
+
+        vm.onStartParty()
+
+        val state = vm.uiState.value
+        assertEquals(listOf("Alice", "Bob"), state.participants.map { it.name })
+        assertEquals(R.string.setup_error_creation_failed, state.creationErrorRes)
+        assertFalse(state.isCreatingParty)
+    }
+
+    @Test
+    fun `clears the creation error when the draft is corrected`() = runTest {
+        val repository = FakePartyRepository(failure = IllegalStateException("Room write failed"))
+        val engine = FakeGameEngine("papayoo", minPlayers = 1, maxPlayers = 8)
+        val vm = viewModel(engine, repository)
+        vm.addName("Alice")
+        vm.onStartParty()
+        assertEquals(R.string.setup_error_creation_failed, vm.uiState.value.creationErrorRes)
+
+        vm.onNameChanged("Bob")
+
+        assertNull(vm.uiState.value.creationErrorRes)
+    }
+
+    @Test
+    fun `does nothing when called below the engine minimum`() = runTest {
+        val repository = FakePartyRepository()
+        val engine = FakeGameEngine("papayoo", minPlayers = 2, maxPlayers = 8)
+        val vm = viewModel(engine, repository)
+        vm.addName("Alice")
+
+        vm.onStartParty()
+
+        assertEquals(0, repository.createCallCount)
+        assertFalse(vm.uiState.value.isCreatingParty)
+    }
+
+    @Test
+    fun `disables start immediately after the tap while creation is in flight`() = runTest {
+        val repository = ControlledPartyRepository()
+        val engine = FakeGameEngine("papayoo", minPlayers = 1, maxPlayers = 8)
+        val vm = viewModel(engine, repository)
+        vm.addName("Alice")
+
+        vm.onStartParty()
+
+        assertTrue(vm.uiState.value.isCreatingParty)
+        assertFalse(vm.uiState.value.canStart)
+
+        repository.completeNext()
+    }
+
+    @Test
+    fun `a rapid second tap creates only one Party and emits only one navigation event`() = runTest {
+        val repository = ControlledPartyRepository()
+        val engine = FakeGameEngine("papayoo", minPlayers = 1, maxPlayers = 8)
+        val vm = viewModel(engine, repository)
+        vm.addName("Alice")
+
+        vm.onStartParty()
+        vm.onStartParty()
+
+        assertEquals(1, repository.createCallCount)
+        repository.completeNext()
+
+        val event = vm.navigationEvents.first()
+        assertTrue(event is NavigationEvent.NavigateTo)
     }
 }

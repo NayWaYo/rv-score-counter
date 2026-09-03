@@ -42,6 +42,7 @@
 
 generated: "2026-08-09T20:05:55+02:00"
 last_updated: "2026-09-02"
+
 project: rv-score-counter
 project_key: NOKEY
 tracking_system: file-system
@@ -69,7 +70,7 @@ development_status:
 
   2-1-ecran-d-accueil-grille-de-tuiles-jeux: done
   2-2-creation-de-partie-ajout-et-reordonnancement-des-participants: done
-  2-3-confirmation-de-partie-et-initialisation-de-l-etat: backlog
+  2-3-confirmation-de-partie-et-initialisation-de-l-etat: done
 
   epic-2-retrospective: optional
 

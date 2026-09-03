@@ -98,6 +98,17 @@ fun SetupScreen(
             )
         }
 
+        if (state.creationErrorRes != null) {
+            Text(
+                text = stringResource(state.creationErrorRes),
+                color = MaterialTheme.colorScheme.error,
+                style = MaterialTheme.typography.bodyLarge,
+                modifier = Modifier
+                    .padding(top = 4.dp)
+                    .testTag("setup_creation_error_message")
+            )
+        }
+
         Text(
             text = stringResource(
                 R.string.setup_participant_count,
