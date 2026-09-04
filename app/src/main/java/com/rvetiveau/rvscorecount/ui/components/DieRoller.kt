@@ -62,6 +62,7 @@ fun DieRoller(
             Row(
                 verticalAlignment = Alignment.CenterVertically,
                 modifier = Modifier
+                    .fillMaxWidth()
                     .testTag("die_result")
                     .clearAndSetSemantics { contentDescription = resultDescription }
             ) {
@@ -75,7 +76,9 @@ fun DieRoller(
                     text = suitName,
                     style = MaterialTheme.typography.bodyLarge,
                     color = suit.color,
-                    modifier = Modifier.testTag("die_result_name")
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .testTag("die_result_name")
                 )
             }
             Spacer(modifier = Modifier.height(8.dp))

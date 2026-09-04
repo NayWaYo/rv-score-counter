@@ -54,4 +54,9 @@
     <string name="suit_club_pictogram" translatable="false">♣</string>
     <string name="suit_diamond_pictogram" translatable="false">♦</string>
     <string name="die_result_content_description">Couleur du 7 : %1$s</string>
+
+    <!-- Saisie de Manche : scores et somme courante (Story 3.2) -->
+    <string name="round_entry_sum_label">Somme : %1$d</string>
+    <string name="round_entry_load_error">Impossible de charger la manche.</string>
+    <string name="score_field_content_description">Score de %1$s</string>
 </resources>
