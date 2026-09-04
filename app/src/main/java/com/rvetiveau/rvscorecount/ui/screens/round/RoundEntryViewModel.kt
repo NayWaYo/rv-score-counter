@@ -3,9 +3,11 @@ package com.rvetiveau.rvscorecount.ui.screens.round
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.rvetiveau.rvscorecount.domain.engine.GameEngine
 import com.rvetiveau.rvscorecount.domain.model.CardSuit
 import com.rvetiveau.rvscorecount.domain.model.PartyState
 import com.rvetiveau.rvscorecount.domain.repository.PartyRepository
+import com.rvetiveau.rvscorecount.domain.usecase.GetAvailableGamesUseCase
 import com.rvetiveau.rvscorecount.domain.usecase.RollDieUseCase
 import dagger.hilt.android.lifecycle.HiltViewModel
 import java.util.UUID
@@ -29,7 +31,8 @@ private const val SCORE_KEY_PREFIX = "score_"
 class RoundEntryViewModel @Inject constructor(
     private val partyRepository: PartyRepository,
     private val rollDieUseCase: RollDieUseCase,
-    private val savedStateHandle: SavedStateHandle
+    private val savedStateHandle: SavedStateHandle,
+    private val getAvailableGamesUseCase: GetAvailableGamesUseCase
 ) : ViewModel() {
 
     private val restoredSuit: CardSuit? = savedStateHandle.get<String>(SUIT_KEY)?.let { name ->
@@ -40,6 +43,7 @@ class RoundEntryViewModel @Inject constructor(
     val uiState: StateFlow<RoundEntryUiState> = _uiState.asStateFlow()
 
     private var initializedPartyId: UUID? = null
+    private var gameEngine: GameEngine? = null
 
     /** Idempotent: a recomposition never re-triggers the Room read for the same partyId. */
     fun initialize(partyId: UUID) {
@@ -70,22 +74,44 @@ class RoundEntryViewModel @Inject constructor(
                     return@launch
                 }
 
+                val engine = getAvailableGamesUseCase().firstOrNull { it.gameId == party.gameId }
+                if (engine == null) {
+                    initializedPartyId = null
+                    gameEngine = null
+                    _uiState.value = _uiState.value.copy(isLoading = false, loadError = true)
+                    return@launch
+                }
+                gameEngine = engine
+
                 val ordered = participants.sortedBy { it.listPosition }
+                val invalidRestoredParticipantIds = mutableSetOf<UUID>()
+                var hasRestoredScore = false
                 val restoredScores = ordered.associate { participant ->
                     val restored = savedStateHandle.get<String>("$SCORE_KEY_PREFIX${participant.id}")
-                    val validated = restored
-                        ?.takeIf { it.isEmpty() || (it.all(Char::isDigit) && it.toIntOrNull() != null) }
-                        ?: ""
+                    val validated = when {
+                        restored == null || restored.isEmpty() -> ""
+                        restored.all(Char::isDigit) && restored.toIntOrNull() != null -> restored.also {
+                            hasRestoredScore = true
+                        }
+                        else -> "".also { invalidRestoredParticipantIds += participant.id }
+                    }
                     participant.id to validated
+                }
+                val restoredContent = RoundEntryContent(
+                    participants = ordered.map { RoundEntryParticipant(it.id, it.name) },
+                    scores = restoredScores,
+                    totalPointsPerRound = engine.totalPointsPerRound
+                )
+                val content = if (hasRestoredScore) {
+                    precomputeSoleEmptyScore(restoredContent, engine, invalidRestoredParticipantIds)
+                } else {
+                    restoredContent
                 }
 
                 _uiState.value = _uiState.value.copy(
                     isLoading = false,
                     loadError = false,
-                    content = RoundEntryContent(
-                        participants = ordered.map { RoundEntryParticipant(it.id, it.name) },
-                        scores = restoredScores
-                    )
+                    content = content
                 )
             } catch (cancellation: CancellationException) {
                 initializedPartyId = null
@@ -114,13 +140,46 @@ class RoundEntryViewModel @Inject constructor(
      * values (signs, letters, decimals, Int overflow) are ignored rather than transformed. */
     fun onScoreChanged(participantId: UUID, rawValue: String) {
         val content = _uiState.value.content ?: return
+        val engine = gameEngine ?: return
         if (content.participants.none { it.id == participantId }) return
         val isValid = rawValue.isEmpty() || (rawValue.all(Char::isDigit) && rawValue.toIntOrNull() != null)
         if (!isValid) return
 
-        _uiState.value = _uiState.value.copy(content = content.copy(scores = content.scores + (participantId to rawValue)))
+        val wasPrecomputed = participantId == content.precomputedParticipantId
+        val updatedContent = content.copy(
+            scores = content.scores + (participantId to rawValue),
+            precomputedParticipantId = null
+        )
+        val nextContent = if (wasPrecomputed) {
+            updatedContent
+        } else {
+            precomputeSoleEmptyScore(updatedContent, engine)
+        }
+        _uiState.value = _uiState.value.copy(content = nextContent)
 
         val key = "$SCORE_KEY_PREFIX$participantId"
         if (rawValue.isEmpty()) savedStateHandle.remove<String>(key) else savedStateHandle[key] = rawValue
+    }
+
+    private fun precomputeSoleEmptyScore(
+        content: RoundEntryContent,
+        engine: GameEngine,
+        excludedParticipantIds: Set<UUID> = emptySet()
+    ): RoundEntryContent {
+        val emptyParticipantIds = content.participants
+            .map { it.id }
+            .filter { content.scores[it].isNullOrEmpty() }
+        val targetId = emptyParticipantIds.singleOrNull()
+            ?.takeUnless { it in excludedParticipantIds }
+            ?: return content.copy(precomputedParticipantId = null)
+        val enteredScores = content.participants
+            .asSequence()
+            .filterNot { it.id == targetId }
+            .associate { participant -> participant.id to checkNotNull(content.scores[participant.id]?.toIntOrNull()) }
+        val computedScore = engine.precomputeLastScore(enteredScores)
+        return content.copy(
+            scores = content.scores + (targetId to computedScore.toString()),
+            precomputedParticipantId = targetId
+        )
     }
 }

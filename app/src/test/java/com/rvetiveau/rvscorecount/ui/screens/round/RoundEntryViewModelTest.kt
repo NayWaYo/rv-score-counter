@@ -1,6 +1,8 @@
 package com.rvetiveau.rvscorecount.ui.screens.round
 
 import androidx.lifecycle.SavedStateHandle
+import com.rvetiveau.rvscorecount.domain.engine.GameEngine
+import com.rvetiveau.rvscorecount.domain.engine.RoundValidation
 import com.rvetiveau.rvscorecount.domain.model.CardSuit
 import com.rvetiveau.rvscorecount.domain.model.Participant
 import com.rvetiveau.rvscorecount.domain.model.Party
@@ -8,7 +10,9 @@ import com.rvetiveau.rvscorecount.domain.model.PartyState
 import com.rvetiveau.rvscorecount.domain.model.Round
 import com.rvetiveau.rvscorecount.domain.model.RoundScore
 import com.rvetiveau.rvscorecount.domain.repository.PartyRepository
+import com.rvetiveau.rvscorecount.domain.usecase.GetAvailableGamesUseCase
 import com.rvetiveau.rvscorecount.domain.usecase.RollDieUseCase
+import com.rvetiveau.rvscorecount.game.papayoo.PapayooEngine
 import java.util.UUID
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -50,6 +54,9 @@ class RoundEntryViewModelTest {
         private val participants: List<Participant> = emptyList(),
         var failure: Throwable? = null
     ) : PartyRepository {
+        var saveRoundInvocationCount = 0
+            private set
+
         override suspend fun createParty(party: Party) = error("not used in this test")
         override suspend fun updateParty(party: Party) = error("not used in this test")
         override suspend fun createPartyWithParticipants(party: Party, participants: List<Participant>) = error("not used in this test")
@@ -62,9 +69,21 @@ class RoundEntryViewModelTest {
         override suspend fun addParticipant(participant: Participant) = error("not used in this test")
         override suspend fun getParticipantsByPartyId(partyId: UUID): List<Participant> = participants
         override fun observeParticipants(partyId: UUID): Flow<List<Participant>> = error("not used in this test")
-        override suspend fun saveRound(round: Round, scores: Map<UUID, Int>) = error("not used in this test")
+        override suspend fun saveRound(round: Round, scores: Map<UUID, Int>) {
+            saveRoundInvocationCount++
+        }
         override suspend fun getRoundsByPartyId(partyId: UUID): List<Round> = error("not used in this test")
         override suspend fun getScoresByRoundId(roundId: UUID): List<RoundScore> = error("not used in this test")
+    }
+
+    private class RecordingGameEngine : GameEngine by PapayooEngine() {
+        var validateRoundInvocationCount = 0
+            private set
+
+        override fun validateRound(scores: Map<UUID, Int>): RoundValidation {
+            validateRoundInvocationCount++
+            return PapayooEngine().validateRound(scores)
+        }
     }
 
     private fun aParty(id: UUID, status: PartyState = PartyState.IN_PROGRESS) = Party(
@@ -85,8 +104,11 @@ class RoundEntryViewModelTest {
     private fun viewModel(
         savedStateHandle: SavedStateHandle = SavedStateHandle(),
         rollDieUseCase: RollDieUseCase = FakeRollDieUseCase(CardSuit.SPADE),
-        partyRepository: PartyRepository = FakePartyRepository()
-    ) = RoundEntryViewModel(partyRepository, rollDieUseCase, savedStateHandle)
+        partyRepository: PartyRepository = FakePartyRepository(),
+        getAvailableGamesUseCase: GetAvailableGamesUseCase = GetAvailableGamesUseCase(
+            mapOf(PapayooEngine.GAME_ID to PapayooEngine())
+        )
+    ) = RoundEntryViewModel(partyRepository, rollDieUseCase, savedStateHandle, getAvailableGamesUseCase)
 
     private fun initializedViewModel(
         savedStateHandle: SavedStateHandle = SavedStateHandle(),
@@ -172,6 +194,64 @@ class RoundEntryViewModelTest {
         assertTrue(!vm.uiState.value.rerollEnabled)
     }
 
+    // --- Story 3.3 derived score state (AC 6, 8) ---
+
+    @Test
+    fun `sum state is neutral while a score is missing below the round total`() {
+        val aliceId = UUID.randomUUID()
+        val bobId = UUID.randomUUID()
+        val content = RoundEntryContent(
+            participants = listOf(
+                RoundEntryParticipant(aliceId, "Alice"),
+                RoundEntryParticipant(bobId, "Bob")
+            ),
+            scores = mapOf(aliceId to "100", bobId to ""),
+            totalPointsPerRound = 250
+        )
+
+        assertTrue(!content.allFilled)
+        assertEquals(SumIndicatorState.NEUTRAL, content.sumIndicatorState)
+        assertTrue(!content.canValidate)
+    }
+
+    @Test
+    fun `sum state is success and validation enabled only when all scores equal the round total`() {
+        val aliceId = UUID.randomUUID()
+        val bobId = UUID.randomUUID()
+        val content = RoundEntryContent(
+            participants = listOf(
+                RoundEntryParticipant(aliceId, "Alice"),
+                RoundEntryParticipant(bobId, "Bob")
+            ),
+            scores = mapOf(aliceId to "100", bobId to "150"),
+            totalPointsPerRound = 250
+        )
+
+        assertTrue(content.allFilled)
+        assertEquals(SumIndicatorState.SUCCESS, content.sumIndicatorState)
+        assertTrue(content.canValidate)
+    }
+
+    @Test
+    fun `sum state is error as soon as entered scores exceed the round total`() {
+        val aliceId = UUID.randomUUID()
+        val bobId = UUID.randomUUID()
+        val charlieId = UUID.randomUUID()
+        val content = RoundEntryContent(
+            participants = listOf(
+                RoundEntryParticipant(aliceId, "Alice"),
+                RoundEntryParticipant(bobId, "Bob"),
+                RoundEntryParticipant(charlieId, "Charlie")
+            ),
+            scores = mapOf(aliceId to "200", bobId to "100", charlieId to ""),
+            totalPointsPerRound = 250
+        )
+
+        assertTrue(!content.allFilled)
+        assertEquals(SumIndicatorState.ERROR, content.sumIndicatorState)
+        assertTrue(!content.canValidate)
+    }
+
     // --- Story 3.2 participant loading (AC 1, 10) ---
 
     @Test
@@ -246,6 +326,23 @@ class RoundEntryViewModelTest {
         vm.initialize(partyId)
 
         assertTrue(vm.uiState.value.loadError)
+    }
+
+    @Test
+    fun `is a load error when no engine is registered for the party game`() = runTest {
+        val partyId = UUID.randomUUID()
+        val vm = viewModel(
+            partyRepository = FakePartyRepository(
+                aParty(partyId),
+                listOf(aParticipant(partyId, "Alice", 0))
+            ),
+            getAvailableGamesUseCase = GetAvailableGamesUseCase(emptyMap())
+        )
+
+        vm.initialize(partyId)
+
+        assertTrue(vm.uiState.value.loadError)
+        assertNull(vm.uiState.value.content)
     }
 
     @Test
@@ -333,7 +430,8 @@ class RoundEntryViewModelTest {
         val partyId = UUID.randomUUID()
         val alice = aParticipant(partyId, "Alice", 0)
         val bob = aParticipant(partyId, "Bob", 1)
-        val vm = viewModel(partyRepository = FakePartyRepository(aParty(partyId), listOf(alice, bob)))
+        val charlie = aParticipant(partyId, "Charlie", 2)
+        val vm = viewModel(partyRepository = FakePartyRepository(aParty(partyId), listOf(alice, bob, charlie)))
         vm.initialize(partyId)
 
         vm.onScoreChanged(bob.id, "80")
@@ -347,7 +445,12 @@ class RoundEntryViewModelTest {
     fun `an empty draft is distinct from a zero score`() = runTest {
         val partyId = UUID.randomUUID()
         val alice = aParticipant(partyId, "Alice", 0)
-        val vm = viewModel(partyRepository = FakePartyRepository(aParty(partyId), listOf(alice)))
+        val participants = listOf(
+            alice,
+            aParticipant(partyId, "Bob", 1),
+            aParticipant(partyId, "Charlie", 2)
+        )
+        val vm = viewModel(partyRepository = FakePartyRepository(aParty(partyId), participants))
         vm.initialize(partyId)
 
         vm.onScoreChanged(alice.id, "0")
@@ -398,7 +501,7 @@ class RoundEntryViewModelTest {
     @Test
     fun `computes the current sum in real time without overflow`() = runTest {
         val partyId = UUID.randomUUID()
-        val participants = List(3) { aParticipant(partyId, "P$it", it) }
+        val participants = List(4) { aParticipant(partyId, "P$it", it) }
         val vm = viewModel(partyRepository = FakePartyRepository(aParty(partyId), participants))
         vm.initialize(partyId)
 
@@ -413,7 +516,8 @@ class RoundEntryViewModelTest {
         val partyId = UUID.randomUUID()
         val alice = aParticipant(partyId, "Alice", 0)
         val bob = aParticipant(partyId, "Bob", 1)
-        val vm = viewModel(partyRepository = FakePartyRepository(aParty(partyId), listOf(alice, bob)))
+        val charlie = aParticipant(partyId, "Charlie", 2)
+        val vm = viewModel(partyRepository = FakePartyRepository(aParty(partyId), listOf(alice, bob, charlie)))
         vm.initialize(partyId)
 
         assertTrue(vm.uiState.value.rerollEnabled)
@@ -443,6 +547,89 @@ class RoundEntryViewModelTest {
         assertEquals("42", vm.uiState.value.content!!.scores[alice.id])
         assertEquals(CardSuit.SPADE, vm.uiState.value.suit)
         assertEquals(1, rollDieUseCase.invocationCount)
+    }
+
+    // --- Story 3.3 last-score precomputation (AC 1, 3, 4, 5) ---
+
+    @Test
+    fun `fills and marks the sole remaining draft regardless of entry order`() = runTest {
+        val partyId = UUID.randomUUID()
+        val participants = List(3) { aParticipant(partyId, "P$it", it) }
+        val vm = viewModel(partyRepository = FakePartyRepository(aParty(partyId), participants))
+        vm.initialize(partyId)
+
+        vm.onScoreChanged(participants[2].id, "80")
+        vm.onScoreChanged(participants[0].id, "100")
+
+        val content = vm.uiState.value.content!!
+        assertEquals("70", content.scores[participants[1].id])
+        assertEquals(participants[1].id, content.precomputedParticipantId)
+    }
+
+    @Test
+    fun `editing the precomputed draft clears its marker without immediately recomputing it`() = runTest {
+        val partyId = UUID.randomUUID()
+        val participants = List(3) { aParticipant(partyId, "P$it", it) }
+        val vm = viewModel(partyRepository = FakePartyRepository(aParty(partyId), participants))
+        vm.initialize(partyId)
+        vm.onScoreChanged(participants[0].id, "100")
+        vm.onScoreChanged(participants[1].id, "80")
+
+        vm.onScoreChanged(participants[2].id, "")
+
+        val content = vm.uiState.value.content!!
+        assertEquals("", content.scores[participants[2].id])
+        assertNull(content.precomputedParticipantId)
+    }
+
+    @Test
+    fun `changing another draft moves and recalculates the precomputed score`() = runTest {
+        val partyId = UUID.randomUUID()
+        val participants = List(3) { aParticipant(partyId, "P$it", it) }
+        val vm = viewModel(partyRepository = FakePartyRepository(aParty(partyId), participants))
+        vm.initialize(partyId)
+        vm.onScoreChanged(participants[0].id, "100")
+        vm.onScoreChanged(participants[1].id, "80")
+
+        vm.onScoreChanged(participants[0].id, "")
+
+        val content = vm.uiState.value.content!!
+        assertEquals("100", content.scores[participants[0].id])
+        assertEquals(participants[0].id, content.precomputedParticipantId)
+    }
+
+    @Test
+    fun `keeps a negative precomputed complement unchanged`() = runTest {
+        val partyId = UUID.randomUUID()
+        val participants = List(3) { aParticipant(partyId, "P$it", it) }
+        val vm = viewModel(partyRepository = FakePartyRepository(aParty(partyId), participants))
+        vm.initialize(partyId)
+
+        vm.onScoreChanged(participants[0].id, "200")
+        vm.onScoreChanged(participants[1].id, "100")
+
+        val content = vm.uiState.value.content!!
+        assertEquals("-50", content.scores[participants[2].id])
+        assertEquals(participants[2].id, content.precomputedParticipantId)
+    }
+
+    @Test
+    fun `score entry never validates or persists a round`() = runTest {
+        val partyId = UUID.randomUUID()
+        val participants = List(3) { aParticipant(partyId, "P$it", it) }
+        val repository = FakePartyRepository(aParty(partyId), participants)
+        val engine = RecordingGameEngine()
+        val vm = viewModel(
+            partyRepository = repository,
+            getAvailableGamesUseCase = GetAvailableGamesUseCase(mapOf(engine.gameId to engine))
+        )
+        vm.initialize(partyId)
+
+        vm.onScoreChanged(participants[0].id, "100")
+        vm.onScoreChanged(participants[1].id, "80")
+
+        assertEquals(0, engine.validateRoundInvocationCount)
+        assertEquals(0, repository.saveRoundInvocationCount)
     }
 
     // --- Story 3.2 SavedStateHandle restoration (AC 9) ---
@@ -490,5 +677,47 @@ class RoundEntryViewModelTest {
         vm.initialize(partyId)
 
         assertEquals("", vm.uiState.value.content!!.scores[alice.id])
+    }
+
+    @Test
+    fun `precomputes the sole empty draft after restoring valid saved scores`() = runTest {
+        val partyId = UUID.randomUUID()
+        val participants = List(3) { aParticipant(partyId, "P$it", it) }
+        val savedStateHandle = SavedStateHandle(
+            mapOf(
+                "score_${participants[0].id}" to "100",
+                "score_${participants[1].id}" to "80"
+            )
+        )
+        val vm = viewModel(
+            savedStateHandle = savedStateHandle,
+            partyRepository = FakePartyRepository(aParty(partyId), participants)
+        )
+
+        vm.initialize(partyId)
+
+        val content = vm.uiState.value.content!!
+        assertEquals("70", content.scores[participants[2].id])
+        assertEquals(participants[2].id, content.precomputedParticipantId)
+    }
+
+    @Test
+    fun `does not turn an invalid restored draft into a precomputed score`() = runTest {
+        val partyId = UUID.randomUUID()
+        val alice = aParticipant(partyId, "Alice", 0)
+        val bob = aParticipant(partyId, "Bob", 1)
+        val savedStateHandle = SavedStateHandle(
+            mapOf("score_${alice.id}" to "invalid", "score_${bob.id}" to "80")
+        )
+        val vm = viewModel(
+            savedStateHandle = savedStateHandle,
+            partyRepository = FakePartyRepository(aParty(partyId), listOf(alice, bob))
+        )
+
+        vm.initialize(partyId)
+
+        val content = vm.uiState.value.content!!
+        assertEquals("", content.scores[alice.id])
+        assertNull(content.precomputedParticipantId)
     }
 }

@@ -25,11 +25,32 @@ data class RoundEntryUiState(
  * keyed by participant id; an absent or empty entry means "not entered" — never coerced to 0. */
 data class RoundEntryContent(
     val participants: List<RoundEntryParticipant>,
-    val scores: Map<UUID, String> = emptyMap()
+    val scores: Map<UUID, String> = emptyMap(),
+    val totalPointsPerRound: Int,
+    val precomputedParticipantId: UUID? = null
 ) {
     val currentSum: Long get() = scores.values.sumOf { it.toIntOrNull()?.toLong() ?: 0L }
 
     val hasAnyScoreEntered: Boolean get() = scores.values.any { it.isNotEmpty() }
+
+    val allFilled: Boolean
+        get() = participants.all { participant -> !scores[participant.id].isNullOrEmpty() }
+
+    val sumIndicatorState: SumIndicatorState
+        get() = when {
+            currentSum > totalPointsPerRound -> SumIndicatorState.ERROR
+            allFilled && currentSum == totalPointsPerRound.toLong() -> SumIndicatorState.SUCCESS
+            else -> SumIndicatorState.NEUTRAL
+        }
+
+    val canValidate: Boolean
+        get() = allFilled && sumIndicatorState == SumIndicatorState.SUCCESS
+}
+
+enum class SumIndicatorState {
+    NEUTRAL,
+    SUCCESS,
+    ERROR
 }
 
 data class RoundEntryParticipant(

@@ -83,7 +83,6 @@ fun RoundEntryScreen(
             content != null -> RoundEntryContentColumn(
                 suit = state.suit,
                 rerollEnabled = state.rerollEnabled,
-                currentSum = state.currentSum,
                 content = content,
                 onRoll = onRoll,
                 onScoreChanged = onScoreChanged
@@ -96,7 +95,6 @@ fun RoundEntryScreen(
 private fun RoundEntryContentColumn(
     suit: CardSuit?,
     rerollEnabled: Boolean,
-    currentSum: Long,
     content: RoundEntryContent,
     onRoll: () -> Unit,
     onScoreChanged: (UUID, String) -> Unit
@@ -148,12 +146,26 @@ private fun RoundEntryContentColumn(
                 }
             },
             focusRequester = focusRequesters[participant.id],
+            isPrecomputed = participant.id == content.precomputedParticipantId,
+            isError = content.sumIndicatorState == SumIndicatorState.ERROR,
             modifier = Modifier.padding(bottom = 8.dp)
         )
     }
 
     SumIndicator(
-        currentSum = currentSum,
+        currentSum = content.currentSum,
+        state = content.sumIndicatorState,
+        totalPointsPerRound = content.totalPointsPerRound,
         modifier = Modifier.padding(top = 16.dp)
     )
+    Button(
+        onClick = {},
+        enabled = content.canValidate,
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(vertical = 16.dp)
+            .testTag("round_entry_validate_button")
+    ) {
+        Text(text = stringResource(R.string.round_entry_validate_button))
+    }
 }

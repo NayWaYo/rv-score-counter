@@ -6,6 +6,7 @@ import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.assert
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithTag
@@ -15,6 +16,8 @@ import androidx.compose.ui.test.performTextReplacement
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.semantics.SemanticsProperties
+import androidx.compose.ui.test.SemanticsMatcher
 import com.rvetiveau.rvscorecount.ui.theme.RvScoreCounterTheme
 import java.util.UUID
 import org.junit.Assert.assertEquals
@@ -35,6 +38,8 @@ class ScoreFieldTest {
     private fun setContent(
         value: String = "",
         imeAction: ImeAction = ImeAction.Next,
+        isPrecomputed: Boolean = false,
+        isError: Boolean = false,
         onValueChange: (String) -> Unit = {},
         onImeAction: (ImeAction) -> Unit = {}
     ) {
@@ -47,7 +52,9 @@ class ScoreFieldTest {
                         value = value,
                         onValueChange = onValueChange,
                         imeAction = imeAction,
-                        onImeAction = onImeAction
+                        onImeAction = onImeAction,
+                        isPrecomputed = isPrecomputed,
+                        isError = isError
                     )
                 }
             }
@@ -60,6 +67,26 @@ class ScoreFieldTest {
 
         composeTestRule.onNodeWithTag("score_field_label_$participantId").assertIsDisplayed()
         composeTestRule.onNodeWithContentDescription("Score de Alice").assertIsDisplayed()
+    }
+
+    @Test
+    fun showsTheCalculationIconAndDedicatedDescriptionWhenPrecomputed() {
+        setContent(value = "250", isPrecomputed = true)
+
+        composeTestRule.onNodeWithTag(
+            "score_field_calculate_icon_$participantId",
+            useUnmergedTree = true
+        ).assertIsDisplayed()
+        composeTestRule.onNodeWithContentDescription("Score calculé automatiquement pour Alice, modifiable")
+            .assertIsDisplayed()
+    }
+
+    @Test
+    fun exposesTheMaterialErrorState() {
+        setContent(value = "251", isError = true)
+
+        composeTestRule.onNodeWithTag("score_field_$participantId")
+            .assert(SemanticsMatcher.keyIsDefined(SemanticsProperties.Error))
     }
 
     @Test

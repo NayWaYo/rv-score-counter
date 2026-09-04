@@ -2,15 +2,19 @@ package com.rvetiveau.rvscorecount.ui.components
 
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Icon
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
@@ -18,6 +22,7 @@ import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.hideFromAccessibility
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
@@ -39,9 +44,20 @@ fun ScoreField(
     imeAction: ImeAction,
     onImeAction: (ImeAction) -> Unit,
     modifier: Modifier = Modifier,
-    focusRequester: FocusRequester? = null
+    focusRequester: FocusRequester? = null,
+    isPrecomputed: Boolean = false,
+    isError: Boolean = false
 ) {
-    val accessibilityLabel = stringResource(R.string.score_field_content_description, participantName)
+    val accessibilityLabel = if (isPrecomputed) {
+        stringResource(R.string.score_field_precomputed_content_description, participantName)
+    } else {
+        stringResource(R.string.score_field_content_description, participantName)
+    }
+    val containerColor = if (isPrecomputed) {
+        MaterialTheme.colorScheme.primary.copy(alpha = 0.12f)
+    } else {
+        MaterialTheme.colorScheme.surfaceVariant
+    }
 
     Column(modifier = modifier.fillMaxWidth()) {
         Text(
@@ -59,13 +75,33 @@ fun ScoreField(
                 if (isDigitsOnly) onValueChange(proposed)
             },
             singleLine = true,
+            isError = isError,
             shape = RoundedCornerShape(8.dp),
             colors = OutlinedTextFieldDefaults.colors(
-                focusedContainerColor = MaterialTheme.colorScheme.surfaceVariant,
-                unfocusedContainerColor = MaterialTheme.colorScheme.surfaceVariant,
-                disabledContainerColor = MaterialTheme.colorScheme.surfaceVariant,
-                errorContainerColor = MaterialTheme.colorScheme.surfaceVariant
+                focusedContainerColor = containerColor,
+                unfocusedContainerColor = containerColor,
+                disabledContainerColor = containerColor,
+                errorContainerColor = containerColor
             ),
+            trailingIcon = if (isPrecomputed) {
+                {
+                    Box(
+                        contentAlignment = Alignment.Center,
+                        modifier = Modifier
+                            .size(48.dp)
+                            .testTag("score_field_calculate_icon_$participantId")
+                    ) {
+                        Icon(
+                            painter = painterResource(R.drawable.ic_calculate),
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.primary,
+                            modifier = Modifier.size(24.dp)
+                        )
+                    }
+                }
+            } else {
+                null
+            },
             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number, imeAction = imeAction),
             keyboardActions = KeyboardActions(
                 onNext = { onImeAction(ImeAction.Next) },
