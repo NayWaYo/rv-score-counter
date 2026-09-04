@@ -309,7 +309,9 @@ private fun ParticipantRow(
         Spacer(modifier = Modifier.width(8.dp))
         IconButton(
             onClick = onRemove,
-            modifier = Modifier.testTag("setup_participant_delete_${participant.id}")
+            modifier = Modifier
+                .size(48.dp)
+                .testTag("setup_participant_delete_${participant.id}")
         ) {
             Icon(
                 painter = painterResource(R.drawable.ic_delete),

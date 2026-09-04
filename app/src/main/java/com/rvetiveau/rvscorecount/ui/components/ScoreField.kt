@@ -1,0 +1,83 @@
+package com.rvetiveau.rvscorecount.ui.components
+
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.KeyboardActions
+import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.OutlinedTextFieldDefaults
+import androidx.compose.material3.Text
+import androidx.compose.runtime.Composable
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.hideFromAccessibility
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.unit.dp
+import com.rvetiveau.rvscorecount.R
+import java.util.UUID
+
+/**
+ * Stateless free-order score field (AC 2, 3, 6, 7): the composable filters obviously invalid
+ * characters for a responsive IME, but [RoundEntryViewModel.onScoreChanged] remains the sole
+ * authority — `KeyboardType.Number` is only a hint the active IME may ignore.
+ */
+@Composable
+fun ScoreField(
+    participantId: UUID,
+    participantName: String,
+    value: String,
+    onValueChange: (String) -> Unit,
+    imeAction: ImeAction,
+    onImeAction: (ImeAction) -> Unit,
+    modifier: Modifier = Modifier,
+    focusRequester: FocusRequester? = null
+) {
+    val accessibilityLabel = stringResource(R.string.score_field_content_description, participantName)
+
+    Column(modifier = modifier.fillMaxWidth()) {
+        Text(
+            text = participantName,
+            style = MaterialTheme.typography.bodyLarge,
+            modifier = Modifier
+                .fillMaxWidth()
+                .semantics { hideFromAccessibility() }
+                .testTag("score_field_label_$participantId")
+        )
+        OutlinedTextField(
+            value = value,
+            onValueChange = { proposed ->
+                val isDigitsOnly = proposed.isEmpty() || (proposed.all(Char::isDigit) && proposed.toIntOrNull() != null)
+                if (isDigitsOnly) onValueChange(proposed)
+            },
+            singleLine = true,
+            shape = RoundedCornerShape(8.dp),
+            colors = OutlinedTextFieldDefaults.colors(
+                focusedContainerColor = MaterialTheme.colorScheme.surfaceVariant,
+                unfocusedContainerColor = MaterialTheme.colorScheme.surfaceVariant,
+                disabledContainerColor = MaterialTheme.colorScheme.surfaceVariant,
+                errorContainerColor = MaterialTheme.colorScheme.surfaceVariant
+            ),
+            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number, imeAction = imeAction),
+            keyboardActions = KeyboardActions(
+                onNext = { onImeAction(ImeAction.Next) },
+                onDone = { onImeAction(ImeAction.Done) }
+            ),
+            textStyle = MaterialTheme.typography.bodyLarge,
+            modifier = Modifier
+                .fillMaxWidth()
+                .heightIn(min = 56.dp)
+                .let { base -> if (focusRequester != null) base.focusRequester(focusRequester) else base }
+                .semantics { contentDescription = accessibilityLabel }
+                .testTag("score_field_$participantId")
+        )
+    }
+}

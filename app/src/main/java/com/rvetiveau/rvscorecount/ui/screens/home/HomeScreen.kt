@@ -132,6 +132,7 @@ private fun GameTile(tile: GameTileUiModel, onClick: () -> Unit, modifier: Modif
                 color = MaterialTheme.colorScheme.onSurface,
                 textAlign = TextAlign.Center,
                 modifier = Modifier
+                    .fillMaxWidth()
                     .padding(horizontal = 4.dp)
                     .testTag("game_tile_name_${tile.gameId}")
             )
