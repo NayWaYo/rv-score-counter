@@ -2,7 +2,7 @@
 story_id: "3.2"
 story_key: "3-2-saisie-des-scores-ordre-libre-et-clavier-numerique"
 epic: 3
-status: review
+status: done
 created: 2026-09-03
 baseline_commit: 256c0d6
 ---

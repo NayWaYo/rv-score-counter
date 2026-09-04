@@ -80,7 +80,7 @@ development_status:
   epic-3: in-progress
 
   3-1-de-virtuel-tirage-de-la-couleur-du-7: done
-  3-2-saisie-des-scores-ordre-libre-et-clavier-numerique: review
+  3-2-saisie-des-scores-ordre-libre-et-clavier-numerique: done
   3-3-pre-remplissage-automatique-du-dernier-participant: backlog
   3-4-validation-de-manche-et-persistance: backlog
 
