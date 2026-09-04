@@ -5,6 +5,7 @@ import androidx.compose.ui.test.assertIsEnabled
 import androidx.compose.ui.test.assertIsFocused
 import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.assertIsNotFocused
+import androidx.compose.ui.test.assert
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
@@ -12,6 +13,8 @@ import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performImeAction
 import androidx.compose.ui.test.performTextInput
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.ui.semantics.SemanticsProperties
+import androidx.compose.ui.test.SemanticsMatcher
 import com.rvetiveau.rvscorecount.domain.model.CardSuit
 import com.rvetiveau.rvscorecount.ui.theme.RvScoreCounterTheme
 import java.util.UUID
@@ -33,7 +36,8 @@ class RoundEntryScreenTest {
 
     private fun aLoadedState(
         suit: CardSuit? = null,
-        scores: Map<UUID, String> = mapOf(aliceId to "", bobId to "")
+        scores: Map<UUID, String> = mapOf(aliceId to "", bobId to ""),
+        precomputedParticipantId: UUID? = null
     ) = RoundEntryUiState(
         suit = suit,
         isLoading = false,
@@ -43,7 +47,9 @@ class RoundEntryScreenTest {
                 RoundEntryParticipant(aliceId, "Alice"),
                 RoundEntryParticipant(bobId, "Bob")
             ),
-            scores = scores
+            scores = scores,
+            totalPointsPerRound = 250,
+            precomputedParticipantId = precomputedParticipantId
         )
     )
 
@@ -110,6 +116,53 @@ class RoundEntryScreenTest {
         setContent(aLoadedState(scores = mapOf(aliceId to "80", bobId to "45")))
 
         composeTestRule.onNodeWithText("Somme : 125").assertIsDisplayed()
+    }
+
+    @Test
+    fun showsPrecomputedStylingOnlyOnTheMarkedParticipant() {
+        setContent(
+            aLoadedState(
+                scores = mapOf(aliceId to "100", bobId to "150"),
+                precomputedParticipantId = bobId
+            )
+        )
+
+        composeTestRule.onNodeWithTag(
+            "score_field_calculate_icon_$bobId",
+            useUnmergedTree = true
+        ).assertIsDisplayed()
+        composeTestRule.onNodeWithTag(
+            "score_field_calculate_icon_$aliceId",
+            useUnmergedTree = true
+        ).assertDoesNotExist()
+    }
+
+    @Test
+    fun showsTheErrorMessageAndMarksEveryFieldWhenTheTotalIsExceeded() {
+        setContent(aLoadedState(scores = mapOf(aliceId to "200", bobId to "100")))
+
+        composeTestRule.onNodeWithText("Total : 300 — corrigez pour atteindre 250.").assertIsDisplayed()
+        listOf(aliceId, bobId).forEach { participantId ->
+            composeTestRule.onNodeWithTag("score_field_$participantId")
+                .assert(SemanticsMatcher.keyIsDefined(SemanticsProperties.Error))
+        }
+    }
+
+    @Test
+    fun enablesValidationOnlyForACompleteExactTotalAndClickHasNoEffect() {
+        setContent(aLoadedState(scores = mapOf(aliceId to "100", bobId to "150")))
+
+        composeTestRule.onNodeWithTag("round_entry_validate_button")
+            .assertIsEnabled()
+            .performClick()
+            .assertIsEnabled()
+    }
+
+    @Test
+    fun disablesValidationForAnIncompleteTotal() {
+        setContent(aLoadedState(scores = mapOf(aliceId to "100", bobId to "")))
+
+        composeTestRule.onNodeWithTag("round_entry_validate_button").assertIsNotEnabled()
     }
 
     @Test
