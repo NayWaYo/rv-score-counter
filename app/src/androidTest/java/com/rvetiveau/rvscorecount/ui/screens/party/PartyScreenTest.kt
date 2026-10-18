@@ -16,8 +16,10 @@ import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.text.TextLayoutResult
 import androidx.compose.ui.unit.Density
+import com.rvetiveau.rvscorecount.R
 import com.rvetiveau.rvscorecount.ui.theme.RvScoreCounterTheme
 import java.util.UUID
+import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
@@ -102,6 +104,76 @@ class PartyScreenTest {
         setContent(PartyUiState.Loaded(dealerName = "Joueur 0", roundNumber = 2, standings = rows))
 
         rows.forEach { composeTestRule.onNodeWithTag("party_standing_row_${it.participantId}").assertIsDisplayed() }
+    }
+
+    // --- Story 4.2 ---
+
+    @Test
+    fun showsTheAddButtonBelowTheMaximumAndEmitsItsIntent() {
+        var clicked = false
+        composeTestRule.setContent {
+            RvScoreCounterTheme {
+                PartyScreen(
+                    state = aLoadedStateWithStandings().copy(maxPlayers = 8),
+                    onAddParticipantClick = { clicked = true }
+                )
+            }
+        }
+
+        composeTestRule.onNodeWithTag("party_add_participant_button").performClick()
+
+        assertTrue(clicked)
+    }
+
+    @Test
+    fun replacesTheAddButtonWithTheMaximumMessageAtCapacity() {
+        val rows = List(8) { StandingRow(UUID.randomUUID(), it + 1, "Joueur $it", it, it == 0) }
+        setContent(PartyUiState.Loaded(dealerName = "Joueur 0", standings = rows, maxPlayers = 8))
+
+        composeTestRule.onNodeWithTag("party_add_participant_button").assertDoesNotExist()
+        composeTestRule.onNodeWithTag("party_max_participants_reached").assertTextEquals("Maximum de 8 joueurs atteint")
+    }
+
+    @Test
+    fun showsTheNameFieldWithItsErrorDuringTheNameStep() {
+        setContent(
+            aLoadedStateWithStandings().copy(
+                maxPlayers = 8,
+                addition = ParticipantAdditionUiState(nameInput = "", errorRes = R.string.party_add_error_empty_name)
+            )
+        )
+
+        composeTestRule.onNodeWithTag("party_add_name_field").assertIsDisplayed()
+        composeTestRule.onNodeWithTag("party_add_name_error").assertTextEquals("Veuillez entrer un prénom")
+        composeTestRule.onNodeWithTag("party_add_participant_button").assertDoesNotExist()
+    }
+
+    @Test
+    fun theSeatPickerListsOptionsFlagsTheDealerSeatAndEmitsTheChosenPosition() {
+        var selected: Int? = null
+        composeTestRule.setContent {
+            RvScoreCounterTheme {
+                PartyScreen(
+                    state = aLoadedStateWithStandings().copy(
+                        maxPlayers = 8,
+                        addition = ParticipantAdditionUiState(
+                            nameInput = "Zoé",
+                            insertionOptions = listOf(
+                                InsertionOption(position = 1, afterName = "Alice", becomesDealer = false),
+                                InsertionOption(position = 2, afterName = "Bob", becomesDealer = true)
+                            )
+                        )
+                    ),
+                    onInsertionPositionSelected = { selected = it }
+                )
+            }
+        }
+
+        composeTestRule.onNodeWithTag("party_add_position_title").assertTextEquals("Où s'assoit Zoé ?")
+        composeTestRule.onNodeWithTag("party_add_position_2").assertTextContains("Après Bob").assertTextContains("Sera le prochain donneur")
+        composeTestRule.onNodeWithTag("party_add_position_1").performClick()
+
+        assertEquals(1, selected)
     }
 
     @Test

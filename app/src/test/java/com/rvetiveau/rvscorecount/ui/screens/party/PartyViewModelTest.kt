@@ -6,7 +6,12 @@ import com.rvetiveau.rvscorecount.domain.model.Party
 import com.rvetiveau.rvscorecount.domain.model.PartyState
 import com.rvetiveau.rvscorecount.domain.model.Round
 import com.rvetiveau.rvscorecount.domain.model.RoundScore
+import com.rvetiveau.rvscorecount.R
+import com.rvetiveau.rvscorecount.domain.engine.GameEngine
 import com.rvetiveau.rvscorecount.domain.repository.PartyRepository
+import com.rvetiveau.rvscorecount.domain.usecase.AddParticipantUseCase
+import com.rvetiveau.rvscorecount.domain.usecase.GetAvailableGamesUseCase
+import com.rvetiveau.rvscorecount.game.papayoo.PapayooEngine
 import com.rvetiveau.rvscorecount.ui.navigation.NavigationEvent
 import com.rvetiveau.rvscorecount.ui.navigation.Routes
 import java.util.UUID
@@ -24,6 +29,7 @@ import kotlinx.coroutines.test.setMain
 import kotlinx.coroutines.withTimeoutOrNull
 import org.junit.After
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
@@ -55,14 +61,22 @@ class PartyViewModelTest {
         override suspend fun createParty(party: Party) = error("not used in this test")
         override suspend fun updateParty(party: Party) = error("not used in this test")
         override suspend fun createPartyWithParticipants(party: Party, participants: List<Participant>) = error("not used in this test")
-        override suspend fun getPartyById(id: UUID): Party? = error("not used in this test")
+        var addFailure: Throwable? = null
+
+        override suspend fun getPartyById(id: UUID): Party? = partyFlow.value
         override fun observeParty(id: UUID): Flow<Party?> = flow {
             failure?.let { throw it }
             emitAll(partyFlow)
         }
         override suspend fun getPartyInProgress(): Party? = error("not used in this test")
-        override suspend fun addParticipant(participant: Participant) = error("not used in this test")
-        override suspend fun getParticipantsByPartyId(partyId: UUID): List<Participant> = error("not used in this test")
+        override suspend fun addParticipant(participant: Participant, updatedParty: Party) {
+            addFailure?.let { throw it }
+            participantsFlow.value = participantsFlow.value.map {
+                if (it.listPosition >= participant.listPosition) it.copy(listPosition = it.listPosition + 1) else it
+            } + participant
+            partyFlow.value = updatedParty
+        }
+        override suspend fun getParticipantsByPartyId(partyId: UUID): List<Participant> = participantsFlow.value
         override fun observeParticipants(partyId: UUID): Flow<List<Participant>> = participantsFlow
         override suspend fun saveRound(round: Round, scores: Map<UUID, Int>, updatedParty: Party) {
             rounds += round
@@ -72,6 +86,15 @@ class PartyViewModelTest {
         override suspend fun getRoundsByPartyId(partyId: UUID): List<Round> = rounds.toList()
         override suspend fun getScoresByRoundId(roundId: UUID): List<RoundScore> =
             roundScores.filter { it.roundId == roundId }
+    }
+
+    private fun viewModel(repository: PartyRepository): PartyViewModel {
+        val engines = mapOf<String, GameEngine>(PapayooEngine.GAME_ID to PapayooEngine())
+        return PartyViewModel(
+            repository,
+            GetAvailableGamesUseCase(engines),
+            AddParticipantUseCase(repository, engines)
+        )
     }
 
     private fun aParty(
@@ -97,7 +120,7 @@ class PartyViewModelTest {
     fun `loads the dealer at listPosition 0 for a freshly created party`() = runTest {
         val partyId = UUID.randomUUID()
         val participants = listOf(aParticipant(partyId, "Alice", 0), aParticipant(partyId, "Bob", 1))
-        val vm = PartyViewModel(FakePartyRepository(party = aParty(partyId), participants = participants))
+        val vm = viewModel(FakePartyRepository(party = aParty(partyId), participants = participants))
 
         vm.initialize(partyId)
 
@@ -110,7 +133,7 @@ class PartyViewModelTest {
     fun `derives the dealer from currentDealerIndex, not just the first participant`() = runTest {
         val partyId = UUID.randomUUID()
         val participants = listOf(aParticipant(partyId, "Alice", 0), aParticipant(partyId, "Bob", 1))
-        val vm = PartyViewModel(FakePartyRepository(party = aParty(partyId, dealerIndex = 1), participants = participants))
+        val vm = viewModel(FakePartyRepository(party = aParty(partyId, dealerIndex = 1), participants = participants))
 
         vm.initialize(partyId)
 
@@ -126,7 +149,7 @@ class PartyViewModelTest {
         val partyId = UUID.randomUUID()
         val alice = aParticipant(partyId, "Alice", 0)
         val bob = aParticipant(partyId, "Bob", 1)
-        val vm = PartyViewModel(FakePartyRepository(party = aParty(partyId), participants = listOf(alice, bob)))
+        val vm = viewModel(FakePartyRepository(party = aParty(partyId), participants = listOf(alice, bob)))
 
         vm.initialize(partyId)
 
@@ -148,7 +171,7 @@ class PartyViewModelTest {
         val bob = aParticipant(partyId, "Bob", 1)
         val charlie = aParticipant(partyId, "Charlie", 2)
         val repository = FakePartyRepository(party = aParty(partyId), participants = listOf(alice, bob, charlie))
-        val vm = PartyViewModel(repository)
+        val vm = viewModel(repository)
         vm.initialize(partyId)
 
         repository.saveRound(
@@ -171,7 +194,7 @@ class PartyViewModelTest {
         val partyId = UUID.randomUUID()
         val participants = List(3) { aParticipant(partyId, "P$it", it) }
         val repository = FakePartyRepository(party = aParty(partyId), participants = participants)
-        val vm = PartyViewModel(repository)
+        val vm = viewModel(repository)
         vm.initialize(partyId)
 
         repository.saveRound(
@@ -189,7 +212,7 @@ class PartyViewModelTest {
         val partyId = UUID.randomUUID()
         val alice = aParticipant(partyId, "Alice", 0)
         val repository = FakePartyRepository(party = aParty(partyId), participants = listOf(alice))
-        val vm = PartyViewModel(repository)
+        val vm = viewModel(repository)
         vm.initialize(partyId)
 
         repository.participantsFlow.value = listOf(alice, aParticipant(partyId, "Bob", 1))
@@ -209,7 +232,7 @@ class PartyViewModelTest {
             rounds = mutableListOf(round),
             roundScores = mutableListOf(RoundScore(round.id, UUID.randomUUID(), 250))
         )
-        val vm = PartyViewModel(repository)
+        val vm = viewModel(repository)
 
         vm.initialize(partyId)
 
@@ -218,7 +241,7 @@ class PartyViewModelTest {
 
     @Test
     fun `is PartyNotFound when the party does not exist`() = runTest {
-        val vm = PartyViewModel(FakePartyRepository(party = null))
+        val vm = viewModel(FakePartyRepository(party = null))
 
         vm.initialize(UUID.randomUUID())
 
@@ -229,7 +252,7 @@ class PartyViewModelTest {
     fun `is InconsistentParticipants when no participant matches the dealer index`() = runTest {
         val partyId = UUID.randomUUID()
         val participants = listOf(aParticipant(partyId, "Alice", 0))
-        val vm = PartyViewModel(FakePartyRepository(party = aParty(partyId, dealerIndex = 5), participants = participants))
+        val vm = viewModel(FakePartyRepository(party = aParty(partyId, dealerIndex = 5), participants = participants))
 
         vm.initialize(partyId)
 
@@ -239,7 +262,7 @@ class PartyViewModelTest {
     @Test
     fun `is InconsistentParticipants when the party has no participants`() = runTest {
         val partyId = UUID.randomUUID()
-        val vm = PartyViewModel(FakePartyRepository(party = aParty(partyId), participants = emptyList()))
+        val vm = viewModel(FakePartyRepository(party = aParty(partyId), participants = emptyList()))
 
         vm.initialize(partyId)
 
@@ -250,7 +273,7 @@ class PartyViewModelTest {
     fun `is InconsistentParticipants when list positions are duplicated`() = runTest {
         val partyId = UUID.randomUUID()
         val participants = listOf(aParticipant(partyId, "Alice", 0), aParticipant(partyId, "Bob", 0))
-        val vm = PartyViewModel(FakePartyRepository(party = aParty(partyId), participants = participants))
+        val vm = viewModel(FakePartyRepository(party = aParty(partyId), participants = participants))
 
         vm.initialize(partyId)
 
@@ -261,7 +284,7 @@ class PartyViewModelTest {
     fun `is InconsistentParticipants when list positions are not continuous`() = runTest {
         val partyId = UUID.randomUUID()
         val participants = listOf(aParticipant(partyId, "Alice", 0), aParticipant(partyId, "Bob", 2))
-        val vm = PartyViewModel(FakePartyRepository(party = aParty(partyId), participants = participants))
+        val vm = viewModel(FakePartyRepository(party = aParty(partyId), participants = participants))
 
         vm.initialize(partyId)
 
@@ -276,7 +299,7 @@ class PartyViewModelTest {
             participants = listOf(aParticipant(partyId, "Alice", 0)),
             failure = IllegalStateException("Room read failed")
         )
-        val vm = PartyViewModel(repository)
+        val vm = viewModel(repository)
 
         vm.initialize(partyId)
 
@@ -290,7 +313,7 @@ class PartyViewModelTest {
     fun `initialize is idempotent and keeps the first loaded state on a repeated call`() = runTest {
         val partyId = UUID.randomUUID()
         val participants = listOf(aParticipant(partyId, "Alice", 0))
-        val vm = PartyViewModel(FakePartyRepository(party = aParty(partyId), participants = participants))
+        val vm = viewModel(FakePartyRepository(party = aParty(partyId), participants = participants))
 
         vm.initialize(partyId)
         vm.initialize(partyId)
@@ -304,7 +327,7 @@ class PartyViewModelTest {
     fun `onStartRound emits the RoundEntry route with the exact initialized partyId`() = runTest {
         val partyId = UUID.randomUUID()
         val participants = listOf(aParticipant(partyId, "Alice", 0))
-        val vm = PartyViewModel(FakePartyRepository(party = aParty(partyId), participants = participants))
+        val vm = viewModel(FakePartyRepository(party = aParty(partyId), participants = participants))
         vm.initialize(partyId)
 
         vm.onStartRound()
@@ -316,7 +339,7 @@ class PartyViewModelTest {
     @Test
     fun `onStartRound does not navigate before the party has finished loading`() = runTest {
         val partyId = UUID.randomUUID()
-        val vm = PartyViewModel(FakePartyRepository(party = null))
+        val vm = viewModel(FakePartyRepository(party = null))
         vm.initialize(partyId)
 
         vm.onStartRound()
@@ -329,7 +352,7 @@ class PartyViewModelTest {
     fun `onStartRound emits only once until the screen resumes`() = runTest {
         val partyId = UUID.randomUUID()
         val participants = listOf(aParticipant(partyId, "Alice", 0))
-        val vm = PartyViewModel(FakePartyRepository(party = aParty(partyId), participants = participants))
+        val vm = viewModel(FakePartyRepository(party = aParty(partyId), participants = participants))
         vm.initialize(partyId)
 
         vm.onStartRound()
@@ -350,7 +373,7 @@ class PartyViewModelTest {
     fun `onStartRound does not navigate for a finished party`() = runTest {
         val partyId = UUID.randomUUID()
         val participants = listOf(aParticipant(partyId, "Alice", 0))
-        val vm = PartyViewModel(
+        val vm = viewModel(
             FakePartyRepository(
                 party = aParty(partyId, status = PartyState.FINISHED),
                 participants = participants
@@ -363,5 +386,116 @@ class PartyViewModelTest {
         val state = vm.uiState.value as PartyUiState.Loaded
         assertTrue(!state.canStartRound)
         assertTrue(withTimeoutOrNull(100) { vm.navigationEvents.first() } == null)
+    }
+
+    // --- Story 4.2 ajout de Participant en cours de Partie ---
+
+    private fun loadedState(vm: PartyViewModel) = vm.uiState.value as PartyUiState.Loaded
+
+    @Test
+    fun `offers one seat after each participant and flags the one making the newcomer dealer`() = runTest {
+        val partyId = UUID.randomUUID()
+        val participants = listOf(aParticipant(partyId, "Alice", 0), aParticipant(partyId, "Bob", 1), aParticipant(partyId, "Chloé", 2))
+        val vm = viewModel(FakePartyRepository(party = aParty(partyId, dealerIndex = 1), participants = participants))
+        vm.initialize(partyId)
+
+        vm.onAddParticipantClick()
+        vm.onAdditionNameChanged("Zoé")
+        vm.onAdditionNameConfirmed()
+
+        assertEquals(
+            listOf(
+                InsertionOption(position = 1, afterName = "Alice", becomesDealer = false),
+                InsertionOption(position = 2, afterName = "Bob", becomesDealer = true),
+                InsertionOption(position = 3, afterName = "Chloé", becomesDealer = false)
+            ),
+            loadedState(vm).addition?.insertionOptions
+        )
+    }
+
+    @Test
+    fun `selecting a seat inserts the newcomer at zero, updates the dealer and closes the draft`() = runTest {
+        val partyId = UUID.randomUUID()
+        val participants = listOf(aParticipant(partyId, "Alice", 0), aParticipant(partyId, "Bob", 1), aParticipant(partyId, "Chloé", 2))
+        val vm = viewModel(FakePartyRepository(party = aParty(partyId, dealerIndex = 1), participants = participants))
+        vm.initialize(partyId)
+        vm.onAddParticipantClick()
+        vm.onAdditionNameChanged("  Zoé ")
+        vm.onAdditionNameConfirmed()
+
+        vm.onInsertionPositionSelected(2)
+
+        val state = loadedState(vm)
+        assertNull(state.addition)
+        assertEquals("Zoé", state.dealerName)
+        val zoe = state.standings.single { it.name == "Zoé" }
+        assertEquals(0, zoe.cumulativeScore)
+        assertTrue(zoe.isDealer)
+        assertEquals(4, state.standings.size)
+    }
+
+    @Test
+    fun `a blank name shows an error without opening the seat picker`() = runTest {
+        val partyId = UUID.randomUUID()
+        val vm = viewModel(FakePartyRepository(party = aParty(partyId), participants = listOf(aParticipant(partyId, "Alice", 0))))
+        vm.initialize(partyId)
+        vm.onAddParticipantClick()
+        vm.onAdditionNameChanged("   ")
+
+        vm.onAdditionNameConfirmed()
+
+        val addition = loadedState(vm).addition!!
+        assertEquals(R.string.party_add_error_empty_name, addition.errorRes)
+        assertTrue(!addition.isChoosingPosition)
+    }
+
+    @Test
+    fun `a failed insertion keeps the seat picker open with an error`() = runTest {
+        val partyId = UUID.randomUUID()
+        val repository = FakePartyRepository(party = aParty(partyId), participants = listOf(aParticipant(partyId, "Alice", 0)))
+        repository.addFailure = IllegalStateException("Room write failed")
+        val vm = viewModel(repository)
+        vm.initialize(partyId)
+        vm.onAddParticipantClick()
+        vm.onAdditionNameChanged("Zoé")
+        vm.onAdditionNameConfirmed()
+
+        vm.onInsertionPositionSelected(1)
+
+        val addition = loadedState(vm).addition!!
+        assertEquals(R.string.party_add_error_failed, addition.errorRes)
+        assertTrue(addition.isChoosingPosition)
+        assertTrue(!addition.isSaving)
+        assertEquals(1, loadedState(vm).standings.size)
+    }
+
+    @Test
+    fun `cancelling drops the draft without writing`() = runTest {
+        val partyId = UUID.randomUUID()
+        val vm = viewModel(FakePartyRepository(party = aParty(partyId), participants = listOf(aParticipant(partyId, "Alice", 0))))
+        vm.initialize(partyId)
+        vm.onAddParticipantClick()
+        vm.onAdditionNameChanged("Zoé")
+        vm.onAdditionNameConfirmed()
+
+        vm.onAdditionCancelled()
+
+        assertNull(loadedState(vm).addition)
+        assertEquals(1, loadedState(vm).standings.size)
+    }
+
+    @Test
+    fun `adding is impossible at the engine maximum`() = runTest {
+        val partyId = UUID.randomUUID()
+        val participants = List(8) { aParticipant(partyId, "P$it", it) }
+        val vm = viewModel(FakePartyRepository(party = aParty(partyId), participants = participants))
+        vm.initialize(partyId)
+
+        vm.onAddParticipantClick()
+
+        val state = loadedState(vm)
+        assertTrue(!state.canAddParticipant)
+        assertTrue(state.isMaxPlayersReached)
+        assertNull(state.addition)
     }
 }

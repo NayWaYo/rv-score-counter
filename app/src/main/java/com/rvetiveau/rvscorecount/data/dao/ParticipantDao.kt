@@ -15,6 +15,10 @@ interface ParticipantDao {
     @Insert(onConflict = OnConflictStrategy.ABORT)
     suspend fun insertAll(participants: List<ParticipantEntity>)
 
+    /** Opens a seat at [fromPosition] for an insertion (FR-4); only listPosition changes. */
+    @Query("UPDATE participants SET listPosition = listPosition + 1 WHERE partyId = :partyId AND listPosition >= :fromPosition")
+    suspend fun shiftPositionsFrom(partyId: String, fromPosition: Int)
+
     @Query("SELECT * FROM participants WHERE partyId = :partyId ORDER BY listPosition ASC")
     suspend fun getByPartyId(partyId: String): List<ParticipantEntity>
 

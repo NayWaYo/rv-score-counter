@@ -16,7 +16,9 @@ interface PartyRepository {
     suspend fun getPartyById(id: UUID): Party?
     fun observeParty(id: UUID): Flow<Party?>
     suspend fun getPartyInProgress(): Party?
-    suspend fun addParticipant(participant: Participant)
+    /** Atomic write (FR-4): Participants at or after [participant]'s listPosition move one place
+     * down, [participant] is inserted and [updatedParty] (next Donneur) is saved, or nothing is. */
+    suspend fun addParticipant(participant: Participant, updatedParty: Party)
     suspend fun getParticipantsByPartyId(partyId: UUID): List<Participant>
     fun observeParticipants(partyId: UUID): Flow<List<Participant>>
     /** Atomic write (FR-8, FR-9): the Round, its RoundScores and [updatedParty] (next Donneur)

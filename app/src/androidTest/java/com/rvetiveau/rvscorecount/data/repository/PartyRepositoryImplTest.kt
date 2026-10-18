@@ -99,6 +99,49 @@ class PartyRepositoryImplTest {
         assertTrue(repository.getParticipantsByPartyId(party.id).isEmpty())
     }
 
+    // --- Story 4.2 : addParticipant (AC 3, 5) ---
+
+    @Test
+    fun addParticipantShiftsLaterSeatsInsertsAndSavesTheDealerTogether() = runTest {
+        val party = aParty()
+        val alice = aParticipant(party.id, "Alice", 0)
+        val bob = aParticipant(party.id, "Bob", 1)
+        val chloe = aParticipant(party.id, "Chloé", 2)
+        repository.createPartyWithParticipants(party, listOf(alice, bob, chloe))
+        val zoe = aParticipant(party.id, "Zoé", 1)
+
+        repository.addParticipant(zoe, party.copy(currentDealerIndex = 1))
+
+        assertEquals(
+            listOf("Alice" to 0, "Zoé" to 1, "Bob" to 2, "Chloé" to 3),
+            repository.getParticipantsByPartyId(party.id).map { it.name to it.listPosition }
+        )
+        assertEquals(1, repository.getPartyById(party.id)?.currentDealerIndex)
+    }
+
+    @Test
+    fun addParticipantRollsBackTheShiftWhenTheInsertFails() = runTest {
+        val party = aParty()
+        val alice = aParticipant(party.id, "Alice", 0)
+        val bob = aParticipant(party.id, "Bob", 1)
+        repository.createPartyWithParticipants(party, listOf(alice, bob))
+        val duplicate = aParticipant(party.id, "Clone", 0, id = alice.id)
+
+        var thrown: Throwable? = null
+        try {
+            repository.addParticipant(duplicate, party.copy(currentDealerIndex = 1))
+        } catch (t: Throwable) {
+            thrown = t
+        }
+
+        assertTrue(thrown != null)
+        assertEquals(
+            listOf("Alice" to 0, "Bob" to 1),
+            repository.getParticipantsByPartyId(party.id).map { it.name to it.listPosition }
+        )
+        assertEquals(0, repository.getPartyById(party.id)?.currentDealerIndex)
+    }
+
     // --- Story 3.4 : saveRound (AC 1, 2, 9) ---
 
     @Test

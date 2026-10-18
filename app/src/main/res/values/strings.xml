@@ -38,6 +38,16 @@
     <string name="party_standing_rank">%1$d.</string>
     <string name="party_dealer_badge">Donneur</string>
     <string name="party_end_button">Fin de partie</string>
+    <string name="party_add_participant_button">Ajouter un joueur</string>
+    <string name="party_max_participants_reached">Maximum de %1$d joueurs atteint</string>
+    <string name="party_add_name_label">Prénom du joueur</string>
+    <string name="party_add_choose_position">Choisir la place</string>
+    <string name="party_add_cancel">Annuler</string>
+    <string name="party_add_position_title">Où s\'assoit %1$s ?</string>
+    <string name="party_add_position_after">Après %1$s</string>
+    <string name="party_add_position_becomes_dealer">Sera le prochain donneur</string>
+    <string name="party_add_error_empty_name">Veuillez entrer un prénom</string>
+    <string name="party_add_error_failed">Impossible d\'ajouter le joueur. Réessayez.</string>
     <string name="party_empty_state">Lancez la première manche pour commencer.</string>
     <string name="party_load_error">Impossible de charger la partie.</string>
     <string name="party_not_found">Partie introuvable.</string>

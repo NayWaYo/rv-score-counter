@@ -92,7 +92,7 @@ development_status:
   epic-4: in-progress
 
   4-1-ecran-partie-en-cours-classement-temps-reel: done
-  4-2-ajout-de-participant-en-cours-de-partie: backlog
+  4-2-ajout-de-participant-en-cours-de-partie: done
   4-3-historique-des-manches-dans-la-partie: backlog
 
   epic-4-retrospective: optional

@@ -75,7 +75,7 @@ class RoundEntryViewModelTest {
         }
         override fun observeParty(id: UUID): Flow<Party?> = error("not used in this test")
         override suspend fun getPartyInProgress(): Party? = error("not used in this test")
-        override suspend fun addParticipant(participant: Participant) = error("not used in this test")
+        override suspend fun addParticipant(participant: Participant, updatedParty: Party) = error("not used in this test")
         override suspend fun getParticipantsByPartyId(partyId: UUID): List<Participant> = participants
         override fun observeParticipants(partyId: UUID): Flow<List<Participant>> = error("not used in this test")
         override suspend fun saveRound(round: Round, scores: Map<UUID, Int>, updatedParty: Party) {

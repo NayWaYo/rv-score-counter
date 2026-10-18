@@ -47,6 +47,11 @@ fun PartyRoute(
         state = state,
         onRetry = { viewModel.retry(partyId) },
         onStartRound = viewModel::onStartRound,
+        onAddParticipantClick = viewModel::onAddParticipantClick,
+        onAdditionNameChanged = viewModel::onAdditionNameChanged,
+        onAdditionNameConfirmed = viewModel::onAdditionNameConfirmed,
+        onInsertionPositionSelected = viewModel::onInsertionPositionSelected,
+        onAdditionCancelled = viewModel::onAdditionCancelled,
         modifier = modifier
     )
 }

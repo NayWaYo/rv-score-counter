@@ -54,8 +54,14 @@ class PartyRepositoryImpl @Inject constructor(
     override suspend fun getPartyInProgress(): Party? =
         partyDao.getPartyInProgress()?.toDomain()
 
-    override suspend fun addParticipant(participant: Participant) {
-        participantDao.insert(participant.toEntity())
+    override suspend fun addParticipant(participant: Participant, updatedParty: Party) {
+        require(updatedParty.id == participant.partyId) { "The updated party must be the participant's party" }
+
+        appDatabase.withTransaction {
+            participantDao.shiftPositionsFrom(participant.partyId.toString(), participant.listPosition)
+            participantDao.insert(participant.toEntity())
+            partyDao.update(updatedParty.toEntity())
+        }
     }
 
     override suspend fun getParticipantsByPartyId(partyId: UUID): List<Participant> =

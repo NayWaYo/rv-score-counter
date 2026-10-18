@@ -1,6 +1,9 @@
 package com.rvetiveau.rvscorecount.ui.screens.party
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.text.KeyboardActions
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -15,9 +18,13 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -25,6 +32,8 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.unit.dp
 import com.rvetiveau.rvscorecount.R
 
@@ -38,7 +47,12 @@ fun PartyScreen(
     state: PartyUiState,
     modifier: Modifier = Modifier,
     onRetry: () -> Unit = {},
-    onStartRound: () -> Unit = {}
+    onStartRound: () -> Unit = {},
+    onAddParticipantClick: () -> Unit = {},
+    onAdditionNameChanged: (String) -> Unit = {},
+    onAdditionNameConfirmed: () -> Unit = {},
+    onInsertionPositionSelected: (Int) -> Unit = {},
+    onAdditionCancelled: () -> Unit = {}
 ) {
     when (state) {
         is PartyUiState.Loading -> CenteredMessage(modifier) {
@@ -95,6 +109,38 @@ fun PartyScreen(
                     .padding(top = 4.dp, bottom = 16.dp)
                     .testTag("party_dealer_title")
             )
+            val addition = state.addition
+            when {
+                addition != null -> AdditionNameRow(
+                    addition = addition,
+                    onNameChanged = onAdditionNameChanged,
+                    onConfirm = onAdditionNameConfirmed,
+                    onCancel = onAdditionCancelled
+                )
+                state.canAddParticipant -> TextButton(
+                    onClick = onAddParticipantClick,
+                    modifier = Modifier
+                        .heightIn(min = 48.dp)
+                        .testTag("party_add_participant_button")
+                ) {
+                    Text(text = stringResource(R.string.party_add_participant_button))
+                }
+                state.isMaxPlayersReached -> Text(
+                    text = stringResource(R.string.party_max_participants_reached, state.maxPlayers),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier
+                        .padding(bottom = 8.dp)
+                        .testTag("party_max_participants_reached")
+                )
+            }
+            if (addition != null && addition.isChoosingPosition) {
+                InsertionPositionSheet(
+                    addition = addition,
+                    onPositionSelected = onInsertionPositionSelected,
+                    onDismiss = onAdditionCancelled
+                )
+            }
             if (state.roundNumber == 1) {
                 Text(
                     text = stringResource(R.string.party_empty_state),
@@ -137,6 +183,100 @@ fun PartyScreen(
                 ) {
                     Text(text = stringResource(R.string.party_end_button))
                 }
+            }
+        }
+    }
+}
+
+@Composable
+private fun AdditionNameRow(
+    addition: ParticipantAdditionUiState,
+    onNameChanged: (String) -> Unit,
+    onConfirm: () -> Unit,
+    onCancel: () -> Unit
+) {
+    Column(modifier = Modifier.padding(bottom = 16.dp)) {
+        OutlinedTextField(
+            value = addition.nameInput,
+            onValueChange = onNameChanged,
+            label = { Text(text = stringResource(R.string.party_add_name_label)) },
+            singleLine = true,
+            isError = addition.errorRes != null && !addition.isChoosingPosition,
+            keyboardOptions = KeyboardOptions(capitalization = KeyboardCapitalization.Words, imeAction = ImeAction.Done),
+            keyboardActions = KeyboardActions(onDone = { onConfirm() }),
+            modifier = Modifier
+                .fillMaxWidth()
+                .testTag("party_add_name_field")
+        )
+        if (addition.errorRes != null && !addition.isChoosingPosition) {
+            Text(
+                text = stringResource(addition.errorRes),
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.error,
+                modifier = Modifier
+                    .padding(top = 4.dp)
+                    .testTag("party_add_name_error")
+            )
+        }
+        Row(horizontalArrangement = Arrangement.End, modifier = Modifier.fillMaxWidth()) {
+            TextButton(onClick = onCancel, modifier = Modifier.testTag("party_add_cancel_button")) {
+                Text(text = stringResource(R.string.party_add_cancel))
+            }
+            Button(onClick = onConfirm, modifier = Modifier.testTag("party_add_choose_position_button")) {
+                Text(text = stringResource(R.string.party_add_choose_position))
+            }
+        }
+    }
+}
+
+/** Seat picker (Story 4.2, AC 2-4, 7): one « Après {nom} » row per Participant in table order. */
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun InsertionPositionSheet(
+    addition: ParticipantAdditionUiState,
+    onPositionSelected: (Int) -> Unit,
+    onDismiss: () -> Unit
+) {
+    ModalBottomSheet(onDismissRequest = onDismiss) {
+        Column(modifier = Modifier.padding(start = 16.dp, end = 16.dp, bottom = 32.dp)) {
+            Text(
+                text = stringResource(R.string.party_add_position_title, addition.nameInput.trim()),
+                style = MaterialTheme.typography.headlineSmall,
+                modifier = Modifier
+                    .padding(bottom = 8.dp)
+                    .testTag("party_add_position_title")
+            )
+            addition.insertionOptions.forEach { option ->
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .heightIn(min = 56.dp)
+                        .clickable(enabled = !addition.isSaving) { onPositionSelected(option.position) }
+                        .padding(vertical = 8.dp)
+                        .testTag("party_add_position_${option.position}")
+                ) {
+                    Text(
+                        text = stringResource(R.string.party_add_position_after, option.afterName),
+                        style = MaterialTheme.typography.bodyLarge
+                    )
+                    if (option.becomesDealer) {
+                        Text(
+                            text = stringResource(R.string.party_add_position_becomes_dealer),
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.primary
+                        )
+                    }
+                }
+            }
+            if (addition.errorRes != null) {
+                Text(
+                    text = stringResource(addition.errorRes),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.error,
+                    modifier = Modifier
+                        .padding(top = 8.dp)
+                        .testTag("party_add_position_error")
+                )
             }
         }
     }

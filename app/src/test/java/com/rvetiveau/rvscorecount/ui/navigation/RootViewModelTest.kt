@@ -41,7 +41,7 @@ class RootViewModelTest {
             failure?.let { throw it }
             return partyInProgress
         }
-        override suspend fun addParticipant(participant: Participant) = error("not used in this test")
+        override suspend fun addParticipant(participant: Participant, updatedParty: Party) = error("not used in this test")
         override suspend fun getParticipantsByPartyId(partyId: UUID): List<Participant> = error("not used in this test")
         override fun observeParticipants(partyId: UUID): Flow<List<Participant>> = flowOf(emptyList())
         override suspend fun saveRound(round: Round, scores: Map<UUID, Int>, updatedParty: Party) = error("not used in this test")
