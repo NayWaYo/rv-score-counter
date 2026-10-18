@@ -2,7 +2,10 @@ package com.rvetiveau.rvscorecount.ui.screens.party
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.rvetiveau.rvscorecount.domain.model.Participant
+import com.rvetiveau.rvscorecount.domain.model.Party
 import com.rvetiveau.rvscorecount.domain.model.PartyState
+import com.rvetiveau.rvscorecount.domain.model.computeStandings
 import com.rvetiveau.rvscorecount.domain.repository.PartyRepository
 import com.rvetiveau.rvscorecount.ui.navigation.NavigationEvent
 import com.rvetiveau.rvscorecount.ui.navigation.Routes
@@ -10,19 +13,22 @@ import dagger.hilt.android.lifecycle.HiltViewModel
 import java.util.UUID
 import javax.inject.Inject
 import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.collectLatest
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.launch
 
 /**
- * Loads the just-created Party and its Participants from Room (AC 5, 10): Room is the single
- * source of truth here, never the Setup draft. The Donneur is derived from currentDealerIndex
- * against the ordered listPosition; a missing match is an explicit inconsistency, not a fallback
- * to the first Participant.
+ * Observes the Party and its Participants in Room (Story 4.1, AC 7): every write — a validated
+ * Manche updates the `parties` row in the same transaction — re-derives the Classement, the
+ * Donneur and the Manche number. The Donneur comes from currentDealerIndex against the ordered
+ * listPosition; any mismatch is an explicit inconsistency, never a fallback.
  */
 @HiltViewModel
 class PartyViewModel @Inject constructor(
@@ -37,51 +43,73 @@ class PartyViewModel @Inject constructor(
 
     private var initializedPartyId: UUID? = null
     private var navigationPending = false
+    private var observation: Job? = null
 
-
-    /** Idempotent: a recomposition never re-triggers the Room read for the same partyId. */
+    /** Idempotent: a recomposition never restarts the Room observation for the same partyId. */
     fun initialize(partyId: UUID) {
         if (initializedPartyId == partyId) return
         initializedPartyId = partyId
         _uiState.value = PartyUiState.Loading
-        load(partyId)
+        observe(partyId)
     }
 
-    private fun load(partyId: UUID) {
-        viewModelScope.launch {
+    private fun observe(partyId: UUID) {
+        observation?.cancel()
+        observation = viewModelScope.launch {
             try {
-                val party = partyRepository.getPartyById(partyId)
-                if (party == null) {
-                    _uiState.value = PartyUiState.PartyNotFound
-                    return@launch
-                }
-
-                val participants = partyRepository.getParticipantsByPartyId(partyId)
-                val positionsAreContinuous = participants
-                    .map { it.listPosition }
-                    .sorted() == participants.indices.toList()
-                val dealers = participants.filter { it.listPosition == party.currentDealerIndex }
-                val aggregateIsConsistent = positionsAreContinuous &&
-                    participants.all { it.partyId == partyId && it.name.isNotBlank() } &&
-                    dealers.size == 1
-                _uiState.value = if (aggregateIsConsistent) {
-                    val playedRounds = partyRepository.getRoundsByPartyId(partyId)
-                    PartyUiState.Loaded(
-                        dealerName = dealers.single().name,
-                        roundNumber = (playedRounds.maxOfOrNull { it.roundNumber } ?: 0) + 1,
-                        canStartRound = party.status == PartyState.IN_PROGRESS
-                    )
-                } else {
-                    PartyUiState.InconsistentParticipants
-                }
+                combine(
+                    partyRepository.observeParty(partyId),
+                    partyRepository.observeParticipants(partyId)
+                ) { party, participants -> party to participants }
+                    .collectLatest { (party, participants) ->
+                        _uiState.value = loadState(partyId, party, participants)
+                    }
             } catch (cancellation: CancellationException) {
-                initializedPartyId = null
                 throw cancellation
             } catch (_: Throwable) {
                 initializedPartyId = null
                 _uiState.value = PartyUiState.LoadError
             }
         }
+    }
+
+    private suspend fun loadState(partyId: UUID, party: Party?, participants: List<Participant>): PartyUiState {
+        if (party == null) return PartyUiState.PartyNotFound
+
+        val positionsAreContinuous = participants
+            .map { it.listPosition }
+            .sorted() == participants.indices.toList()
+        val dealers = participants.filter { it.listPosition == party.currentDealerIndex }
+        val aggregateIsConsistent = positionsAreContinuous &&
+            participants.all { it.partyId == partyId && it.name.isNotBlank() } &&
+            dealers.size == 1
+        if (!aggregateIsConsistent) return PartyUiState.InconsistentParticipants
+        val dealer = dealers.single()
+
+        val rounds = partyRepository.getRoundsByPartyId(partyId)
+        val scores = rounds.flatMap { partyRepository.getScoresByRoundId(it.id) }
+        val standings = try {
+            computeStandings(participants, scores)
+        } catch (_: IllegalArgumentException) {
+            return PartyUiState.InconsistentParticipants
+        }
+
+        // Rang « 1, 1, 3 » : la liste est triée, un ex æquo prend le rang du premier de son score.
+        val rows = standings.map { standing ->
+            StandingRow(
+                participantId = standing.participant.id,
+                rank = standings.indexOfFirst { it.cumulativeScore == standing.cumulativeScore } + 1,
+                name = standing.participant.name,
+                cumulativeScore = standing.cumulativeScore,
+                isDealer = standing.participant.id == dealer.id
+            )
+        }
+        return PartyUiState.Loaded(
+            dealerName = dealer.name,
+            roundNumber = (rounds.maxOfOrNull { it.roundNumber } ?: 0) + 1,
+            standings = rows,
+            canStartRound = party.status == PartyState.IN_PROGRESS
+        )
     }
 
     fun retry(partyId: UUID) {
@@ -100,11 +128,7 @@ class PartyViewModel @Inject constructor(
         }
     }
 
-    /** Re-reads Room when the screen comes back to the foreground, e.g. after a Manche was
-     * validated (Story 3.4, AC 6): the displayed Donneur and Manche number follow the new state. */
     fun onScreenResumed() {
         navigationPending = false
-        val partyId = initializedPartyId ?: return
-        if (_uiState.value is PartyUiState.Loaded) load(partyId)
     }
 }

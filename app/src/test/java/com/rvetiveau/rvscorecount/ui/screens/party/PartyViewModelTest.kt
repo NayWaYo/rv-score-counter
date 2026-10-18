@@ -13,8 +13,10 @@ import java.util.UUID
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.emitAll
 import kotlinx.coroutines.flow.first
-import kotlinx.coroutines.flow.flowOf
+import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import kotlinx.coroutines.test.resetMain
 import kotlinx.coroutines.test.runTest
@@ -39,27 +41,37 @@ class PartyViewModelTest {
         Dispatchers.resetMain()
     }
 
+    /** Mimics Room: [observeParty] re-emits whenever [saveRound] rewrites the party row. */
     private class FakePartyRepository(
-        var party: Party? = null,
-        private val participants: List<Participant> = emptyList(),
+        party: Party? = null,
+        participants: List<Participant> = emptyList(),
         var failure: Throwable? = null,
-        var rounds: List<Round> = emptyList()
+        val rounds: MutableList<Round> = mutableListOf(),
+        val roundScores: MutableList<RoundScore> = mutableListOf()
     ) : PartyRepository {
+        val partyFlow = MutableStateFlow(party)
+        val participantsFlow = MutableStateFlow(participants)
+
         override suspend fun createParty(party: Party) = error("not used in this test")
         override suspend fun updateParty(party: Party) = error("not used in this test")
         override suspend fun createPartyWithParticipants(party: Party, participants: List<Participant>) = error("not used in this test")
-        override suspend fun getPartyById(id: UUID): Party? {
+        override suspend fun getPartyById(id: UUID): Party? = error("not used in this test")
+        override fun observeParty(id: UUID): Flow<Party?> = flow {
             failure?.let { throw it }
-            return party
+            emitAll(partyFlow)
         }
-        override fun observeParty(id: UUID): Flow<Party?> = flowOf(party)
         override suspend fun getPartyInProgress(): Party? = error("not used in this test")
         override suspend fun addParticipant(participant: Participant) = error("not used in this test")
-        override suspend fun getParticipantsByPartyId(partyId: UUID): List<Participant> = participants
-        override fun observeParticipants(partyId: UUID): Flow<List<Participant>> = flowOf(participants)
-        override suspend fun saveRound(round: Round, scores: Map<UUID, Int>, updatedParty: Party) = error("not used in this test")
-        override suspend fun getRoundsByPartyId(partyId: UUID): List<Round> = rounds
-        override suspend fun getScoresByRoundId(roundId: UUID): List<RoundScore> = error("not used in this test")
+        override suspend fun getParticipantsByPartyId(partyId: UUID): List<Participant> = error("not used in this test")
+        override fun observeParticipants(partyId: UUID): Flow<List<Participant>> = participantsFlow
+        override suspend fun saveRound(round: Round, scores: Map<UUID, Int>, updatedParty: Party) {
+            rounds += round
+            roundScores += scores.map { (id, points) -> RoundScore(round.id, id, points) }
+            partyFlow.value = updatedParty
+        }
+        override suspend fun getRoundsByPartyId(partyId: UUID): List<Round> = rounds.toList()
+        override suspend fun getScoresByRoundId(roundId: UUID): List<RoundScore> =
+            roundScores.filter { it.roundId == roundId }
     }
 
     private fun aParty(
@@ -107,20 +119,101 @@ class PartyViewModelTest {
         assertEquals("Bob", state.dealerName)
     }
 
+    // --- Story 4.1 classement temps réel ---
+
     @Test
-    fun `reloads the dealer and round number when the screen resumes after a validated round`() = runTest {
+    fun `lists every participant at zero before the first round with the dealer flagged`() = runTest {
         val partyId = UUID.randomUUID()
-        val participants = listOf(aParticipant(partyId, "Alice", 0), aParticipant(partyId, "Bob", 1))
+        val alice = aParticipant(partyId, "Alice", 0)
+        val bob = aParticipant(partyId, "Bob", 1)
+        val vm = PartyViewModel(FakePartyRepository(party = aParty(partyId), participants = listOf(alice, bob)))
+
+        vm.initialize(partyId)
+
+        val state = vm.uiState.value as PartyUiState.Loaded
+        assertEquals(1, state.roundNumber)
+        assertEquals(
+            listOf(
+                StandingRow(alice.id, rank = 1, name = "Alice", cumulativeScore = 0, isDealer = true),
+                StandingRow(bob.id, rank = 1, name = "Bob", cumulativeScore = 0, isDealer = false)
+            ),
+            state.standings
+        )
+    }
+
+    @Test
+    fun `updates the classement, dealer and round number as soon as Room emits a validated round`() = runTest {
+        val partyId = UUID.randomUUID()
+        val alice = aParticipant(partyId, "Alice", 0)
+        val bob = aParticipant(partyId, "Bob", 1)
+        val charlie = aParticipant(partyId, "Charlie", 2)
+        val repository = FakePartyRepository(party = aParty(partyId), participants = listOf(alice, bob, charlie))
+        val vm = PartyViewModel(repository)
+        vm.initialize(partyId)
+
+        repository.saveRound(
+            Round(UUID.randomUUID(), partyId, 1, CardSuit.HEART),
+            mapOf(alice.id to 150, bob.id to 20, charlie.id to 80),
+            aParty(partyId, dealerIndex = 1)
+        )
+
+        val state = vm.uiState.value as PartyUiState.Loaded
+        assertEquals("Bob", state.dealerName)
+        assertEquals(2, state.roundNumber)
+        assertEquals(listOf("Bob", "Charlie", "Alice"), state.standings.map { it.name })
+        assertEquals(listOf(20, 80, 150), state.standings.map { it.cumulativeScore })
+        assertEquals(listOf(1, 2, 3), state.standings.map { it.rank })
+        assertEquals(listOf(true, false, false), state.standings.map { it.isDealer })
+    }
+
+    @Test
+    fun `tied participants share a rank and the next one skips it`() = runTest {
+        val partyId = UUID.randomUUID()
+        val participants = List(3) { aParticipant(partyId, "P$it", it) }
         val repository = FakePartyRepository(party = aParty(partyId), participants = participants)
         val vm = PartyViewModel(repository)
         vm.initialize(partyId)
-        assertEquals(PartyUiState.Loaded(dealerName = "Alice", roundNumber = 1), vm.uiState.value)
 
-        repository.party = aParty(partyId, dealerIndex = 1)
-        repository.rounds = listOf(Round(UUID.randomUUID(), partyId, 1, CardSuit.HEART))
-        vm.onScreenResumed()
+        repository.saveRound(
+            Round(UUID.randomUUID(), partyId, 1, CardSuit.CLUB),
+            mapOf(participants[0].id to 50, participants[1].id to 50, participants[2].id to 150),
+            aParty(partyId, dealerIndex = 1)
+        )
 
-        assertEquals(PartyUiState.Loaded(dealerName = "Bob", roundNumber = 2), vm.uiState.value)
+        val state = vm.uiState.value as PartyUiState.Loaded
+        assertEquals(listOf(1, 1, 3), state.standings.map { it.rank })
+    }
+
+    @Test
+    fun `a participant added in Room appears in the classement at zero`() = runTest {
+        val partyId = UUID.randomUUID()
+        val alice = aParticipant(partyId, "Alice", 0)
+        val repository = FakePartyRepository(party = aParty(partyId), participants = listOf(alice))
+        val vm = PartyViewModel(repository)
+        vm.initialize(partyId)
+
+        repository.participantsFlow.value = listOf(alice, aParticipant(partyId, "Bob", 1))
+
+        val state = vm.uiState.value as PartyUiState.Loaded
+        assertEquals(listOf("Alice", "Bob"), state.standings.map { it.name })
+    }
+
+    @Test
+    fun `is InconsistentParticipants when a score belongs to an unknown participant`() = runTest {
+        val partyId = UUID.randomUUID()
+        val alice = aParticipant(partyId, "Alice", 0)
+        val round = Round(UUID.randomUUID(), partyId, 1, CardSuit.SPADE)
+        val repository = FakePartyRepository(
+            party = aParty(partyId),
+            participants = listOf(alice),
+            rounds = mutableListOf(round),
+            roundScores = mutableListOf(RoundScore(round.id, UUID.randomUUID(), 250))
+        )
+        val vm = PartyViewModel(repository)
+
+        vm.initialize(partyId)
+
+        assertTrue(vm.uiState.value is PartyUiState.InconsistentParticipants)
     }
 
     @Test

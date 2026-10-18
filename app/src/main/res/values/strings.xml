@@ -32,8 +32,12 @@
     <string name="setup_error_invalid_state">La configuration de la partie est devenue incohérente. Vérifiez vos joueurs et réessayez.</string>
     <string name="setup_error_creation_failed">Impossible de créer la partie. Réessayez.</string>
 
-    <!-- Partie en cours : confirmation minimale (Manche N / Donneur) -->
+    <!-- Partie en cours : classement, Manche N / Donneur -->
+    <string name="party_screen_title">Partie en cours</string>
     <string name="party_dealer_title">Manche %1$d — Donneur : %2$s</string>
+    <string name="party_standing_rank">%1$d.</string>
+    <string name="party_dealer_badge">Donneur</string>
+    <string name="party_end_button">Fin de partie</string>
     <string name="party_empty_state">Lancez la première manche pour commencer.</string>
     <string name="party_load_error">Impossible de charger la partie.</string>
     <string name="party_not_found">Partie introuvable.</string>

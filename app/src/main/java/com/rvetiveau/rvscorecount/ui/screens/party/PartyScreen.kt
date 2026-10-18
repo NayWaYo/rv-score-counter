@@ -1,29 +1,37 @@
 package com.rvetiveau.rvscorecount.ui.screens.party
 
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.foundation.layout.widthIn
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import com.rvetiveau.rvscorecount.R
 
 /**
- * Stateless minimal Partie en cours screen (AC 5, 10): title, Donneur and empty state only.
- * Classement temps réel, "Nouvelle manche", "Fin de partie" and later flows are delivered by
- * Epics 3-5.
+ * Stateless Partie en cours screen (Story 4.1): Classement sorted by Score Cumulé with the
+ * Donneur badge, « Manche N — Donneur » subtitle, « Nouvelle manche » and « Fin de partie ».
+ * Error and loading states never render a partial Classement.
  */
 @Composable
 fun PartyScreen(
@@ -69,15 +77,22 @@ fun PartyScreen(
         is PartyUiState.Loaded -> Column(
             modifier = modifier
                 .fillMaxSize()
-                .verticalScroll(rememberScrollState())
                 .padding(16.dp)
         ) {
             Text(
-                text = stringResource(R.string.party_dealer_title, state.roundNumber, state.dealerName),
+                text = stringResource(R.string.party_screen_title),
                 style = MaterialTheme.typography.headlineSmall,
                 color = MaterialTheme.colorScheme.onBackground,
                 modifier = Modifier
-                    .padding(vertical = 16.dp)
+                    .padding(top = 16.dp)
+                    .testTag("party_screen_title")
+            )
+            Text(
+                text = stringResource(R.string.party_dealer_title, state.roundNumber, state.dealerName),
+                style = MaterialTheme.typography.bodyLarge,
+                color = MaterialTheme.colorScheme.onBackground,
+                modifier = Modifier
+                    .padding(top = 4.dp, bottom = 16.dp)
                     .testTag("party_dealer_title")
             )
             if (state.roundNumber == 1) {
@@ -85,8 +100,19 @@ fun PartyScreen(
                     text = stringResource(R.string.party_empty_state),
                     style = MaterialTheme.typography.bodyLarge,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier.testTag("party_empty_state")
+                    modifier = Modifier
+                        .padding(bottom = 16.dp)
+                        .testTag("party_empty_state")
                 )
+            }
+            LazyColumn(
+                verticalArrangement = Arrangement.spacedBy(8.dp),
+                modifier = Modifier
+                    .weight(1f)
+                    .fillMaxWidth()
+                    .testTag("party_standings")
+            ) {
+                items(state.standings, key = { it.participantId }) { row -> StandingRowItem(row) }
             }
             if (state.canStartRound) {
                 Button(
@@ -99,8 +125,74 @@ fun PartyScreen(
                 ) {
                     Text(text = stringResource(R.string.party_start_round_button))
                 }
+                // La clôture arrive avec la Story 5.1 : le bouton est visible mais inactif d'ici là.
+                OutlinedButton(
+                    onClick = {},
+                    enabled = false,
+                    modifier = Modifier
+                        .padding(top = 8.dp)
+                        .fillMaxWidth()
+                        .heightIn(min = 56.dp)
+                        .testTag("party_end_button")
+                ) {
+                    Text(text = stringResource(R.string.party_end_button))
+                }
             }
         }
+    }
+}
+
+/** scoreboard-row : rang (meta), nom + badge Donneur (body), Score Cumulé (title), 56dp minimum. */
+@Composable
+private fun StandingRowItem(row: StandingRow) {
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
+        modifier = Modifier
+            .fillMaxWidth()
+            .heightIn(min = 56.dp)
+            .clip(RoundedCornerShape(8.dp))
+            .background(MaterialTheme.colorScheme.surfaceVariant)
+            .padding(horizontal = 16.dp, vertical = 8.dp)
+            .semantics(mergeDescendants = true) {}
+            .testTag("party_standing_row_${row.participantId}")
+    ) {
+        Text(
+            text = stringResource(R.string.party_standing_rank, row.rank),
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = Modifier.widthIn(min = 32.dp)
+        )
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            modifier = Modifier
+                .weight(1f)
+                .padding(horizontal = 8.dp)
+        ) {
+            Text(
+                text = row.name,
+                style = MaterialTheme.typography.bodyLarge,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.weight(1f, fill = false)
+            )
+            if (row.isDealer) {
+                Text(
+                    text = stringResource(R.string.party_dealer_badge),
+                    style = MaterialTheme.typography.labelLarge,
+                    color = MaterialTheme.colorScheme.onPrimary,
+                    modifier = Modifier
+                        .padding(start = 8.dp)
+                        .clip(RoundedCornerShape(8.dp))
+                        .background(MaterialTheme.colorScheme.primary)
+                        .padding(horizontal = 8.dp, vertical = 2.dp)
+                        .testTag("party_dealer_badge")
+                )
+            }
+        }
+        Text(
+            text = row.cumulativeScore.toString(),
+            style = MaterialTheme.typography.headlineMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant
+        )
     }
 }
 

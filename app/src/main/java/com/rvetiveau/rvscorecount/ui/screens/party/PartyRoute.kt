@@ -15,9 +15,8 @@ import com.rvetiveau.rvscorecount.ui.navigation.NavigationEvent
 import java.util.UUID
 
 /**
- * Compose/Hilt adapter for the freshly created Partie (AC 5, 10): loads Room state for
- * [partyId] once, renders the minimal Manche 1 / Donneur screen and relays the ViewModel's
- * one-shot [NavigationEvent]s to [onNavigate].
+ * Compose/Hilt adapter for the Partie en cours: starts the Room observation for [partyId] once,
+ * renders the Classement and relays the ViewModel's one-shot [NavigationEvent]s to [onNavigate].
  */
 @Composable
 fun PartyRoute(

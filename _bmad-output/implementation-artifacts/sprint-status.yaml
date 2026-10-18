@@ -89,9 +89,9 @@ development_status:
   # -------------------------------------------------------
   # Epic 4: Suivi de Partie en cours (3 stories)
   # -------------------------------------------------------
-  epic-4: backlog
+  epic-4: in-progress
 
-  4-1-ecran-partie-en-cours-classement-temps-reel: backlog
+  4-1-ecran-partie-en-cours-classement-temps-reel: done
   4-2-ajout-de-participant-en-cours-de-partie: backlog
   4-3-historique-des-manches-dans-la-partie: backlog
 
