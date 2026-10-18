@@ -52,6 +52,8 @@ fun PartyRoute(
         onAdditionNameConfirmed = viewModel::onAdditionNameConfirmed,
         onInsertionPositionSelected = viewModel::onInsertionPositionSelected,
         onAdditionCancelled = viewModel::onAdditionCancelled,
+        onShowRoundHistory = viewModel::onShowRoundHistory,
+        onHideRoundHistory = viewModel::onHideRoundHistory,
         modifier = modifier
     )
 }

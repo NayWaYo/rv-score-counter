@@ -12,12 +12,15 @@ import com.rvetiveau.rvscorecount.domain.repository.PartyRepository
 import com.rvetiveau.rvscorecount.domain.usecase.AddParticipantUseCase
 import com.rvetiveau.rvscorecount.domain.usecase.GetAvailableGamesUseCase
 import com.rvetiveau.rvscorecount.game.papayoo.PapayooEngine
+import com.rvetiveau.rvscorecount.ui.components.RoundHistoryItem
+import com.rvetiveau.rvscorecount.ui.components.RoundHistoryScore
 import com.rvetiveau.rvscorecount.ui.navigation.NavigationEvent
 import com.rvetiveau.rvscorecount.ui.navigation.Routes
 import java.util.UUID
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.emitAll
 import kotlinx.coroutines.flow.first
@@ -55,7 +58,8 @@ class PartyViewModelTest {
         val rounds: MutableList<Round> = mutableListOf(),
         val roundScores: MutableList<RoundScore> = mutableListOf()
     ) : PartyRepository {
-        val partyFlow = MutableStateFlow(party)
+        // SharedFlow, not StateFlow: Room re-emits on every write, even when the row is unchanged.
+        private val partyFlow = MutableSharedFlow<Party?>(replay = 1).apply { tryEmit(party) }
         val participantsFlow = MutableStateFlow(participants)
 
         override suspend fun createParty(party: Party) = error("not used in this test")
@@ -63,7 +67,7 @@ class PartyViewModelTest {
         override suspend fun createPartyWithParticipants(party: Party, participants: List<Participant>) = error("not used in this test")
         var addFailure: Throwable? = null
 
-        override suspend fun getPartyById(id: UUID): Party? = partyFlow.value
+        override suspend fun getPartyById(id: UUID): Party? = partyFlow.replayCache.last()
         override fun observeParty(id: UUID): Flow<Party?> = flow {
             failure?.let { throw it }
             emitAll(partyFlow)
@@ -74,14 +78,14 @@ class PartyViewModelTest {
             participantsFlow.value = participantsFlow.value.map {
                 if (it.listPosition >= participant.listPosition) it.copy(listPosition = it.listPosition + 1) else it
             } + participant
-            partyFlow.value = updatedParty
+            partyFlow.emit(updatedParty)
         }
         override suspend fun getParticipantsByPartyId(partyId: UUID): List<Participant> = participantsFlow.value
         override fun observeParticipants(partyId: UUID): Flow<List<Participant>> = participantsFlow
         override suspend fun saveRound(round: Round, scores: Map<UUID, Int>, updatedParty: Party) {
             rounds += round
             roundScores += scores.map { (id, points) -> RoundScore(round.id, id, points) }
-            partyFlow.value = updatedParty
+            partyFlow.emit(updatedParty)
         }
         override suspend fun getRoundsByPartyId(partyId: UUID): List<Round> = rounds.toList()
         override suspend fun getScoresByRoundId(roundId: UUID): List<RoundScore> =
@@ -386,6 +390,67 @@ class PartyViewModelTest {
         val state = vm.uiState.value as PartyUiState.Loaded
         assertTrue(!state.canStartRound)
         assertTrue(withTimeoutOrNull(100) { vm.navigationEvents.first() } == null)
+    }
+
+    // --- Story 4.3 historique des Manches ---
+
+    @Test
+    fun `lists validated rounds most recent first with scores in table order and their total`() = runTest {
+        val partyId = UUID.randomUUID()
+        val alice = aParticipant(partyId, "Alice", 0)
+        val bob = aParticipant(partyId, "Bob", 1)
+        val repository = FakePartyRepository(party = aParty(partyId), participants = listOf(alice, bob))
+        val vm = viewModel(repository)
+        vm.initialize(partyId)
+
+        repository.saveRound(Round(UUID.randomUUID(), partyId, 1, CardSuit.HEART), mapOf(bob.id to 50, alice.id to 200), aParty(partyId, 1))
+        repository.saveRound(Round(UUID.randomUUID(), partyId, 2, CardSuit.CLUB), mapOf(alice.id to 0, bob.id to 250), aParty(partyId, 0))
+
+        assertEquals(
+            listOf(
+                RoundHistoryItem(2, CardSuit.CLUB, listOf(RoundHistoryScore("Alice", 0), RoundHistoryScore("Bob", 250)), 250),
+                RoundHistoryItem(1, CardSuit.HEART, listOf(RoundHistoryScore("Alice", 200), RoundHistoryScore("Bob", 50)), 250)
+            ),
+            loadedState(vm).roundHistory
+        )
+    }
+
+    @Test
+    fun `a participant added later is absent from rounds played before`() = runTest {
+        val partyId = UUID.randomUUID()
+        val alice = aParticipant(partyId, "Alice", 0)
+        val bob = aParticipant(partyId, "Bob", 1)
+        val repository = FakePartyRepository(party = aParty(partyId), participants = listOf(alice, bob))
+        val vm = viewModel(repository)
+        vm.initialize(partyId)
+        repository.saveRound(Round(UUID.randomUUID(), partyId, 1, CardSuit.SPADE), mapOf(alice.id to 100, bob.id to 150), aParty(partyId, 1))
+
+        vm.onAddParticipantClick()
+        vm.onAdditionNameChanged("Zoé")
+        vm.onAdditionNameConfirmed()
+        vm.onInsertionPositionSelected(1)
+
+        assertEquals(listOf("Alice", "Bob"), loadedState(vm).roundHistory.single().scores.map { it.participantName })
+        assertEquals(3, loadedState(vm).standings.size)
+    }
+
+    @Test
+    fun `the round history opens and closes, and never opens without rounds`() = runTest {
+        val partyId = UUID.randomUUID()
+        val alice = aParticipant(partyId, "Alice", 0)
+        val repository = FakePartyRepository(party = aParty(partyId), participants = listOf(alice))
+        val vm = viewModel(repository)
+        vm.initialize(partyId)
+
+        vm.onShowRoundHistory()
+        assertTrue(!loadedState(vm).isRoundHistoryOpen)
+
+        repository.saveRound(Round(UUID.randomUUID(), partyId, 1, CardSuit.SPADE), mapOf(alice.id to 250), aParty(partyId))
+        assertTrue(!loadedState(vm).isRoundHistoryOpen)
+        vm.onShowRoundHistory()
+        assertTrue(loadedState(vm).isRoundHistoryOpen)
+        vm.onHideRoundHistory()
+        assertTrue(!loadedState(vm).isRoundHistoryOpen)
     }
 
     // --- Story 4.2 ajout de Participant en cours de Partie ---

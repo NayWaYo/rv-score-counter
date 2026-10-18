@@ -11,6 +11,8 @@ import com.rvetiveau.rvscorecount.domain.repository.PartyRepository
 import com.rvetiveau.rvscorecount.domain.usecase.AddParticipantUseCase
 import com.rvetiveau.rvscorecount.domain.usecase.GetAvailableGamesUseCase
 import com.rvetiveau.rvscorecount.domain.usecase.nextDealerIndexAfterInsertion
+import com.rvetiveau.rvscorecount.ui.components.RoundHistoryItem
+import com.rvetiveau.rvscorecount.ui.components.RoundHistoryScore
 import com.rvetiveau.rvscorecount.ui.navigation.NavigationEvent
 import com.rvetiveau.rvscorecount.ui.navigation.Routes
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -54,6 +56,7 @@ class PartyViewModel @Inject constructor(
     // Room-derived state and the late-Participant draft are merged into [_uiState] by [publish].
     private var roomState: PartyUiState = PartyUiState.Loading
     private var addition: ParticipantAdditionUiState? = null
+    private var isRoundHistoryOpen = false
     private var seating: List<Participant> = emptyList()
     private var currentDealerIndex: Int = 0
 
@@ -69,7 +72,11 @@ class PartyViewModel @Inject constructor(
 
     private fun publish() {
         val state = roomState
-        _uiState.value = if (state is PartyUiState.Loaded) state.copy(addition = addition) else state
+        _uiState.value = if (state is PartyUiState.Loaded) {
+            state.copy(addition = addition, isRoundHistoryOpen = isRoundHistoryOpen)
+        } else {
+            state
+        }
     }
 
     private fun observe(partyId: UUID) {
@@ -110,12 +117,26 @@ class PartyViewModel @Inject constructor(
             ?: return PartyUiState.InconsistentParticipants
 
         val rounds = partyRepository.getRoundsByPartyId(partyId)
-        val scores = rounds.flatMap { partyRepository.getScoresByRoundId(it.id) }
+        val scoresByRound = rounds.associateWith { partyRepository.getScoresByRoundId(it.id) }
         val standings = try {
-            computeStandings(participants, scores)
+            computeStandings(participants, scoresByRound.values.flatten())
         } catch (_: IllegalArgumentException) {
             return PartyUiState.InconsistentParticipants
         }
+        // computeStandings a déjà vérifié que chaque score appartient à un Participant connu.
+        val participantsById = participants.associateBy { it.id }
+        val roundHistory = scoresByRound.entries
+            .sortedByDescending { (round, _) -> round.roundNumber }
+            .map { (round, roundScores) ->
+                RoundHistoryItem(
+                    roundNumber = round.roundNumber,
+                    suit = round.suit,
+                    scores = roundScores
+                        .sortedBy { participantsById.getValue(it.participantId).listPosition }
+                        .map { RoundHistoryScore(participantsById.getValue(it.participantId).name, it.points) },
+                    total = roundScores.sumOf { it.points }
+                )
+            }
 
         // Rang « 1, 1, 3 » : la liste est triée, un ex æquo prend le rang du premier de son score.
         val rows = standings.map { standing ->
@@ -134,7 +155,8 @@ class PartyViewModel @Inject constructor(
             roundNumber = (rounds.maxOfOrNull { it.roundNumber } ?: 0) + 1,
             standings = rows,
             canStartRound = party.status == PartyState.IN_PROGRESS,
-            maxPlayers = engine.maxPlayers
+            maxPlayers = engine.maxPlayers,
+            roundHistory = roundHistory
         )
     }
 
@@ -156,6 +178,20 @@ class PartyViewModel @Inject constructor(
 
     fun onScreenResumed() {
         navigationPending = false
+    }
+
+    // --- Story 4.3 : historique des Manches ---
+
+    fun onShowRoundHistory() {
+        val state = roomState as? PartyUiState.Loaded ?: return
+        if (state.roundHistory.isEmpty()) return
+        isRoundHistoryOpen = true
+        publish()
+    }
+
+    fun onHideRoundHistory() {
+        isRoundHistoryOpen = false
+        publish()
     }
 
     // --- Story 4.2 : ajout d'un Participant en cours de Partie ---

@@ -36,6 +36,8 @@ import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.unit.dp
 import com.rvetiveau.rvscorecount.R
+import com.rvetiveau.rvscorecount.ui.components.RoundHistoryItem
+import com.rvetiveau.rvscorecount.ui.components.RoundHistoryRow
 
 /**
  * Stateless Partie en cours screen (Story 4.1): Classement sorted by Score Cumulé with the
@@ -52,7 +54,9 @@ fun PartyScreen(
     onAdditionNameChanged: (String) -> Unit = {},
     onAdditionNameConfirmed: () -> Unit = {},
     onInsertionPositionSelected: (Int) -> Unit = {},
-    onAdditionCancelled: () -> Unit = {}
+    onAdditionCancelled: () -> Unit = {},
+    onShowRoundHistory: () -> Unit = {},
+    onHideRoundHistory: () -> Unit = {}
 ) {
     when (state) {
         is PartyUiState.Loading -> CenteredMessage(modifier) {
@@ -150,6 +154,19 @@ fun PartyScreen(
                         .padding(bottom = 16.dp)
                         .testTag("party_empty_state")
                 )
+            }
+            if (state.roundHistory.isNotEmpty()) {
+                TextButton(
+                    onClick = onShowRoundHistory,
+                    modifier = Modifier
+                        .heightIn(min = 48.dp)
+                        .testTag("party_rounds_link")
+                ) {
+                    Text(text = stringResource(R.string.party_rounds_link, state.roundHistory.size))
+                }
+            }
+            if (state.isRoundHistoryOpen) {
+                RoundHistorySheet(rounds = state.roundHistory, onDismiss = onHideRoundHistory)
             }
             LazyColumn(
                 verticalArrangement = Arrangement.spacedBy(8.dp),
@@ -276,6 +293,32 @@ private fun InsertionPositionSheet(
                     modifier = Modifier
                         .padding(top = 8.dp)
                         .testTag("party_add_position_error")
+                )
+            }
+        }
+    }
+}
+
+/** Read-only list of validated Manches, most recent first (Story 4.3). */
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun RoundHistorySheet(rounds: List<RoundHistoryItem>, onDismiss: () -> Unit) {
+    ModalBottomSheet(onDismissRequest = onDismiss) {
+        Text(
+            text = stringResource(R.string.party_rounds_title),
+            style = MaterialTheme.typography.headlineSmall,
+            modifier = Modifier.padding(start = 16.dp, end = 16.dp, bottom = 8.dp)
+        )
+        LazyColumn(
+            verticalArrangement = Arrangement.spacedBy(8.dp),
+            modifier = Modifier
+                .padding(start = 16.dp, end = 16.dp, bottom = 32.dp)
+                .testTag("party_round_history")
+        ) {
+            items(rounds, key = { it.roundNumber }) { round ->
+                RoundHistoryRow(
+                    item = round,
+                    modifier = Modifier.testTag("party_round_history_${round.roundNumber}")
                 )
             }
         }

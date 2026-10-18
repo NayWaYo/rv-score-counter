@@ -3,7 +3,9 @@ package com.rvetiveau.rvscorecount.ui.screens.party
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.semantics.SemanticsActions
+import androidx.compose.ui.test.assertContentDescriptionEquals
 import androidx.compose.ui.test.assertCountEquals
+import androidx.compose.ui.test.assertHasNoClickAction
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsEnabled
 import androidx.compose.ui.test.assertIsNotEnabled
@@ -17,6 +19,9 @@ import androidx.compose.ui.test.performClick
 import androidx.compose.ui.text.TextLayoutResult
 import androidx.compose.ui.unit.Density
 import com.rvetiveau.rvscorecount.R
+import com.rvetiveau.rvscorecount.domain.model.CardSuit
+import com.rvetiveau.rvscorecount.ui.components.RoundHistoryItem
+import com.rvetiveau.rvscorecount.ui.components.RoundHistoryScore
 import com.rvetiveau.rvscorecount.ui.theme.RvScoreCounterTheme
 import java.util.UUID
 import org.junit.Assert.assertEquals
@@ -104,6 +109,48 @@ class PartyScreenTest {
         setContent(PartyUiState.Loaded(dealerName = "Joueur 0", roundNumber = 2, standings = rows))
 
         rows.forEach { composeTestRule.onNodeWithTag("party_standing_row_${it.participantId}").assertIsDisplayed() }
+    }
+
+    // --- Story 4.3 ---
+
+    private val heartRound = RoundHistoryItem(
+        roundNumber = 2,
+        suit = CardSuit.HEART,
+        scores = listOf(RoundHistoryScore("Bob", 40), RoundHistoryScore("Alice", 210)),
+        total = 250
+    )
+
+    @Test
+    fun hidesTheRoundsLinkBeforeTheFirstRound() {
+        setContent(PartyUiState.Loaded(dealerName = "Alice"))
+
+        composeTestRule.onNodeWithTag("party_rounds_link").assertDoesNotExist()
+    }
+
+    @Test
+    fun theRoundsLinkShowsTheCountAndEmitsItsIntent() {
+        var opened = false
+        composeTestRule.setContent {
+            RvScoreCounterTheme {
+                PartyScreen(
+                    state = aLoadedStateWithStandings().copy(roundHistory = listOf(heartRound)),
+                    onShowRoundHistory = { opened = true }
+                )
+            }
+        }
+
+        composeTestRule.onNodeWithTag("party_rounds_link").assertTextEquals("Voir les manches (1)").performClick()
+
+        assertTrue(opened)
+    }
+
+    @Test
+    fun theOpenRoundHistoryReadsEachRowAsOneReadOnlyBlock() {
+        setContent(aLoadedStateWithStandings().copy(roundHistory = listOf(heartRound), isRoundHistoryOpen = true))
+
+        composeTestRule.onNodeWithTag("party_round_history_2")
+            .assertContentDescriptionEquals("Manche 2, Cœur : Bob 40 · Alice 210, total 250")
+            .assertHasNoClickAction()
     }
 
     // --- Story 4.2 ---

@@ -48,6 +48,15 @@
     <string name="party_add_position_becomes_dealer">Sera le prochain donneur</string>
     <string name="party_add_error_empty_name">Veuillez entrer un prénom</string>
     <string name="party_add_error_failed">Impossible d\'ajouter le joueur. Réessayez.</string>
+    <string name="party_rounds_link">Voir les manches (%1$d)</string>
+    <string name="party_rounds_title">Manches jouées</string>
+
+    <!-- Historique des manches (round-history-row) -->
+    <string name="round_history_title">Manche %1$d</string>
+    <string name="round_history_score">%1$s %2$d</string>
+    <string name="round_history_score_separator" translatable="false">" · "</string>
+    <string name="round_history_total">Total : %1$d</string>
+    <string name="round_history_content_description">Manche %1$d, %2$s : %3$s, total %4$d</string>
     <string name="party_empty_state">Lancez la première manche pour commencer.</string>
     <string name="party_load_error">Impossible de charger la partie.</string>
     <string name="party_not_found">Partie introuvable.</string>

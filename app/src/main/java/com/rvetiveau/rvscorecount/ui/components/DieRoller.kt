@@ -25,6 +25,8 @@ import androidx.compose.ui.unit.dp
 import com.rvetiveau.rvscorecount.R
 import com.rvetiveau.rvscorecount.domain.model.CardSuit
 import com.rvetiveau.rvscorecount.ui.theme.color
+import com.rvetiveau.rvscorecount.ui.theme.nameRes
+import com.rvetiveau.rvscorecount.ui.theme.pictogramRes
 
 /**
  * Stateless die roll control (AC 2-4, 6, 10): no [kotlin.random.Random] and no ViewModel access
@@ -95,19 +97,3 @@ fun DieRoller(
         }
     }
 }
-
-private val CardSuit.pictogramRes: Int
-    get() = when (this) {
-        CardSuit.SPADE -> R.string.suit_spade_pictogram
-        CardSuit.HEART -> R.string.suit_heart_pictogram
-        CardSuit.CLUB -> R.string.suit_club_pictogram
-        CardSuit.DIAMOND -> R.string.suit_diamond_pictogram
-    }
-
-private val CardSuit.nameRes: Int
-    get() = when (this) {
-        CardSuit.SPADE -> R.string.suit_spade
-        CardSuit.HEART -> R.string.suit_heart
-        CardSuit.CLUB -> R.string.suit_club
-        CardSuit.DIAMOND -> R.string.suit_diamond
-    }
