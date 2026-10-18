@@ -11,6 +11,8 @@ Application Android (Kotlin, Jetpack Compose, Room, Hilt) de comptage des scores
 
 ## Déroulé d'une story
 
+Le déroulé complet, avec ses commandes et ses pièges connus, est dans la skill projet `story` (`.claude/skills/story/SKILL.md`). En résumé :
+
 1. Prendre la prochaine story `backlog` dans `sprint-status.yaml` et ses critères dans `epics.md`.
 2. Rédiger le fichier de story dans `_bmad-output/implementation-artifacts/` (même format que les stories précédentes).
 3. Implémenter dans l'ordre des critères, avec tests JVM (domaine, moteurs, ViewModels) et tests instrumentés si Room ou Compose changent.
@@ -31,5 +33,7 @@ Ne pas committer, pousser ni fusionner sans demande explicite.
 ```bash
 emulator -avd Pixel_API_36 -no-window -no-audio
 ```
+
+Quand le téléphone est aussi branché, fixer `ANDROID_SERIAL=emulator-5554` pour que les tests instrumentés ne s'exécutent que sur l'émulateur.
 
 Gradle doit tourner sur un JDK 17 ou plus. Sur ce poste, `~/.gradle/gradle.properties` définit `org.gradle.java.home` vers le JDK d'Android Studio.
