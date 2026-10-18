@@ -1,0 +1,110 @@
+package com.rvetiveau.rvscorecount.ui.screens.partydetail
+
+import androidx.compose.ui.test.assertContentDescriptionEquals
+import androidx.compose.ui.test.assertHasNoClickAction
+import androidx.compose.ui.test.assertIsNotEnabled
+import androidx.compose.ui.test.assertTextContains
+import androidx.compose.ui.test.assertTextEquals
+import androidx.compose.ui.test.junit4.v2.createComposeRule
+import androidx.compose.ui.test.onNodeWithTag
+import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performScrollToNode
+import androidx.compose.ui.test.hasTestTag
+import com.rvetiveau.rvscorecount.R
+import com.rvetiveau.rvscorecount.domain.model.CardSuit
+import com.rvetiveau.rvscorecount.ui.components.RoundHistoryItem
+import com.rvetiveau.rvscorecount.ui.components.RoundHistoryScore
+import com.rvetiveau.rvscorecount.ui.components.StandingRow
+import com.rvetiveau.rvscorecount.ui.theme.RvScoreCounterTheme
+import java.util.UUID
+import org.junit.Assert.assertTrue
+import org.junit.Rule
+import org.junit.Test
+
+/** Instrumented tests for the pure [PartyDetailScreen] (Story 6.2). */
+class PartyDetailScreenTest {
+
+    @get:Rule
+    val composeTestRule = createComposeRule()
+
+    private val aliceId = UUID.randomUUID()
+    private val bobId = UUID.randomUUID()
+
+    private val loaded = PartyDetailUiState.Loaded(
+        gameId = "papayoo",
+        createdAt = 0L,
+        standings = listOf(
+            StandingRow(aliceId, rank = 1, name = "Alice", cumulativeScore = 200, isDealer = false),
+            StandingRow(bobId, rank = 2, name = "Bob", cumulativeScore = 300, isDealer = false)
+        ),
+        rounds = listOf(
+            RoundHistoryItem(1, CardSuit.HEART, listOf(RoundHistoryScore("Alice", 200), RoundHistoryScore("Bob", 50)), 250),
+            RoundHistoryItem(2, CardSuit.SPADE, listOf(RoundHistoryScore("Alice", 0), RoundHistoryScore("Bob", 250)), 250)
+        )
+    )
+
+    private fun setContent(state: PartyDetailUiState, onReplay: () -> Unit = {}) {
+        composeTestRule.setContent {
+            RvScoreCounterTheme {
+                PartyDetailScreen(state = state, onReplay = onReplay)
+            }
+        }
+    }
+
+    @Test
+    fun showsTheGameTheWinnerAndTheFinalClassement() {
+        setContent(loaded)
+
+        composeTestRule.onNodeWithTag("party_detail_subtitle").assertTextContains("Papayoo", substring = true)
+        composeTestRule.onNodeWithTag("party_detail_winner").assertTextContains("Vainqueur").assertTextContains("Alice")
+        composeTestRule.onNodeWithTag("party_detail_standing_row_$bobId").assertTextContains("2.").assertTextContains("300")
+    }
+
+    @Test
+    fun listsTheRoundsChronologicallyAsReadOnlyRows() {
+        setContent(loaded)
+
+        composeTestRule.onNodeWithTag("party_detail_content").performScrollToNode(hasTestTag("party_detail_round_2"))
+        composeTestRule.onNodeWithTag("party_detail_round_1")
+            .assertContentDescriptionEquals("Manche 1, Cœur : Alice 200 · Bob 50, total 250")
+            .assertHasNoClickAction()
+        composeTestRule.onNodeWithTag("party_detail_round_2")
+            .assertContentDescriptionEquals("Manche 2, Pique : Alice 0 · Bob 250, total 250")
+        val first = composeTestRule.onNodeWithTag("party_detail_round_1").fetchSemanticsNode().boundsInRoot.top
+        val second = composeTestRule.onNodeWithTag("party_detail_round_2").fetchSemanticsNode().boundsInRoot.top
+        assertTrue(first < second)
+    }
+
+    @Test
+    fun aPartyWithoutRoundsSaysSoAndHasNoWinner() {
+        setContent(loaded.copy(rounds = emptyList()))
+
+        composeTestRule.onNodeWithTag("party_detail_winner").assertDoesNotExist()
+        composeTestRule.onNodeWithTag("party_detail_no_round").assertTextEquals("Aucune manche jouée")
+    }
+
+    @Test
+    fun replayEmitsItsIntent() {
+        var replayed = false
+        setContent(loaded, onReplay = { replayed = true })
+
+        composeTestRule.onNodeWithTag("party_detail_replay_button").assertTextEquals("Rejouer avec ces joueurs").performClick()
+
+        assertTrue(replayed)
+    }
+
+    @Test
+    fun showsTheReplayErrorAndDisablesReplayWhileCreating() {
+        setContent(loaded.copy(isReplaying = true, replayErrorRes = R.string.results_replay_error))
+
+        composeTestRule.onNodeWithTag("party_detail_replay_button").assertIsNotEnabled()
+        composeTestRule.onNodeWithTag("party_detail_replay_error").assertTextEquals("Impossible de relancer la partie. Réessayez.")
+    }
+
+    @Test
+    fun showsTheUnavailableState() {
+        setContent(PartyDetailUiState.Unavailable)
+
+        composeTestRule.onNodeWithTag("party_detail_unavailable").assertTextEquals("Détail indisponible pour cette partie.")
+    }
+}

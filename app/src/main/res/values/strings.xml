@@ -2,9 +2,6 @@
 <resources>
     <string name="app_name">rv-score-counter</string>
 
-    <!-- Placeholders temporaires : remplacés écran par écran dans les epics 2 à 6 -->
-    <string name="route_placeholder_party_detail">Détail de partie %1$s (à venir)</string>
-
     <!-- Démarrage : reprise automatique d'une Partie en cours -->
     <string name="root_error_message">Impossible de vérifier si une partie est en cours.</string>
     <string name="root_error_retry">Réessayer</string>
@@ -89,6 +86,13 @@
     <string name="history_delete_dialog_title">Supprimer cette partie ?</string>
     <string name="history_delete_dialog_message">La partie et toutes ses manches seront définitivement supprimées.</string>
     <string name="history_delete_error">Impossible de supprimer la partie. Réessayez.</string>
+
+    <!-- Détail de partie -->
+    <string name="party_detail_title">Détail de la partie</string>
+    <string name="party_detail_subtitle">%1$s · %2$s</string>
+    <string name="party_detail_replay">Rejouer avec ces joueurs</string>
+    <string name="party_detail_load_error">Impossible de charger la partie.</string>
+    <string name="party_detail_unavailable">Détail indisponible pour cette partie.</string>
 
     <!-- Historique des manches (round-history-row) -->
     <string name="round_history_title">Manche %1$d</string>

@@ -19,6 +19,9 @@ import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.unit.dp
 import com.rvetiveau.rvscorecount.R
 import com.rvetiveau.rvscorecount.domain.model.CardSuit
+import com.rvetiveau.rvscorecount.domain.model.Participant
+import com.rvetiveau.rvscorecount.domain.model.Round
+import com.rvetiveau.rvscorecount.domain.model.RoundScore
 import com.rvetiveau.rvscorecount.ui.theme.color
 import com.rvetiveau.rvscorecount.ui.theme.nameRes
 import com.rvetiveau.rvscorecount.ui.theme.pictogramRes
@@ -36,6 +39,29 @@ data class RoundHistoryScore(
     val participantName: String,
     val points: Int
 )
+
+/**
+ * Manches in chronological order, scores in table order. Every score must belong to one of
+ * [participants]; callers check this first (e.g. through computeStandings), otherwise it throws.
+ */
+fun roundHistoryItems(
+    participants: List<Participant>,
+    scoresByRound: Map<Round, List<RoundScore>>
+): List<RoundHistoryItem> {
+    val participantsById = participants.associateBy { it.id }
+    return scoresByRound.entries
+        .sortedBy { (round, _) -> round.roundNumber }
+        .map { (round, roundScores) ->
+            RoundHistoryItem(
+                roundNumber = round.roundNumber,
+                suit = round.suit,
+                scores = roundScores
+                    .sortedBy { participantsById.getValue(it.participantId).listPosition }
+                    .map { RoundHistoryScore(participantsById.getValue(it.participantId).name, it.points) },
+                total = roundScores.sumOf { it.points }
+            )
+        }
+}
 
 /**
  * Read-only round-history-row (UX DESIGN) : fond `suit-*-tint`, numéro de Manche, scores et total,

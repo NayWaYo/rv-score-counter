@@ -66,7 +66,7 @@ development_status:
   # -------------------------------------------------------
   # Epic 2: Creation de Partie (3 stories)
   # -------------------------------------------------------
-  epic-2: in-progress
+  epic-2: done
 
   2-1-ecran-d-accueil-grille-de-tuiles-jeux: done
   2-2-creation-de-partie-ajout-et-reordonnancement-des-participants: done
@@ -77,7 +77,7 @@ development_status:
   # -------------------------------------------------------
   # Epic 3: Saisie de Manche (4 stories)
   # -------------------------------------------------------
-  epic-3: in-progress
+  epic-3: done
 
   3-1-de-virtuel-tirage-de-la-couleur-du-7: done
   3-2-saisie-des-scores-ordre-libre-et-clavier-numerique: done
@@ -89,7 +89,7 @@ development_status:
   # -------------------------------------------------------
   # Epic 4: Suivi de Partie en cours (3 stories)
   # -------------------------------------------------------
-  epic-4: in-progress
+  epic-4: done
 
   4-1-ecran-partie-en-cours-classement-temps-reel: done
   4-2-ajout-de-participant-en-cours-de-partie: done
@@ -100,7 +100,7 @@ development_status:
   # -------------------------------------------------------
   # Epic 5: Cloture & Relance (2 stories)
   # -------------------------------------------------------
-  epic-5: in-progress
+  epic-5: done
 
   5-1-cloture-de-partie-et-resultats-finaux: done
   5-2-relance-rapide-rejouer-avec-les-memes-joueurs: done
@@ -110,10 +110,10 @@ development_status:
   # -------------------------------------------------------
   # Epic 6: Historique (2 stories)
   # -------------------------------------------------------
-  epic-6: in-progress
+  epic-6: done
 
   6-1-ecran-historique-liste-des-parties-passees: done
-  6-2-detail-de-partie-scores-par-manche-avec-couleur-du-7: backlog
+  6-2-detail-de-partie-scores-par-manche-avec-couleur-du-7: done
 
   epic-6-retrospective: optional
 

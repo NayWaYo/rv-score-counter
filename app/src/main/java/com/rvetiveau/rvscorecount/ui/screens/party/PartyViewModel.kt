@@ -12,8 +12,7 @@ import com.rvetiveau.rvscorecount.domain.usecase.AddParticipantUseCase
 import com.rvetiveau.rvscorecount.domain.usecase.ClosePartyUseCase
 import com.rvetiveau.rvscorecount.domain.usecase.GetAvailableGamesUseCase
 import com.rvetiveau.rvscorecount.domain.usecase.nextDealerIndexAfterInsertion
-import com.rvetiveau.rvscorecount.ui.components.RoundHistoryItem
-import com.rvetiveau.rvscorecount.ui.components.RoundHistoryScore
+import com.rvetiveau.rvscorecount.ui.components.roundHistoryItems
 import com.rvetiveau.rvscorecount.ui.components.toStandingRows
 import com.rvetiveau.rvscorecount.ui.navigation.NavigationEvent
 import com.rvetiveau.rvscorecount.ui.navigation.Routes
@@ -128,19 +127,7 @@ class PartyViewModel @Inject constructor(
             return PartyUiState.InconsistentParticipants
         }
         // computeStandings a déjà vérifié que chaque score appartient à un Participant connu.
-        val participantsById = participants.associateBy { it.id }
-        val roundHistory = scoresByRound.entries
-            .sortedByDescending { (round, _) -> round.roundNumber }
-            .map { (round, roundScores) ->
-                RoundHistoryItem(
-                    roundNumber = round.roundNumber,
-                    suit = round.suit,
-                    scores = roundScores
-                        .sortedBy { participantsById.getValue(it.participantId).listPosition }
-                        .map { RoundHistoryScore(participantsById.getValue(it.participantId).name, it.points) },
-                    total = roundScores.sumOf { it.points }
-                )
-            }
+        val roundHistory = roundHistoryItems(participants, scoresByRound).reversed()
 
         val rows = standings.toStandingRows(dealerId = dealer.id)
         seating = participants.sortedBy { it.listPosition }
