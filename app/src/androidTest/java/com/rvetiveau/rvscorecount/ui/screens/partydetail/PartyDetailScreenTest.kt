@@ -14,6 +14,7 @@ import com.rvetiveau.rvscorecount.R
 import com.rvetiveau.rvscorecount.domain.model.CardSuit
 import com.rvetiveau.rvscorecount.ui.components.RoundHistoryItem
 import com.rvetiveau.rvscorecount.ui.components.RoundHistoryScore
+import com.rvetiveau.rvscorecount.ui.components.SevenChampionUi
 import com.rvetiveau.rvscorecount.ui.components.StandingRow
 import com.rvetiveau.rvscorecount.ui.theme.RvScoreCounterTheme
 import java.util.UUID
@@ -106,5 +107,20 @@ class PartyDetailScreenTest {
         setContent(PartyDetailUiState.Unavailable)
 
         composeTestRule.onNodeWithTag("party_detail_unavailable").assertTextEquals("Détail indisponible pour cette partie.")
+    }
+
+    @Test
+    fun showsWhoTookThe40InEachRoundAndThe40Champion() {
+        setContent(
+            loaded.copy(
+                rounds = loaded.rounds.map { it.copy(sevenHolderName = "Bob") },
+                sevenChampion = SevenChampionUi(listOf("Bob"), 2)
+            )
+        )
+
+        composeTestRule.onNodeWithTag("party_detail_seven_champion").assertTextEquals("Champion du 40 : Bob (2 fois)")
+        composeTestRule.onNodeWithTag("party_detail_content").performScrollToNode(hasTestTag("party_detail_round_1"))
+        composeTestRule.onNodeWithTag("party_detail_round_1")
+            .assertContentDescriptionEquals("Manche 1, Cœur : Alice 200 · Bob 50, total 250, Le 40 : Bob")
     }
 }

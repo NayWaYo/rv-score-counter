@@ -100,6 +100,28 @@ class PartyRepositoryImplTest {
         assertTrue(repository.getParticipantsByPartyId(party.id).isEmpty())
     }
 
+    // --- Qui a eu le 40 ---
+
+    @Test
+    fun saveRoundPersistsTheSevenHolderAndRejectsAStranger() = runTest {
+        val party = aParty()
+        val alice = aParticipant(party.id, "Alice", 0)
+        repository.createPartyWithParticipants(party, listOf(alice))
+        val round = Round(UUID.randomUUID(), party.id, 1, CardSuit.HEART, sevenHolderId = alice.id)
+
+        repository.saveRound(round, mapOf(alice.id to 250), party)
+
+        assertEquals(alice.id, repository.getRoundsByPartyId(party.id).single().sevenHolderId)
+        var thrown: Throwable? = null
+        try {
+            repository.saveRound(round.copy(id = UUID.randomUUID(), roundNumber = 2, sevenHolderId = UUID.randomUUID()), mapOf(alice.id to 250), party)
+        } catch (t: Throwable) {
+            thrown = t
+        }
+        assertTrue(thrown is IllegalArgumentException)
+        assertEquals(1, repository.getRoundsByPartyId(party.id).size)
+    }
+
     // --- Story 6.1 : historique et suppression ---
 
     @Test

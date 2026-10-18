@@ -26,6 +26,7 @@ import kotlinx.coroutines.launch
 
 private const val SUIT_KEY = "suit"
 private const val SCORE_KEY_PREFIX = "score_"
+private const val SEVEN_HOLDER_KEY = "seven_holder"
 
 /**
  * Holds the die roll and score entry draft in memory only (AC 9, 12) until « Valider la Manche »
@@ -107,10 +108,14 @@ class RoundEntryViewModel @Inject constructor(
                     }
                     participant.id to validated
                 }
+                val restoredSevenHolderId = savedStateHandle.get<String>(SEVEN_HOLDER_KEY)
+                    ?.let { saved -> ordered.firstOrNull { it.id.toString() == saved }?.id }
                 val restoredContent = RoundEntryContent(
                     participants = ordered.map { RoundEntryParticipant(it.id, it.name) },
                     scores = restoredScores,
-                    totalPointsPerRound = engine.totalPointsPerRound
+                    totalPointsPerRound = engine.totalPointsPerRound,
+                    sevenPoints = engine.suitSevenPoints,
+                    sevenHolderId = restoredSevenHolderId.takeIf { engine.suitSevenPoints != null }
                 )
                 val content = if (hasRestoredScore) {
                     precomputeSoleEmptyScore(restoredContent, engine, invalidRestoredParticipantIds)
@@ -144,6 +149,15 @@ class RoundEntryViewModel @Inject constructor(
         val suit = rollDieUseCase()
         savedStateHandle[SUIT_KEY] = suit.name
         _uiState.value = _uiState.value.copy(suit = suit)
+    }
+
+    /** Records who took the 7 of the die's suit; ignored when the game has none or the id is unknown. */
+    fun onSevenHolderSelected(participantId: UUID) {
+        if (_uiState.value.isSaving) return
+        val content = _uiState.value.content ?: return
+        if (content.sevenPoints == null || content.participants.none { it.id == participantId }) return
+        _uiState.value = _uiState.value.copy(content = content.copy(sevenHolderId = participantId), saveError = false)
+        savedStateHandle[SEVEN_HOLDER_KEY] = participantId.toString()
     }
 
     /** Updates only the targeted Participant's draft (AC 3, 4); unknown ids and invalid raw
@@ -181,10 +195,11 @@ class RoundEntryViewModel @Inject constructor(
         val suit = state.suit ?: return
         val scores = state.content?.toScores() ?: return
         if (!state.canValidate) return
+        val sevenHolderId = state.content.sevenHolderId
         _uiState.value = state.copy(isSaving = true, saveError = false)
 
         viewModelScope.launch {
-            val outcome = validateRoundUseCase(partyId, suit, scores).getOrNull()
+            val outcome = validateRoundUseCase(partyId, suit, scores, sevenHolderId).getOrNull()
             if (outcome is ValidateRoundOutcome.Validated) {
                 _navigationEvents.send(NavigationEvent.NavigateBack)
             } else {

@@ -43,7 +43,8 @@ class ValidateRoundUseCase @Inject constructor(
     suspend operator fun invoke(
         partyId: UUID,
         suit: CardSuit,
-        scores: Map<UUID, Int>
+        scores: Map<UUID, Int>,
+        sevenHolderId: UUID? = null
     ): Result<ValidateRoundOutcome> {
         return try {
             val party = partyRepository.getPartyById(partyId)
@@ -66,6 +67,7 @@ class ValidateRoundUseCase @Inject constructor(
                     "currentDealerIndex ${party.currentDealerIndex} is out of bounds for ${participants.size} participants"
                 )
             }
+            checkSevenHolder(engine, scores, sevenHolderId)
 
             val validation = engine.validateRound(scores)
             if (validation is RoundValidation.Error) {
@@ -77,7 +79,8 @@ class ValidateRoundUseCase @Inject constructor(
                 id = UUID.randomUUID(),
                 partyId = partyId,
                 roundNumber = (previousRounds.maxOfOrNull { it.roundNumber } ?: 0) + 1,
-                suit = suit
+                suit = suit,
+                sevenHolderId = sevenHolderId
             )
             val nextDealerIndex = (party.currentDealerIndex + 1) % participants.size
             // Calculé avant l'écriture : une fois la Manche enregistrée, plus rien ne doit échouer,
@@ -100,6 +103,20 @@ class ValidateRoundUseCase @Inject constructor(
             throw cancellation
         } catch (t: Throwable) {
             Result.failure(t)
+        }
+    }
+
+    /** A game with a suit seven requires its holder, who scored at least its points this round. */
+    private fun checkSevenHolder(engine: GameEngine, scores: Map<UUID, Int>, sevenHolderId: UUID?) {
+        val sevenPoints = engine.suitSevenPoints
+        if (sevenPoints == null) {
+            if (sevenHolderId != null) throw InvalidRoundException("Game '${engine.gameId}' has no suit seven to record")
+            return
+        }
+        val holderScore = sevenHolderId?.let { scores[it] }
+            ?: throw InvalidRoundException("The 7 holder must be one of the round's participants")
+        if (holderScore < sevenPoints) {
+            throw InvalidRoundException("The 7 holder scored $holderScore, less than the 7's $sevenPoints points")
         }
     }
 }

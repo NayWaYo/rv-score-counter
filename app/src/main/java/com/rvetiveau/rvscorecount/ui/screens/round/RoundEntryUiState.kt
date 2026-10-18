@@ -34,8 +34,23 @@ data class RoundEntryContent(
     val participants: List<RoundEntryParticipant>,
     val scores: Map<UUID, String> = emptyMap(),
     val totalPointsPerRound: Int,
-    val precomputedParticipantId: UUID? = null
+    val precomputedParticipantId: UUID? = null,
+    /** Points of the suit seven when the game records its holder (Papayoo : 40), else null. */
+    val sevenPoints: Int? = null,
+    val sevenHolderId: UUID? = null
 ) {
+    /** The chosen holder's entered score is below the seven's own points: impossible. */
+    val isSevenHolderScoreTooLow: Boolean
+        get() {
+            val points = sevenPoints ?: return false
+            val holderScore = sevenHolderId?.let { scores[it]?.toIntOrNull() } ?: return false
+            return holderScore < points
+        }
+
+    private val isSevenHolderValid: Boolean
+        get() = sevenPoints == null ||
+            (sevenHolderId != null && scores[sevenHolderId]?.toIntOrNull() != null && !isSevenHolderScoreTooLow)
+
     val currentSum: Long get() = scores.values.sumOf { it.toIntOrNull()?.toLong() ?: 0L }
 
     val hasAnyScoreEntered: Boolean get() = scores.values.any { it.isNotEmpty() }
@@ -54,7 +69,8 @@ data class RoundEntryContent(
     val canValidate: Boolean
         get() = allFilled &&
             sumIndicatorState == SumIndicatorState.SUCCESS &&
-            participants.all { (scores[it.id]?.toIntOrNull() ?: -1) >= 0 }
+            participants.all { (scores[it.id]?.toIntOrNull() ?: -1) >= 0 } &&
+            isSevenHolderValid
 
     /** Integer scores keyed by participant, or null while any draft is missing or not an Int. */
     fun toScores(): Map<UUID, Int>? = participants.associate { participant ->

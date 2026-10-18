@@ -12,6 +12,7 @@ import com.rvetiveau.rvscorecount.domain.usecase.CreatePartyUseCase
 import com.rvetiveau.rvscorecount.game.papayoo.PapayooEngine
 import com.rvetiveau.rvscorecount.ui.components.RoundHistoryItem
 import com.rvetiveau.rvscorecount.ui.components.RoundHistoryScore
+import com.rvetiveau.rvscorecount.ui.components.SevenChampionUi
 import com.rvetiveau.rvscorecount.ui.navigation.NavigationEvent
 import com.rvetiveau.rvscorecount.ui.navigation.Routes
 import java.util.UUID
@@ -173,5 +174,27 @@ class PartyDetailViewModelTest {
         val state = vm.uiState.value as PartyDetailUiState.Loaded
         assertEquals(R.string.results_replay_error, state.replayErrorRes)
         assertTrue(!state.isReplaying)
+    }
+
+    @Test
+    fun `shows who took the 40 in each round and the 40 champion`() = runTest {
+        val r1 = round1.copy(sevenHolderId = alice.id)
+        val r2 = round2.copy(sevenHolderId = bob.id)
+        val r3 = Round(UUID.randomUUID(), partyId, 3, CardSuit.CLUB, sevenHolderId = bob.id)
+        val repository = FakePartyRepository(
+            aParty(),
+            listOf(alice, bob),
+            listOf(r1, r2, r3),
+            listOf(
+                RoundScore(r1.id, alice.id, 200), RoundScore(r1.id, bob.id, 50),
+                RoundScore(r2.id, alice.id, 0), RoundScore(r2.id, bob.id, 250),
+                RoundScore(r3.id, alice.id, 100), RoundScore(r3.id, bob.id, 150)
+            )
+        )
+        val vm = viewModel(repository).also { it.initialize(partyId) }
+
+        val state = vm.uiState.value as PartyDetailUiState.Loaded
+        assertEquals(listOf("Alice", "Bob", "Bob"), state.rounds.map { it.sevenHolderName })
+        assertEquals(SevenChampionUi(listOf("Bob"), 2), state.sevenChampion)
     }
 }

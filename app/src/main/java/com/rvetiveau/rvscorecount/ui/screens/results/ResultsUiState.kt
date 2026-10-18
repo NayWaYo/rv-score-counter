@@ -1,6 +1,7 @@
 package com.rvetiveau.rvscorecount.ui.screens.results
 
 import androidx.annotation.StringRes
+import com.rvetiveau.rvscorecount.ui.components.SevenChampionUi
 import com.rvetiveau.rvscorecount.ui.components.StandingRow
 
 /**
@@ -11,6 +12,7 @@ sealed interface ResultsUiState {
     data object Loading : ResultsUiState
     data class Loaded(
         val standings: List<StandingRow>,
+        val sevenChampion: SevenChampionUi? = null,
         val isReplaying: Boolean = false,
         @StringRes val replayErrorRes: Int? = null
     ) : ResultsUiState {

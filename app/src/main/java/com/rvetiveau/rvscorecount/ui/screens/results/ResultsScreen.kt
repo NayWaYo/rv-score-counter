@@ -21,6 +21,7 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import com.rvetiveau.rvscorecount.R
+import com.rvetiveau.rvscorecount.ui.components.SevenChampionLine
 import com.rvetiveau.rvscorecount.ui.components.StandingRowItem
 import com.rvetiveau.rvscorecount.ui.components.WinnerBanner
 
@@ -82,6 +83,14 @@ fun ResultsScreen(
             )
             if (state.winners.isNotEmpty()) {
                 WinnerBanner(state.winners, modifier = Modifier.testTag("results_winner"))
+            }
+            state.sevenChampion?.let { champion ->
+                SevenChampionLine(
+                    champion = champion,
+                    modifier = Modifier
+                        .padding(top = 12.dp)
+                        .testTag("results_seven_champion")
+                )
             }
             LazyColumn(
                 verticalArrangement = Arrangement.spacedBy(8.dp),

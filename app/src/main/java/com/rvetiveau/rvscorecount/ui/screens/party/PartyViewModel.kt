@@ -7,6 +7,7 @@ import com.rvetiveau.rvscorecount.domain.model.Participant
 import com.rvetiveau.rvscorecount.domain.model.Party
 import com.rvetiveau.rvscorecount.domain.model.PartyState
 import com.rvetiveau.rvscorecount.domain.model.computeStandings
+import com.rvetiveau.rvscorecount.domain.model.sevenChampion
 import com.rvetiveau.rvscorecount.domain.repository.PartyRepository
 import com.rvetiveau.rvscorecount.domain.usecase.AddParticipantUseCase
 import com.rvetiveau.rvscorecount.domain.usecase.ClosePartyUseCase
@@ -122,11 +123,12 @@ class PartyViewModel @Inject constructor(
         val rounds = partyRepository.getRoundsByPartyId(partyId)
         val scoresByRound = rounds.associateWith { partyRepository.getScoresByRoundId(it.id) }
         val standings = try {
+            sevenChampion(participants, rounds)
             computeStandings(participants, scoresByRound.values.flatten())
         } catch (_: IllegalArgumentException) {
             return PartyUiState.InconsistentParticipants
         }
-        // computeStandings a déjà vérifié que chaque score appartient à un Participant connu.
+        // sevenChampion et computeStandings ont vérifié détenteurs du 7 et scores.
         val roundHistory = roundHistoryItems(participants, scoresByRound).reversed()
 
         val rows = standings.toStandingRows(dealerId = dealer.id)

@@ -2,6 +2,7 @@ package com.rvetiveau.rvscorecount.ui.screens.partydetail
 
 import androidx.annotation.StringRes
 import com.rvetiveau.rvscorecount.ui.components.RoundHistoryItem
+import com.rvetiveau.rvscorecount.ui.components.SevenChampionUi
 import com.rvetiveau.rvscorecount.ui.components.StandingRow
 
 /**
@@ -15,6 +16,7 @@ sealed interface PartyDetailUiState {
         val createdAt: Long,
         val standings: List<StandingRow>,
         val rounds: List<RoundHistoryItem>,
+        val sevenChampion: SevenChampionUi? = null,
         val isReplaying: Boolean = false,
         @StringRes val replayErrorRes: Int? = null
     ) : PartyDetailUiState {

@@ -5,6 +5,8 @@ import androidx.lifecycle.viewModelScope
 import com.rvetiveau.rvscorecount.R
 import com.rvetiveau.rvscorecount.domain.model.PartyState
 import com.rvetiveau.rvscorecount.domain.model.computeStandings
+import com.rvetiveau.rvscorecount.domain.model.sevenChampion
+import com.rvetiveau.rvscorecount.ui.components.toUi
 import com.rvetiveau.rvscorecount.domain.repository.PartyRepository
 import com.rvetiveau.rvscorecount.domain.usecase.CreatePartyUseCase
 import com.rvetiveau.rvscorecount.ui.components.toStandingRows
@@ -70,14 +72,16 @@ class ResultsViewModel @Inject constructor(
             return ResultsUiState.Unavailable
         }
 
-        val scores = partyRepository.getRoundsByPartyId(partyId)
-            .flatMap { partyRepository.getScoresByRoundId(it.id) }
-        val standings = try {
-            computeStandings(participants, scores)
+        val rounds = partyRepository.getRoundsByPartyId(partyId)
+        val scores = rounds.flatMap { partyRepository.getScoresByRoundId(it.id) }
+        return try {
+            ResultsUiState.Loaded(
+                standings = computeStandings(participants, scores).toStandingRows(),
+                sevenChampion = sevenChampion(participants, rounds)?.toUi()
+            )
         } catch (_: IllegalArgumentException) {
-            return ResultsUiState.Unavailable
+            ResultsUiState.Unavailable
         }
-        return ResultsUiState.Loaded(standings.toStandingRows())
     }
 
     fun retry(partyId: UUID) {

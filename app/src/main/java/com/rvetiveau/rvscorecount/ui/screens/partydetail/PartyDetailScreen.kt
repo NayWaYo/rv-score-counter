@@ -22,6 +22,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import com.rvetiveau.rvscorecount.R
 import com.rvetiveau.rvscorecount.ui.components.RoundHistoryRow
+import com.rvetiveau.rvscorecount.ui.components.SevenChampionLine
 import com.rvetiveau.rvscorecount.ui.components.StandingRowItem
 import com.rvetiveau.rvscorecount.ui.components.WinnerBanner
 import com.rvetiveau.rvscorecount.ui.components.gamePresentation
@@ -110,6 +111,11 @@ private fun LoadedContent(state: PartyDetailUiState.Loaded, onReplay: () -> Unit
             if (state.winners.isNotEmpty()) {
                 item(key = "winner") {
                     WinnerBanner(state.winners, modifier = Modifier.testTag("party_detail_winner"))
+                }
+            }
+            state.sevenChampion?.let { champion ->
+                item(key = "seven_champion") {
+                    SevenChampionLine(champion = champion, modifier = Modifier.testTag("party_detail_seven_champion"))
                 }
             }
             items(state.standings, key = { it.participantId }) { row ->

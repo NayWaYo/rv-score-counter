@@ -100,6 +100,8 @@
     <string name="round_history_score">%1$s %2$d</string>
     <string name="round_history_score_separator" translatable="false">" · "</string>
     <string name="round_history_total">Total : %1$d</string>
+    <string name="round_history_seven_holder">Le 40 : %1$s</string>
+    <string name="seven_champion">Champion du 40 : %1$s (%2$d fois)</string>
     <string name="round_history_content_description">Manche %1$d, %2$s : %3$s, total %4$d</string>
     <string name="party_empty_state">Lancez la première manche pour commencer.</string>
     <string name="party_load_error">Impossible de charger la partie.</string>
@@ -128,6 +130,9 @@
     <string name="score_field_content_description">Score de %1$s</string>
     <string name="round_entry_sum_error_message">Total : %1$d — corrigez pour atteindre %2$d.</string>
     <string name="round_entry_validate_button">Valider la Manche</string>
+    <string name="round_entry_seven_question">Qui a eu le 7 (%1$d points) ?</string>
+    <string name="round_entry_seven_question_suit">Qui a eu le 7 de %1$s (%2$d points) ?</string>
+    <string name="round_entry_seven_score_too_low">%1$s a moins de %2$d points sur cette manche : vérifiez le score ou le joueur.</string>
     <string name="round_entry_save_error">Impossible d\'enregistrer la manche. Réessayez.</string>
     <string name="score_field_precomputed_content_description">Score calculé automatiquement pour %1$s, modifiable</string>
 </resources>

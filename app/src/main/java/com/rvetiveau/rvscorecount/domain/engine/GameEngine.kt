@@ -12,6 +12,12 @@ interface GameEngine {
     val maxPlayers: Int
     val totalPointsPerRound: Int
 
+    /**
+     * Points of the 7 of the die's suit when the game records who took it each round (Papayoo : 40),
+     * null otherwise. Its holder's round score is at least this value.
+     */
+    val suitSevenPoints: Int? get() = null
+
     fun precomputeLastScore(entered: Map<ParticipantId, Int>): Int
 
     fun validateRound(scores: Map<ParticipantId, Int>): RoundValidation

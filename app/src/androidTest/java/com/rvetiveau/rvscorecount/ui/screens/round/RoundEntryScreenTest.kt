@@ -4,12 +4,14 @@ import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsEnabled
 import androidx.compose.ui.test.assertIsFocused
 import androidx.compose.ui.test.assertIsNotEnabled
+import androidx.compose.ui.test.assertTextEquals
 import androidx.compose.ui.test.assertIsNotFocused
 import androidx.compose.ui.test.assert
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.test.performImeAction
 import androidx.compose.ui.test.performTextInput
 import androidx.compose.runtime.mutableStateOf
@@ -264,5 +266,40 @@ class RoundEntryScreenTest {
 
         composeTestRule.onNodeWithTag("score_field_$aliceId").assertIsFocused()
         composeTestRule.onNodeWithTag("score_field_$bobId").assertIsNotFocused()
+    }
+
+    // --- Qui a eu le 40 ---
+
+    @Test
+    fun asksWhoTookTheSevenOfTheRolledSuitAndEmitsTheChoice() {
+        var chosen: UUID? = null
+        composeTestRule.setContent {
+            RvScoreCounterTheme {
+                RoundEntryScreen(
+                    state = aLoadedState(suit = CardSuit.HEART).let { it.copy(content = it.content!!.copy(sevenPoints = 40)) },
+                    onRoll = {},
+                    onScoreChanged = { _, _ -> },
+                    onRetry = {},
+                    onSevenHolderSelected = { chosen = it }
+                )
+            }
+        }
+
+        composeTestRule.onNodeWithTag("round_entry_seven_question").assertTextEquals("Qui a eu le 7 de Cœur (40 points) ?")
+        composeTestRule.onNodeWithTag("round_entry_seven_holder_$bobId").performScrollTo().performClick()
+
+        assertEquals(bobId, chosen)
+    }
+
+    @Test
+    fun flagsAHolderWithFewerPointsThanTheSevenAndBlocksValidation() {
+        setContent(
+            aLoadedState(suit = CardSuit.HEART, scores = mapOf(aliceId to "230", bobId to "20"))
+                .let { it.copy(content = it.content!!.copy(sevenPoints = 40, sevenHolderId = bobId)) }
+        )
+
+        composeTestRule.onNodeWithTag("round_entry_seven_error")
+            .assertTextEquals("Bob a moins de 40 points sur cette manche : vérifiez le score ou le joueur.")
+        composeTestRule.onNodeWithTag("round_entry_validate_button").assertIsNotEnabled()
     }
 }

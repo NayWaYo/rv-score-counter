@@ -27,12 +27,16 @@ import com.rvetiveau.rvscorecount.ui.theme.nameRes
 import com.rvetiveau.rvscorecount.ui.theme.pictogramRes
 import com.rvetiveau.rvscorecount.ui.theme.tint
 
-/** One validated Manche, scores in table order (only the Participants who played it). */
+/**
+ * One validated Manche, scores in table order (only the Participants who played it).
+ * [sevenHolderName] is who took the 7 of [suit]; null for Manches recorded before it was asked.
+ */
 data class RoundHistoryItem(
     val roundNumber: Int,
     val suit: CardSuit,
     val scores: List<RoundHistoryScore>,
-    val total: Int
+    val total: Int,
+    val sevenHolderName: String? = null
 )
 
 data class RoundHistoryScore(
@@ -41,8 +45,8 @@ data class RoundHistoryScore(
 )
 
 /**
- * Manches in chronological order, scores in table order. Every score must belong to one of
- * [participants]; callers check this first (e.g. through computeStandings), otherwise it throws.
+ * Manches in chronological order, scores in table order. Every score and 7 holder must belong to
+ * one of [participants]; callers check this first (computeStandings, sevenChampion), otherwise it throws.
  */
 fun roundHistoryItems(
     participants: List<Participant>,
@@ -58,7 +62,8 @@ fun roundHistoryItems(
                 scores = roundScores
                     .sortedBy { participantsById.getValue(it.participantId).listPosition }
                     .map { RoundHistoryScore(participantsById.getValue(it.participantId).name, it.points) },
-                total = roundScores.sumOf { it.points }
+                total = roundScores.sumOf { it.points },
+                sevenHolderName = round.sevenHolderId?.let { participantsById.getValue(it).name }
             )
         }
 }
@@ -73,13 +78,15 @@ fun RoundHistoryRow(item: RoundHistoryItem, modifier: Modifier = Modifier) {
     val scoresText = item.scores
         .map { score -> stringResource(R.string.round_history_score, score.participantName, score.points) }
         .joinToString(scoreSeparator)
-    val description = stringResource(
+    val baseDescription = stringResource(
         R.string.round_history_content_description,
         item.roundNumber,
         stringResource(item.suit.nameRes),
         scoresText,
         item.total
     )
+    val sevenHolderText = item.sevenHolderName?.let { stringResource(R.string.round_history_seven_holder, it) }
+    val description = if (sevenHolderText != null) "$baseDescription, $sevenHolderText" else baseDescription
     Row(
         verticalAlignment = Alignment.CenterVertically,
         modifier = modifier
@@ -106,6 +113,13 @@ fun RoundHistoryRow(item: RoundHistoryItem, modifier: Modifier = Modifier) {
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
+            if (sevenHolderText != null) {
+                Text(
+                    text = sevenHolderText,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = item.suit.color
+                )
+            }
         }
         Text(
             text = stringResource(item.suit.pictogramRes),

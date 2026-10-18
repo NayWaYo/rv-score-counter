@@ -90,6 +90,9 @@ class PartyRepositoryImpl @Inject constructor(
             require(scores.keys.all { it.toString() in participantIds }) {
                 "Every scored participant must belong to the round's party"
             }
+            require(round.sevenHolderId == null || round.sevenHolderId.toString() in participantIds) {
+                "The 7 holder must belong to the round's party"
+            }
 
             roundDao.insert(round.toEntity())
             val scoreEntities = scores.map { (participantId, points) ->

@@ -11,6 +11,7 @@ class PapayooEngine @Inject constructor() : GameEngine {
     override val minPlayers: Int = 3
     override val maxPlayers: Int = 8
     override val totalPointsPerRound: Int = 250
+    override val suitSevenPoints: Int = 40
 
     override fun precomputeLastScore(entered: Map<ParticipantId, Int>): Int =
         totalPointsPerRound - entered.values.sum()

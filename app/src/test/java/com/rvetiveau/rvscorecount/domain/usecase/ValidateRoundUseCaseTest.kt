@@ -74,7 +74,7 @@ class ValidateRoundUseCaseTest {
     fun `persists the round with its suit, scores and next dealer`() = runTest {
         val repository = FakePartyRepository(aParty(dealerIndex = 0), participants)
 
-        val outcome = useCase(repository)(partyId, CardSuit.HEART, validScores()).getOrThrow()
+        val outcome = useCase(repository)(partyId, CardSuit.HEART, validScores(), alice.id).getOrThrow()
 
         check(outcome is ValidateRoundOutcome.Validated)
         assertEquals(1, outcome.round.roundNumber)
@@ -88,7 +88,7 @@ class ValidateRoundUseCaseTest {
     fun `dealer rotation wraps around to the first participant`() = runTest {
         val repository = FakePartyRepository(aParty(dealerIndex = 2), participants)
 
-        val outcome = useCase(repository)(partyId, CardSuit.SPADE, validScores()).getOrThrow()
+        val outcome = useCase(repository)(partyId, CardSuit.SPADE, validScores(), alice.id).getOrThrow()
 
         check(outcome is ValidateRoundOutcome.Validated)
         assertEquals(0, outcome.nextDealerIndex)
@@ -109,7 +109,7 @@ class ValidateRoundUseCaseTest {
             )
         )
 
-        val outcome = useCase(repository)(partyId, CardSuit.DIAMOND, validScores()).getOrThrow()
+        val outcome = useCase(repository)(partyId, CardSuit.DIAMOND, validScores(), alice.id).getOrThrow()
 
         check(outcome is ValidateRoundOutcome.Validated)
         assertEquals(2, outcome.round.roundNumber)
@@ -122,7 +122,7 @@ class ValidateRoundUseCaseTest {
         val repository = FakePartyRepository(aParty(), participants)
 
         val outcome = useCase(repository)(
-            partyId, CardSuit.HEART, mapOf(alice.id to 100, bob.id to 80, charlie.id to 60)
+            partyId, CardSuit.HEART, mapOf(alice.id to 100, bob.id to 80, charlie.id to 60), alice.id
         ).getOrThrow()
 
         assertEquals(ValidateRoundOutcome.SumMismatch(-10), outcome)
@@ -161,7 +161,7 @@ class ValidateRoundUseCaseTest {
         val unknownGame = FakePartyRepository(aParty(gameId = "unknown"), participants)
 
         listOf(missing, finished, unknownGame).forEach { repository ->
-            val result = useCase(repository)(partyId, CardSuit.HEART, validScores())
+            val result = useCase(repository)(partyId, CardSuit.HEART, validScores(), alice.id)
             assertTrue(result.exceptionOrNull() is InvalidRoundException)
             assertEquals(0, repository.saveRoundInvocationCount)
         }
@@ -171,7 +171,7 @@ class ValidateRoundUseCaseTest {
     fun `rejects an out-of-bounds dealer index instead of guessing one`() = runTest {
         val repository = FakePartyRepository(aParty(dealerIndex = 3), participants)
 
-        val result = useCase(repository)(partyId, CardSuit.HEART, validScores())
+        val result = useCase(repository)(partyId, CardSuit.HEART, validScores(), alice.id)
 
         assertTrue(result.exceptionOrNull() is InvalidRoundException)
         assertEquals(0, repository.saveRoundInvocationCount)
@@ -182,10 +182,48 @@ class ValidateRoundUseCaseTest {
         val repository = FakePartyRepository(aParty(), participants)
         repository.saveFailure = IllegalStateException("constraint violated")
 
-        val result = useCase(repository)(partyId, CardSuit.HEART, validScores())
+        val result = useCase(repository)(partyId, CardSuit.HEART, validScores(), alice.id)
 
         assertTrue(result.exceptionOrNull() is RoundPersistenceException)
         assertEquals(0, repository.party?.currentDealerIndex)
         assertNull(repository.rounds.firstOrNull())
+    }
+
+    // --- Qui a eu le 40 (7 de la couleur du dé) ---
+
+    @Test
+    fun `records who took the seven of the die suit with the round`() = runTest {
+        val repository = FakePartyRepository(aParty(), participants)
+
+        useCase(repository)(partyId, CardSuit.CLUB, validScores(), bob.id).getOrThrow()
+
+        assertEquals(bob.id, repository.rounds.single().sevenHolderId)
+    }
+
+    @Test
+    fun `requires a seven holder who scored at least the seven's points`() = runTest {
+        val repository = FakePartyRepository(aParty(), participants)
+        val scores = mapOf(alice.id to 210, bob.id to 39, charlie.id to 1)
+
+        val missing = useCase(repository)(partyId, CardSuit.CLUB, scores, null)
+        val tooLow = useCase(repository)(partyId, CardSuit.CLUB, scores, bob.id)
+        val stranger = useCase(repository)(partyId, CardSuit.CLUB, scores, UUID.randomUUID())
+
+        listOf(missing, tooLow, stranger).forEach { assertTrue(it.exceptionOrNull() is InvalidRoundException) }
+        assertEquals(0, repository.saveRoundInvocationCount)
+    }
+
+    @Test
+    fun `a game without suit seven refuses a holder and accepts none`() = runTest {
+        val noSeven = object : GameEngine by PapayooEngine() {
+            override val suitSevenPoints: Int? = null
+        }
+        val engines = mapOf(PapayooEngine.GAME_ID to noSeven)
+
+        val withHolder = useCase(FakePartyRepository(aParty(), participants), engines)(partyId, CardSuit.CLUB, validScores(), alice.id)
+        val withoutHolder = useCase(FakePartyRepository(aParty(), participants), engines)(partyId, CardSuit.CLUB, validScores(), null)
+
+        assertTrue(withHolder.exceptionOrNull() is InvalidRoundException)
+        assertTrue(withoutHolder.getOrThrow() is ValidateRoundOutcome.Validated)
     }
 }

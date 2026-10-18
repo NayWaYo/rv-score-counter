@@ -667,6 +667,7 @@ class RoundEntryViewModelTest {
         vm.onRoll()
         vm.onScoreChanged(participants[0].id, "100")
         vm.onScoreChanged(participants[1].id, "80")
+        vm.onSevenHolderSelected(participants[0].id)
     }
 
     @Test
@@ -680,6 +681,7 @@ class RoundEntryViewModelTest {
         vm.onValidate()
 
         assertEquals(CardSuit.SPADE, repository.savedRound?.suit)
+        assertEquals(participants[0].id, repository.savedRound?.sevenHolderId)
         assertEquals(
             mapOf(participants[0].id to 100, participants[1].id to 80, participants[2].id to 70),
             repository.savedScores
@@ -843,5 +845,45 @@ class RoundEntryViewModelTest {
         val content = vm.uiState.value.content!!
         assertEquals("", content.scores[alice.id])
         assertNull(content.precomputedParticipantId)
+    }
+
+    // --- Qui a eu le 40 ---
+
+    @Test
+    fun `validation waits for the seven holder and rejects one with fewer than 40 points`() = runTest {
+        val partyId = UUID.randomUUID()
+        val participants = List(3) { aParticipant(partyId, "P$it", it) }
+        val vm = viewModel(partyRepository = FakePartyRepository(aParty(partyId), participants))
+        vm.initialize(partyId)
+        vm.onRoll()
+        vm.onScoreChanged(participants[0].id, "200")
+        vm.onScoreChanged(participants[1].id, "20")
+        assertEquals(40, vm.uiState.value.content!!.sevenPoints)
+        assertTrue(!vm.uiState.value.canValidate)
+
+        vm.onSevenHolderSelected(participants[1].id)
+        assertTrue(vm.uiState.value.content!!.isSevenHolderScoreTooLow)
+        assertTrue(!vm.uiState.value.canValidate)
+
+        vm.onSevenHolderSelected(participants[0].id)
+        assertTrue(!vm.uiState.value.content!!.isSevenHolderScoreTooLow)
+        assertTrue(vm.uiState.value.canValidate)
+    }
+
+    @Test
+    fun `the seven holder survives a process restart and an unknown id is ignored`() = runTest {
+        val partyId = UUID.randomUUID()
+        val participants = List(3) { aParticipant(partyId, "P$it", it) }
+        val savedStateHandle = SavedStateHandle()
+        val first = viewModel(savedStateHandle = savedStateHandle, partyRepository = FakePartyRepository(aParty(partyId), participants))
+        first.initialize(partyId)
+        first.onSevenHolderSelected(UUID.randomUUID())
+        assertNull(first.uiState.value.content!!.sevenHolderId)
+        first.onSevenHolderSelected(participants[2].id)
+
+        val restored = viewModel(savedStateHandle = savedStateHandle, partyRepository = FakePartyRepository(aParty(partyId), participants))
+        restored.initialize(partyId)
+
+        assertEquals(participants[2].id, restored.uiState.value.content!!.sevenHolderId)
     }
 }

@@ -3,12 +3,16 @@ package com.rvetiveau.rvscorecount.ui.screens.round
 import androidx.compose.foundation.background
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.FilterChip
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -26,6 +30,7 @@ import com.rvetiveau.rvscorecount.domain.model.CardSuit
 import com.rvetiveau.rvscorecount.ui.components.DieRoller
 import com.rvetiveau.rvscorecount.ui.components.ScoreField
 import com.rvetiveau.rvscorecount.ui.components.SumIndicator
+import com.rvetiveau.rvscorecount.ui.theme.nameRes
 import java.util.UUID
 
 /**
@@ -40,7 +45,8 @@ fun RoundEntryScreen(
     onScoreChanged: (UUID, String) -> Unit,
     onRetry: () -> Unit,
     modifier: Modifier = Modifier,
-    onValidate: () -> Unit = {}
+    onValidate: () -> Unit = {},
+    onSevenHolderSelected: (UUID) -> Unit = {}
 ) {
     Column(
         modifier = modifier
@@ -89,7 +95,8 @@ fun RoundEntryScreen(
                 saveError = state.saveError,
                 onRoll = onRoll,
                 onScoreChanged = onScoreChanged,
-                onValidate = onValidate
+                onValidate = onValidate,
+                onSevenHolderSelected = onSevenHolderSelected
             )
         }
     }
@@ -104,7 +111,8 @@ private fun RoundEntryContentColumn(
     saveError: Boolean,
     onRoll: () -> Unit,
     onScoreChanged: (UUID, String) -> Unit,
-    onValidate: () -> Unit
+    onValidate: () -> Unit,
+    onSevenHolderSelected: (UUID) -> Unit
 ) {
     val focusManager = LocalFocusManager.current
     val participantIds = content.participants.map { it.id }
@@ -159,6 +167,15 @@ private fun RoundEntryContentColumn(
         )
     }
 
+    content.sevenPoints?.let { sevenPoints ->
+        SevenHolderSelector(
+            suit = suit,
+            sevenPoints = sevenPoints,
+            content = content,
+            onSevenHolderSelected = onSevenHolderSelected
+        )
+    }
+
     SumIndicator(
         currentSum = content.currentSum,
         state = content.sumIndicatorState,
@@ -184,5 +201,51 @@ private fun RoundEntryContentColumn(
             .testTag("round_entry_validate_button")
     ) {
         Text(text = stringResource(R.string.round_entry_validate_button))
+    }
+}
+
+/** « Qui a eu le 40 ? » : one chip per Participant; the holder must have scored at least the 7's points. */
+@Composable
+private fun SevenHolderSelector(
+    suit: CardSuit?,
+    sevenPoints: Int,
+    content: RoundEntryContent,
+    onSevenHolderSelected: (UUID) -> Unit
+) {
+    Column(modifier = Modifier.padding(top = 16.dp)) {
+        Text(
+            text = if (suit != null) {
+                stringResource(R.string.round_entry_seven_question_suit, stringResource(suit.nameRes), sevenPoints)
+            } else {
+                stringResource(R.string.round_entry_seven_question, sevenPoints)
+            },
+            style = MaterialTheme.typography.bodyLarge,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = Modifier.testTag("round_entry_seven_question")
+        )
+        FlowRow(
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            modifier = Modifier.testTag("round_entry_seven_holders")
+        ) {
+            content.participants.forEach { participant ->
+                FilterChip(
+                    selected = participant.id == content.sevenHolderId,
+                    onClick = { onSevenHolderSelected(participant.id) },
+                    label = { Text(text = participant.name) },
+                    modifier = Modifier
+                        .heightIn(min = 48.dp)
+                        .testTag("round_entry_seven_holder_${participant.id}")
+                )
+            }
+        }
+        if (content.isSevenHolderScoreTooLow) {
+            val holderName = content.participants.first { it.id == content.sevenHolderId }.name
+            Text(
+                text = stringResource(R.string.round_entry_seven_score_too_low, holderName, sevenPoints),
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.error,
+                modifier = Modifier.testTag("round_entry_seven_error")
+            )
+        }
     }
 }
