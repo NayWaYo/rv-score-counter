@@ -9,21 +9,27 @@ import com.rvetiveau.rvscorecount.domain.model.PartyState
 import com.rvetiveau.rvscorecount.domain.repository.PartyRepository
 import com.rvetiveau.rvscorecount.domain.usecase.GetAvailableGamesUseCase
 import com.rvetiveau.rvscorecount.domain.usecase.RollDieUseCase
+import com.rvetiveau.rvscorecount.domain.usecase.ValidateRoundOutcome
+import com.rvetiveau.rvscorecount.domain.usecase.ValidateRoundUseCase
+import com.rvetiveau.rvscorecount.ui.navigation.NavigationEvent
 import dagger.hilt.android.lifecycle.HiltViewModel
 import java.util.UUID
 import javax.inject.Inject
 import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.channels.Channel
+import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.launch
 
 private const val SUIT_KEY = "suit"
 private const val SCORE_KEY_PREFIX = "score_"
 
 /**
- * Holds the die roll and score entry draft in memory only (AC 9, 12): no Round is persisted
- * here, Story 3.4 builds it at validation time. Participants are Room-backed and validated
+ * Holds the die roll and score entry draft in memory only (AC 9, 12) until « Valider la Manche »
+ * hands it to [ValidateRoundUseCase] (Story 3.4). Participants are Room-backed and validated
  * strictly (AC 1, 10); an unknown/corrupt saved value falls back to "not rolled"/"not entered"
  * rather than a default.
  */
@@ -32,7 +38,8 @@ class RoundEntryViewModel @Inject constructor(
     private val partyRepository: PartyRepository,
     private val rollDieUseCase: RollDieUseCase,
     private val savedStateHandle: SavedStateHandle,
-    private val getAvailableGamesUseCase: GetAvailableGamesUseCase
+    private val getAvailableGamesUseCase: GetAvailableGamesUseCase,
+    private val validateRoundUseCase: ValidateRoundUseCase
 ) : ViewModel() {
 
     private val restoredSuit: CardSuit? = savedStateHandle.get<String>(SUIT_KEY)?.let { name ->
@@ -41,6 +48,9 @@ class RoundEntryViewModel @Inject constructor(
 
     private val _uiState = MutableStateFlow(RoundEntryUiState(suit = restoredSuit))
     val uiState: StateFlow<RoundEntryUiState> = _uiState.asStateFlow()
+
+    private val _navigationEvents = Channel<NavigationEvent>(Channel.BUFFERED)
+    val navigationEvents: Flow<NavigationEvent> = _navigationEvents.receiveAsFlow()
 
     private var initializedPartyId: UUID? = null
     private var gameEngine: GameEngine? = null
@@ -130,7 +140,7 @@ class RoundEntryViewModel @Inject constructor(
     /** Same intent for « Lancer » and « Relancer » (Story 3.1): always draws exactly once per
      * tap, preserving any already-loaded participants and drafts (AC 8). */
     fun onRoll() {
-        if (_uiState.value.content == null || !_uiState.value.rerollEnabled) return
+        if (!_uiState.value.rollEnabled) return
         val suit = rollDieUseCase()
         savedStateHandle[SUIT_KEY] = suit.name
         _uiState.value = _uiState.value.copy(suit = suit)
@@ -139,6 +149,7 @@ class RoundEntryViewModel @Inject constructor(
     /** Updates only the targeted Participant's draft (AC 3, 4); unknown ids and invalid raw
      * values (signs, letters, decimals, Int overflow) are ignored rather than transformed. */
     fun onScoreChanged(participantId: UUID, rawValue: String) {
+        if (_uiState.value.isSaving) return
         val content = _uiState.value.content ?: return
         val engine = gameEngine ?: return
         if (content.participants.none { it.id == participantId }) return
@@ -155,10 +166,31 @@ class RoundEntryViewModel @Inject constructor(
         } else {
             precomputeSoleEmptyScore(updatedContent, engine)
         }
-        _uiState.value = _uiState.value.copy(content = nextContent)
+        _uiState.value = _uiState.value.copy(content = nextContent, saveError = false)
 
         val key = "$SCORE_KEY_PREFIX$participantId"
         if (rawValue.isEmpty()) savedStateHandle.remove<String>(key) else savedStateHandle[key] = rawValue
+    }
+
+    /** Persists the Manche through [ValidateRoundUseCase] (Story 3.4, AC 1-7), then returns to
+     * PartyScreen. Ignored unless [RoundEntryUiState.canValidate]; any failure, including a sum
+     * mismatch reported by the engine, keeps the drafts and shows [RoundEntryUiState.saveError]. */
+    fun onValidate() {
+        val state = _uiState.value
+        val partyId = initializedPartyId ?: return
+        val suit = state.suit ?: return
+        val scores = state.content?.toScores() ?: return
+        if (!state.canValidate) return
+        _uiState.value = state.copy(isSaving = true, saveError = false)
+
+        viewModelScope.launch {
+            val outcome = validateRoundUseCase(partyId, suit, scores).getOrNull()
+            if (outcome is ValidateRoundOutcome.Validated) {
+                _navigationEvents.send(NavigationEvent.NavigateBack)
+            } else {
+                _uiState.value = _uiState.value.copy(isSaving = false, saveError = true)
+            }
+        }
     }
 
     private fun precomputeSoleEmptyScore(

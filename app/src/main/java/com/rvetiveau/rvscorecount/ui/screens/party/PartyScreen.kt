@@ -73,19 +73,21 @@ fun PartyScreen(
                 .padding(16.dp)
         ) {
             Text(
-                text = stringResource(R.string.party_dealer_title, state.dealerName),
+                text = stringResource(R.string.party_dealer_title, state.roundNumber, state.dealerName),
                 style = MaterialTheme.typography.headlineSmall,
                 color = MaterialTheme.colorScheme.onBackground,
                 modifier = Modifier
                     .padding(vertical = 16.dp)
                     .testTag("party_dealer_title")
             )
-            Text(
-                text = stringResource(R.string.party_empty_state),
-                style = MaterialTheme.typography.bodyLarge,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.testTag("party_empty_state")
-            )
+            if (state.roundNumber == 1) {
+                Text(
+                    text = stringResource(R.string.party_empty_state),
+                    style = MaterialTheme.typography.bodyLarge,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.testTag("party_empty_state")
+                )
+            }
             if (state.canStartRound) {
                 Button(
                     onClick = onStartRound,

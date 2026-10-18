@@ -64,9 +64,11 @@ class PartyRepositoryImpl @Inject constructor(
     override fun observeParticipants(partyId: UUID): Flow<List<Participant>> =
         participantDao.observeByPartyId(partyId.toString()).map { list -> list.map { it.toDomain() } }
 
-    // Transaction requise (AD-3) : un Round sans ses RoundScores serait un état incohérent
-    override suspend fun saveRound(round: Round, scores: Map<UUID, Int>) {
+    // Transaction requise (AD-3) : un Round sans ses RoundScores, ou sans la rotation du Donneur,
+    // serait un état incohérent
+    override suspend fun saveRound(round: Round, scores: Map<UUID, Int>, updatedParty: Party) {
         require(scores.isNotEmpty()) { "A round must contain at least one score" }
+        require(updatedParty.id == round.partyId) { "The updated party must be the round's party" }
 
         appDatabase.withTransaction {
             val participantIds = participantDao.getByPartyId(round.partyId.toString())
@@ -80,6 +82,7 @@ class PartyRepositoryImpl @Inject constructor(
                 RoundScore(roundId = round.id, participantId = participantId, points = points).toEntity()
             }
             roundScoreDao.insertAll(scoreEntities)
+            partyDao.update(updatedParty.toEntity())
         }
     }
 

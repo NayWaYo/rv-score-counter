@@ -51,7 +51,10 @@ fun RvScoreCounterNavHost(
         }
         composable<Routes.RoundEntry> { backStackEntry ->
             val route: Routes.RoundEntry = backStackEntry.toRoute()
-            RoundEntryRoute(partyId = UUID.fromString(route.partyId))
+            RoundEntryRoute(
+                partyId = UUID.fromString(route.partyId),
+                onNavigate = { event -> navController.dispatch(event) }
+            )
         }
         composable<Routes.Results> { backStackEntry ->
             val route: Routes.Results = backStackEntry.toRoute()

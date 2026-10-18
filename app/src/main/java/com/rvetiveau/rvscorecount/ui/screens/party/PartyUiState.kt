@@ -9,6 +9,7 @@ sealed interface PartyUiState {
     data object Loading : PartyUiState
     data class Loaded(
         val dealerName: String,
+        val roundNumber: Int = 1,
         val canStartRound: Boolean = true
     ) : PartyUiState
     data object LoadError : PartyUiState

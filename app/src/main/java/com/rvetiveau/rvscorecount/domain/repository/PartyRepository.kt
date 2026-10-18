@@ -19,7 +19,9 @@ interface PartyRepository {
     suspend fun addParticipant(participant: Participant)
     suspend fun getParticipantsByPartyId(partyId: UUID): List<Participant>
     fun observeParticipants(partyId: UUID): Flow<List<Participant>>
-    suspend fun saveRound(round: Round, scores: Map<UUID, Int>)
+    /** Atomic write (FR-8, FR-9): the Round, its RoundScores and [updatedParty] (next Donneur)
+     * commit in a single Room transaction, or none of them persist. */
+    suspend fun saveRound(round: Round, scores: Map<UUID, Int>, updatedParty: Party)
     suspend fun getRoundsByPartyId(partyId: UUID): List<Round>
     suspend fun getScoresByRoundId(roundId: UUID): List<RoundScore>
 }

@@ -12,15 +12,19 @@ import com.rvetiveau.rvscorecount.domain.model.RoundScore
 import com.rvetiveau.rvscorecount.domain.repository.PartyRepository
 import com.rvetiveau.rvscorecount.domain.usecase.GetAvailableGamesUseCase
 import com.rvetiveau.rvscorecount.domain.usecase.RollDieUseCase
+import com.rvetiveau.rvscorecount.domain.usecase.ValidateRoundUseCase
+import com.rvetiveau.rvscorecount.ui.navigation.NavigationEvent
 import com.rvetiveau.rvscorecount.game.papayoo.PapayooEngine
 import java.util.UUID
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import kotlinx.coroutines.test.resetMain
 import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.test.setMain
+import kotlinx.coroutines.withTimeoutOrNull
 import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
@@ -56,6 +60,11 @@ class RoundEntryViewModelTest {
     ) : PartyRepository {
         var saveRoundInvocationCount = 0
             private set
+        var savedRound: Round? = null
+            private set
+        var savedScores: Map<UUID, Int>? = null
+            private set
+        var saveFailure: Throwable? = null
 
         override suspend fun createParty(party: Party) = error("not used in this test")
         override suspend fun updateParty(party: Party) = error("not used in this test")
@@ -69,11 +78,14 @@ class RoundEntryViewModelTest {
         override suspend fun addParticipant(participant: Participant) = error("not used in this test")
         override suspend fun getParticipantsByPartyId(partyId: UUID): List<Participant> = participants
         override fun observeParticipants(partyId: UUID): Flow<List<Participant>> = error("not used in this test")
-        override suspend fun saveRound(round: Round, scores: Map<UUID, Int>) {
+        override suspend fun saveRound(round: Round, scores: Map<UUID, Int>, updatedParty: Party) {
             saveRoundInvocationCount++
+            saveFailure?.let { throw it }
+            savedRound = round
+            savedScores = scores
         }
-        override suspend fun getRoundsByPartyId(partyId: UUID): List<Round> = error("not used in this test")
-        override suspend fun getScoresByRoundId(roundId: UUID): List<RoundScore> = error("not used in this test")
+        override suspend fun getRoundsByPartyId(partyId: UUID): List<Round> = emptyList()
+        override suspend fun getScoresByRoundId(roundId: UUID): List<RoundScore> = emptyList()
     }
 
     private class RecordingGameEngine : GameEngine by PapayooEngine() {
@@ -107,8 +119,18 @@ class RoundEntryViewModelTest {
         partyRepository: PartyRepository = FakePartyRepository(),
         getAvailableGamesUseCase: GetAvailableGamesUseCase = GetAvailableGamesUseCase(
             mapOf(PapayooEngine.GAME_ID to PapayooEngine())
+        ),
+        validateRoundUseCase: ValidateRoundUseCase = ValidateRoundUseCase(
+            partyRepository,
+            mapOf(PapayooEngine.GAME_ID to PapayooEngine())
         )
-    ) = RoundEntryViewModel(partyRepository, rollDieUseCase, savedStateHandle, getAvailableGamesUseCase)
+    ) = RoundEntryViewModel(
+        partyRepository,
+        rollDieUseCase,
+        savedStateHandle,
+        getAvailableGamesUseCase,
+        validateRoundUseCase
+    )
 
     private fun initializedViewModel(
         savedStateHandle: SavedStateHandle = SavedStateHandle(),
@@ -630,6 +652,106 @@ class RoundEntryViewModelTest {
 
         assertEquals(0, engine.validateRoundInvocationCount)
         assertEquals(0, repository.saveRoundInvocationCount)
+    }
+
+    // --- Story 3.4 validation (AC 6, 7, 8) ---
+
+    private fun readyToValidate(
+        repository: FakePartyRepository,
+        participants: List<Participant>,
+        partyId: UUID
+    ): RoundEntryViewModel = viewModel(partyRepository = repository).also { vm ->
+        vm.initialize(partyId)
+        vm.onRoll()
+        vm.onScoreChanged(participants[0].id, "100")
+        vm.onScoreChanged(participants[1].id, "80")
+    }
+
+    @Test
+    fun `onValidate persists the drafts with the rolled suit and navigates back`() = runTest {
+        val partyId = UUID.randomUUID()
+        val participants = List(3) { aParticipant(partyId, "P$it", it) }
+        val repository = FakePartyRepository(aParty(partyId), participants)
+        val vm = readyToValidate(repository, participants, partyId)
+        assertTrue(vm.uiState.value.canValidate)
+
+        vm.onValidate()
+
+        assertEquals(CardSuit.SPADE, repository.savedRound?.suit)
+        assertEquals(
+            mapOf(participants[0].id to 100, participants[1].id to 80, participants[2].id to 70),
+            repository.savedScores
+        )
+        assertEquals(NavigationEvent.NavigateBack, vm.navigationEvents.first())
+        assertTrue(vm.uiState.value.isSaving)
+        assertTrue(!vm.uiState.value.canValidate)
+    }
+
+    @Test
+    fun `onValidate is ignored while the suit has not been rolled`() = runTest {
+        val partyId = UUID.randomUUID()
+        val participants = List(3) { aParticipant(partyId, "P$it", it) }
+        val repository = FakePartyRepository(aParty(partyId), participants)
+        val vm = viewModel(partyRepository = repository)
+        vm.initialize(partyId)
+        vm.onScoreChanged(participants[0].id, "100")
+        vm.onScoreChanged(participants[1].id, "80")
+
+        assertTrue(!vm.uiState.value.canValidate)
+        vm.onValidate()
+
+        assertEquals(0, repository.saveRoundInvocationCount)
+    }
+
+    @Test
+    fun `the first roll stays available after scores were entered`() = runTest {
+        val partyId = UUID.randomUUID()
+        val participants = List(3) { aParticipant(partyId, "P$it", it) }
+        val vm = viewModel(partyRepository = FakePartyRepository(aParty(partyId), participants))
+        vm.initialize(partyId)
+        vm.onScoreChanged(participants[0].id, "100")
+
+        vm.onRoll()
+
+        assertEquals(CardSuit.SPADE, vm.uiState.value.suit)
+        assertTrue(!vm.uiState.value.rollEnabled)
+    }
+
+    @Test
+    fun `a negative precomputed complement blocks validation even when the sum is exact`() = runTest {
+        val partyId = UUID.randomUUID()
+        val participants = List(3) { aParticipant(partyId, "P$it", it) }
+        val repository = FakePartyRepository(aParty(partyId), participants)
+        val vm = viewModel(partyRepository = repository)
+        vm.initialize(partyId)
+        vm.onRoll()
+        vm.onScoreChanged(participants[0].id, "200")
+        vm.onScoreChanged(participants[1].id, "100")
+
+        assertTrue(!vm.uiState.value.canValidate)
+        vm.onValidate()
+
+        assertEquals(0, repository.saveRoundInvocationCount)
+    }
+
+    @Test
+    fun `a persistence failure keeps the drafts and shows a save error until the next edit`() = runTest {
+        val partyId = UUID.randomUUID()
+        val participants = List(3) { aParticipant(partyId, "P$it", it) }
+        val repository = FakePartyRepository(aParty(partyId), participants)
+        repository.saveFailure = IllegalStateException("disk full")
+        val vm = readyToValidate(repository, participants, partyId)
+
+        vm.onValidate()
+
+        val state = vm.uiState.value
+        assertTrue(state.saveError)
+        assertTrue(!state.isSaving)
+        assertEquals("70", state.content!!.scores[participants[2].id])
+        assertNull(withTimeoutOrNull(100) { vm.navigationEvents.first() })
+
+        vm.onScoreChanged(participants[2].id, "7")
+        assertTrue(!vm.uiState.value.saveError)
     }
 
     // --- Story 3.2 SavedStateHandle restoration (AC 9) ---

@@ -1,5 +1,6 @@
 package com.rvetiveau.rvscorecount.ui.screens.party
 
+import com.rvetiveau.rvscorecount.domain.model.CardSuit
 import com.rvetiveau.rvscorecount.domain.model.Participant
 import com.rvetiveau.rvscorecount.domain.model.Party
 import com.rvetiveau.rvscorecount.domain.model.PartyState
@@ -39,9 +40,10 @@ class PartyViewModelTest {
     }
 
     private class FakePartyRepository(
-        private val party: Party? = null,
+        var party: Party? = null,
         private val participants: List<Participant> = emptyList(),
-        var failure: Throwable? = null
+        var failure: Throwable? = null,
+        var rounds: List<Round> = emptyList()
     ) : PartyRepository {
         override suspend fun createParty(party: Party) = error("not used in this test")
         override suspend fun updateParty(party: Party) = error("not used in this test")
@@ -55,8 +57,8 @@ class PartyViewModelTest {
         override suspend fun addParticipant(participant: Participant) = error("not used in this test")
         override suspend fun getParticipantsByPartyId(partyId: UUID): List<Participant> = participants
         override fun observeParticipants(partyId: UUID): Flow<List<Participant>> = flowOf(participants)
-        override suspend fun saveRound(round: Round, scores: Map<UUID, Int>) = error("not used in this test")
-        override suspend fun getRoundsByPartyId(partyId: UUID): List<Round> = error("not used in this test")
+        override suspend fun saveRound(round: Round, scores: Map<UUID, Int>, updatedParty: Party) = error("not used in this test")
+        override suspend fun getRoundsByPartyId(partyId: UUID): List<Round> = rounds
         override suspend fun getScoresByRoundId(roundId: UUID): List<RoundScore> = error("not used in this test")
     }
 
@@ -103,6 +105,22 @@ class PartyViewModelTest {
         val state = vm.uiState.value
         check(state is PartyUiState.Loaded)
         assertEquals("Bob", state.dealerName)
+    }
+
+    @Test
+    fun `reloads the dealer and round number when the screen resumes after a validated round`() = runTest {
+        val partyId = UUID.randomUUID()
+        val participants = listOf(aParticipant(partyId, "Alice", 0), aParticipant(partyId, "Bob", 1))
+        val repository = FakePartyRepository(party = aParty(partyId), participants = participants)
+        val vm = PartyViewModel(repository)
+        vm.initialize(partyId)
+        assertEquals(PartyUiState.Loaded(dealerName = "Alice", roundNumber = 1), vm.uiState.value)
+
+        repository.party = aParty(partyId, dealerIndex = 1)
+        repository.rounds = listOf(Round(UUID.randomUUID(), partyId, 1, CardSuit.HEART))
+        vm.onScreenResumed()
+
+        assertEquals(PartyUiState.Loaded(dealerName = "Bob", roundNumber = 2), vm.uiState.value)
     }
 
     @Test

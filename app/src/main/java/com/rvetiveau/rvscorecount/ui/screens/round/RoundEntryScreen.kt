@@ -39,7 +39,8 @@ fun RoundEntryScreen(
     onRoll: () -> Unit,
     onScoreChanged: (UUID, String) -> Unit,
     onRetry: () -> Unit,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    onValidate: () -> Unit = {}
 ) {
     Column(
         modifier = modifier
@@ -84,8 +85,11 @@ fun RoundEntryScreen(
                 suit = state.suit,
                 rerollEnabled = state.rerollEnabled,
                 content = content,
+                canValidate = state.canValidate,
+                saveError = state.saveError,
                 onRoll = onRoll,
-                onScoreChanged = onScoreChanged
+                onScoreChanged = onScoreChanged,
+                onValidate = onValidate
             )
         }
     }
@@ -96,8 +100,11 @@ private fun RoundEntryContentColumn(
     suit: CardSuit?,
     rerollEnabled: Boolean,
     content: RoundEntryContent,
+    canValidate: Boolean,
+    saveError: Boolean,
     onRoll: () -> Unit,
-    onScoreChanged: (UUID, String) -> Unit
+    onScoreChanged: (UUID, String) -> Unit,
+    onValidate: () -> Unit
 ) {
     val focusManager = LocalFocusManager.current
     val participantIds = content.participants.map { it.id }
@@ -158,9 +165,19 @@ private fun RoundEntryContentColumn(
         totalPointsPerRound = content.totalPointsPerRound,
         modifier = Modifier.padding(top = 16.dp)
     )
+    if (saveError) {
+        Text(
+            text = stringResource(R.string.round_entry_save_error),
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.error,
+            modifier = Modifier
+                .padding(top = 16.dp)
+                .testTag("round_entry_save_error")
+        )
+    }
     Button(
-        onClick = {},
-        enabled = content.canValidate,
+        onClick = onValidate,
+        enabled = canValidate,
         modifier = Modifier
             .fillMaxWidth()
             .padding(vertical = 16.dp)

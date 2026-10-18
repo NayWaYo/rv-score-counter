@@ -57,7 +57,8 @@ class RoundEntryScreenTest {
         state: RoundEntryUiState,
         onRoll: () -> Unit = {},
         onScoreChanged: (UUID, String) -> Unit = { _, _ -> },
-        onRetry: () -> Unit = {}
+        onRetry: () -> Unit = {},
+        onValidate: () -> Unit = {}
     ) {
         composeTestRule.setContent {
             RvScoreCounterTheme {
@@ -65,7 +66,8 @@ class RoundEntryScreenTest {
                     state = state,
                     onRoll = onRoll,
                     onScoreChanged = onScoreChanged,
-                    onRetry = onRetry
+                    onRetry = onRetry,
+                    onValidate = onValidate
                 )
             }
         }
@@ -149,13 +151,36 @@ class RoundEntryScreenTest {
     }
 
     @Test
-    fun enablesValidationOnlyForACompleteExactTotalAndClickHasNoEffect() {
-        setContent(aLoadedState(scores = mapOf(aliceId to "100", bobId to "150")))
+    fun enablesValidationForARolledSuitAndExactTotalAndEmitsOnValidate() {
+        var validateCount = 0
+        setContent(
+            aLoadedState(suit = CardSuit.HEART, scores = mapOf(aliceId to "100", bobId to "150")),
+            onValidate = { validateCount++ }
+        )
 
         composeTestRule.onNodeWithTag("round_entry_validate_button")
             .assertIsEnabled()
             .performClick()
-            .assertIsEnabled()
+
+        assertEquals(1, validateCount)
+    }
+
+    @Test
+    fun disablesValidationWhileTheSuitIsNotRolled() {
+        setContent(aLoadedState(scores = mapOf(aliceId to "100", bobId to "150")))
+
+        composeTestRule.onNodeWithTag("round_entry_validate_button").assertIsNotEnabled()
+    }
+
+    @Test
+    fun disablesValidationWhileSavingAndShowsASaveError() {
+        setContent(
+            aLoadedState(suit = CardSuit.HEART, scores = mapOf(aliceId to "100", bobId to "150"))
+                .copy(isSaving = true, saveError = true)
+        )
+
+        composeTestRule.onNodeWithTag("round_entry_validate_button").assertIsNotEnabled()
+        composeTestRule.onNodeWithTag("round_entry_save_error").assertIsDisplayed()
     }
 
     @Test

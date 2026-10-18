@@ -44,7 +44,10 @@ class PartyViewModel @Inject constructor(
         if (initializedPartyId == partyId) return
         initializedPartyId = partyId
         _uiState.value = PartyUiState.Loading
+        load(partyId)
+    }
 
+    private fun load(partyId: UUID) {
         viewModelScope.launch {
             try {
                 val party = partyRepository.getPartyById(partyId)
@@ -62,8 +65,10 @@ class PartyViewModel @Inject constructor(
                     participants.all { it.partyId == partyId && it.name.isNotBlank() } &&
                     dealers.size == 1
                 _uiState.value = if (aggregateIsConsistent) {
+                    val playedRounds = partyRepository.getRoundsByPartyId(partyId)
                     PartyUiState.Loaded(
                         dealerName = dealers.single().name,
+                        roundNumber = (playedRounds.maxOfOrNull { it.roundNumber } ?: 0) + 1,
                         canStartRound = party.status == PartyState.IN_PROGRESS
                     )
                 } else {
@@ -95,7 +100,11 @@ class PartyViewModel @Inject constructor(
         }
     }
 
+    /** Re-reads Room when the screen comes back to the foreground, e.g. after a Manche was
+     * validated (Story 3.4, AC 6): the displayed Donneur and Manche number follow the new state. */
     fun onScreenResumed() {
         navigationPending = false
+        val partyId = initializedPartyId ?: return
+        if (_uiState.value is PartyUiState.Loaded) load(partyId)
     }
 }
