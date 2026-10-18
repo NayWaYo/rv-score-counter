@@ -144,10 +144,10 @@ La liste des Participants peut être modifiée selon les règles suivantes :
 - Les boutons de suppression et de réordonnancement sont masqués ou désactivés après la validation de la première Manche.
 - Lors de l'ajout en cours de Partie, l'utilisateur choisit la position d'insertion du nouveau Participant dans la liste (glisser-déposer ou sélection de position).
 - Un Participant ajouté en cours de Partie démarre avec un Score Cumulé de 0.
-- **Rotation du Donneur après ajout :** la rotation continue sur la liste dans l'ordre résultant de l'insertion choisie. Si le nouveau Participant est inséré juste après le Donneur de la prochaine Manche, il devient le Donneur de la Manche suivante ; sinon, la rotation se poursuit normalement selon l'ordre de la liste mise à jour.
+- **Rotation du Donneur après ajout :** la rotation continue sur la liste dans l'ordre résultant de l'insertion choisie. Si le nouveau Participant est inséré juste avant le Donneur de la prochaine Manche (entre le dernier Donneur et lui), il devient le Donneur de la Manche suivante et le Donneur prévu distribue la Manche d'après ; sinon, le Donneur prévu reste inchangé. Personne ne perd son tour. *(Révisé le 2026-10-18 : la version initiale, « juste après le prochain Donneur », faisait sauter le tour du Donneur prévu.)*
 
 **Conséquences (testables) — rotation :**
-- Si le nouveau Participant est inséré à la position N+1 (juste après le prochain Donneur), l'écran de la Manche suivante l'affiche comme Donneur.
+- Si le nouveau Participant est inséré juste avant le prochain Donneur (juste après le dernier Donneur, la table étant circulaire), l'écran de la Manche suivante l'affiche comme Donneur, puis le Donneur prévu distribue la Manche d'après.
 - Dans tous les autres cas d'insertion, le prochain Donneur prévu reste inchangé.
 
 ---

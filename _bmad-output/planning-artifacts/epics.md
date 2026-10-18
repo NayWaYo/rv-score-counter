@@ -399,7 +399,7 @@ Afin qu'il puisse participer sans recommencer la Partie depuis le début.
 **And** après saisie du prénom, un bottom sheet s'affiche avec la liste des positions d'insertion possibles
 **And** l'utilisateur sélectionne la position souhaitée dans la liste
 **And** le nouveau Participant est inséré à la position choisie avec Score Cumulé = 0
-**And** si la position choisie est juste après l'actuel prochain Donneur, le nouveau Participant devient le prochain Donneur
+**And** si la position choisie est juste avant l'actuel prochain Donneur (entre le dernier Donneur et lui), le nouveau Participant devient le prochain Donneur; sinon le prochain Donneur prévu reste inchangé (personne ne perd son tour — révisé le 2026-10-18)
 **And** le classement se met à jour immédiatement
 **And** le bouton d'ajout est masqué/désactivé si le nombre de Participants = 8
 **And** AddParticipantUseCase gère la logique d'insertion et de mise à jour de currentDealerIndex

@@ -159,7 +159,7 @@ Cas limite : un score est erroné — l'indicateur reste en rouge (total ≠ 250
 1. Depuis Partie en cours, Rémy tape le bouton d'ajout de joueur (visible si < 8 joueurs).
 2. Il saisit le prénom du nouvel arrivant.
 3. Un bottom sheet s'ouvre avec la liste des positions possibles entre les joueurs.
-4. Il choisit la position — par exemple juste après l'actuel prochain Donneur.
+4. Il choisit la position — par exemple juste avant l'actuel prochain Donneur, entre lui et le dernier Donneur.
 5. **Climax :** le nouvel arrivant apparaît dans le classement avec 0 point. Il sera Donneur de la prochaine manche.
 
 ---

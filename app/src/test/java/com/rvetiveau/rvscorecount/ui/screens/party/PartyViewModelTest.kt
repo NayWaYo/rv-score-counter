@@ -480,8 +480,8 @@ class PartyViewModelTest {
 
         assertEquals(
             listOf(
-                InsertionOption(position = 1, afterName = "Alice", becomesDealer = false),
-                InsertionOption(position = 2, afterName = "Bob", becomesDealer = true),
+                InsertionOption(position = 1, afterName = "Alice", becomesDealer = true),
+                InsertionOption(position = 2, afterName = "Bob", becomesDealer = false),
                 InsertionOption(position = 3, afterName = "Chloé", becomesDealer = false)
             ),
             loadedState(vm).addition?.insertionOptions
@@ -498,7 +498,8 @@ class PartyViewModelTest {
         vm.onAdditionNameChanged("  Zoé ")
         vm.onAdditionNameConfirmed()
 
-        vm.onInsertionPositionSelected(2)
+        // Between Alice (last dealer) and Bob (next dealer): Zoé deals next, Bob right after.
+        vm.onInsertionPositionSelected(1)
 
         val state = loadedState(vm)
         assertNull(state.addition)

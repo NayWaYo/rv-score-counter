@@ -63,41 +63,47 @@ class AddParticipantUseCaseTest {
     // --- nextDealerIndexAfterInsertion (PRD FR-4) ---
 
     @Test
-    fun `inserting just after the next dealer makes the new participant the next dealer`() {
-        assertEquals(2, nextDealerIndexAfterInsertion(currentDealerIndex = 1, insertPosition = 2))
-        assertEquals(4, nextDealerIndexAfterInsertion(currentDealerIndex = 3, insertPosition = 4))
+    fun `seated just before the next dealer, the newcomer deals next and the planned dealer right after`() {
+        // Table P0 P1 P2 P3, P1 deals next: seat 1 is between P0 (last dealer) and P1.
+        assertEquals(1, nextDealerIndexAfterInsertion(currentDealerIndex = 1, insertPosition = 1, participantCount = 4))
+        assertEquals(3, nextDealerIndexAfterInsertion(currentDealerIndex = 3, insertPosition = 3, participantCount = 4))
     }
 
     @Test
-    fun `inserting at or before the next dealer keeps that dealer, shifted by one seat`() {
-        assertEquals(2, nextDealerIndexAfterInsertion(currentDealerIndex = 1, insertPosition = 1))
-        assertEquals(2, nextDealerIndexAfterInsertion(currentDealerIndex = 1, insertPosition = 0))
+    fun `the seat between the last and the first participant comes just before a first-seat dealer`() {
+        // P0 deals next: the seat before P0 is after P3 (position 4), or position 0, the same seat at table.
+        assertEquals(4, nextDealerIndexAfterInsertion(currentDealerIndex = 0, insertPosition = 4, participantCount = 4))
+        assertEquals(0, nextDealerIndexAfterInsertion(currentDealerIndex = 0, insertPosition = 0, participantCount = 4))
     }
 
     @Test
-    fun `inserting further after the next dealer keeps the dealer index`() {
-        assertEquals(1, nextDealerIndexAfterInsertion(currentDealerIndex = 1, insertPosition = 3))
+    fun `any other seat keeps the planned dealer, shifted when seated before him`() {
+        // Seated right after the next dealer: the planned dealer keeps the turn (the former rule skipped it).
+        assertEquals(1, nextDealerIndexAfterInsertion(currentDealerIndex = 1, insertPosition = 2, participantCount = 4))
+        assertEquals(1, nextDealerIndexAfterInsertion(currentDealerIndex = 1, insertPosition = 4, participantCount = 4))
+        assertEquals(3, nextDealerIndexAfterInsertion(currentDealerIndex = 2, insertPosition = 1, participantCount = 4))
+        assertEquals(0, nextDealerIndexAfterInsertion(currentDealerIndex = 0, insertPosition = 2, participantCount = 4))
     }
 
     // --- AddParticipantUseCase ---
 
     @Test
-    fun `inserts the trimmed participant at the chosen position and makes it dealer when right after the dealer`() = runTest {
+    fun `inserts the trimmed participant at the chosen position and makes it dealer just before the planned one`() = runTest {
         val repository = FakePartyRepository(aParty(dealerIndex = 1), players(3))
 
-        val participant = useCase(repository)(partyId, "  Zoé  ", position = 2).getOrThrow()
+        val participant = useCase(repository)(partyId, "  Zoé  ", position = 1).getOrThrow()
 
         assertEquals("Zoé", participant.name)
-        assertEquals(2, participant.listPosition)
+        assertEquals(1, participant.listPosition)
         assertEquals(participant, repository.added)
-        assertEquals(2, repository.updatedParty?.currentDealerIndex)
+        assertEquals(1, repository.updatedParty?.currentDealerIndex)
     }
 
     @Test
     fun `keeps the same next dealer for any other position`() = runTest {
         val repository = FakePartyRepository(aParty(dealerIndex = 1), players(4))
 
-        useCase(repository)(partyId, "Zoé", position = 4).getOrThrow()
+        useCase(repository)(partyId, "Zoé", position = 2).getOrThrow()
 
         assertEquals(1, repository.updatedParty?.currentDealerIndex)
     }

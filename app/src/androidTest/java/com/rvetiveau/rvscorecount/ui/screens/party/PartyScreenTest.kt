@@ -246,8 +246,8 @@ class PartyScreenTest {
                         addition = ParticipantAdditionUiState(
                             nameInput = "Zoé",
                             insertionOptions = listOf(
-                                InsertionOption(position = 1, afterName = "Alice", becomesDealer = false),
-                                InsertionOption(position = 2, afterName = "Bob", becomesDealer = true)
+                                InsertionOption(position = 1, afterName = "Alice", becomesDealer = true),
+                                InsertionOption(position = 2, afterName = "Bob", becomesDealer = false)
                             )
                         )
                     ),
@@ -257,10 +257,10 @@ class PartyScreenTest {
         }
 
         composeTestRule.onNodeWithTag("party_add_position_title").assertTextEquals("Où s'assoit Zoé ?")
-        composeTestRule.onNodeWithTag("party_add_position_2").assertTextContains("Après Bob").assertTextContains("Sera le prochain donneur")
-        composeTestRule.onNodeWithTag("party_add_position_1").performClick()
+        composeTestRule.onNodeWithTag("party_add_position_1").assertTextContains("Après Alice").assertTextContains("Sera le prochain donneur")
+        composeTestRule.onNodeWithTag("party_add_position_2").performClick()
 
-        assertEquals(1, selected)
+        assertEquals(2, selected)
     }
 
     @Test

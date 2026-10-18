@@ -27,7 +27,7 @@ Afin qu'il puisse participer sans recommencer la Partie depuis le début.
 
 3. **Given** le bottom sheet **When** l'utilisateur choisit une place **Then** le Participant est inséré à cette position (`listPosition` des suivants décalée de 1) avec un Score Cumulé de 0, et le classement se met à jour via l'observation Room de la Story 4.1.
 
-4. **And** règle du Donneur (PRD FR-4) : si la place choisie est juste après le prochain Donneur (`listPosition = currentDealerIndex + 1`), le nouveau Participant devient le prochain Donneur; sinon le prochain Donneur reste le même Participant (son index est décalé s'il est après la place d'insertion) **And** l'option concernée l'indique dans le bottom sheet (« Sera le prochain donneur »).
+4. **And** règle du Donneur (PRD FR-4, révisée le 2026-10-18) : si la place choisie est juste avant le prochain Donneur, c'est-à-dire juste après le dernier Donneur (`listPosition = currentDealerIndex`, ou après le dernier Participant quand le prochain Donneur est le premier), le nouveau Participant devient le prochain Donneur et le Donneur prévu distribue la Manche d'après; sinon le prochain Donneur reste le même Participant (son index est décalé si l'insertion se fait avant lui). Personne ne perd son tour **And** l'option concernée l'indique dans le bottom sheet (« Sera le prochain donneur »).
 
 5. **And** `AddParticipantUseCase` porte la validation (Partie `IN_PROGRESS`, moteur, nombre maximal, place dans `0..n`, prénom) et le calcul du Donneur; l'insertion, le décalage des positions et la mise à jour de la Partie sont faits dans une seule transaction Room.
 
@@ -54,7 +54,7 @@ Afin qu'il puisse participer sans recommencer la Partie depuis le début.
 
 ## Dev Notes
 
-- Règle du Donneur appliquée telle que le PRD la formule (FR-4, critères d'acceptation : « position N+1 (juste après le prochain Donneur) »). Conséquence : le Participant qui devait donner passe son tour au profit du nouveau. À confirmer avec le porteur du produit si ce n'est pas l'intention.
+- Règle du Donneur : la version initiale du PRD (« position N+1, juste après le prochain Donneur ») faisait passer son tour au Donneur prévu. Corrigée le 2026-10-18 à la demande du porteur du produit : la distribution suit l'ordre de la table, le nouveau Participant ne devient Donneur que s'il s'assoit juste avant le Donneur prévu. PRD, epics et UX mis à jour en conséquence.
 - La place 0 n'est pas proposée : à une table circulaire, elle correspond à « après le dernier ».
 
 ### References
@@ -80,7 +80,7 @@ Claude Opus 5.5 (Claude Code)
 - `AddParticipantUseCase(partyId, name, position)` remplace l'ajout en fin de liste (aucun appelant en production); `nextDealerIndexAfterInsertion()` applique la règle FR-4.
 - `PartyRepository.addParticipant(participant, updatedParty)` : décalage des places (`ParticipantDao.shiftPositionsFrom`), insertion et Donneur dans une transaction.
 - PartyScreen : « Ajouter un joueur », champ de prénom, bottom sheet « Après {nom} » avec la mention « Sera le prochain donneur », message de maximum. Le classement se met à jour par l'observation Room de 4.1.
-- Point à confirmer avec le porteur du produit : la règle FR-4 fait passer son tour au Participant qui devait donner quand on insère le nouveau juste après lui.
+- Règle du Donneur corrigée le 2026-10-18 : plus aucun Participant ne perd son tour (voir Dev Notes).
 
 ### File List
 
@@ -105,3 +105,4 @@ Claude Opus 5.5 (Claude Code)
 
 - 2026-10-18 : Story créée et passée `in-progress`.
 - 2026-10-18 : Ajout en cours de Partie avec choix de la place et règle du Donneur implémentés et testés (JVM + API 36); story passée `done`.
+- 2026-10-18 : Règle du Donneur corrigée : le nouveau Participant devient Donneur s'il s'assoit juste avant le Donneur prévu (et non plus juste après), sans faire sauter de tour; `nextDealerIndexAfterInsertion` prend le nombre de Participants pour gérer la table circulaire.

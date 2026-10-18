@@ -236,7 +236,7 @@ class PartyViewModel @Inject constructor(
                 InsertionOption(
                     position = position,
                     afterName = participant.name,
-                    becomesDealer = nextDealerIndexAfterInsertion(currentDealerIndex, position) == position
+                    becomesDealer = nextDealerIndexAfterInsertion(currentDealerIndex, position, seating.size) == position
                 )
             }
             addition = draft.copy(insertionOptions = options, errorRes = null)

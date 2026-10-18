@@ -16,14 +16,22 @@ class ParticipantPersistenceException(cause: Throwable) :
     AddParticipantException("Participant persistence failed", cause)
 
 /**
- * Index du prochain Donneur après l'insertion d'un Participant à [insertPosition] (PRD FR-4) :
- * inséré juste après le prochain Donneur, le nouveau Participant le devient ; sinon le prochain
- * Donneur reste le même Participant, décalé d'un rang s'il était à ou après la place d'insertion.
+ * Index du prochain Donneur après l'insertion d'un Participant à [insertPosition] (PRD FR-4).
+ * La distribution suit l'ordre de la table, qui est circulaire : un nouveau Participant assis
+ * juste avant le prochain Donneur (donc juste après le dernier) distribue la Manche suivante, et
+ * le Donneur prévu distribue la Manche d'après. À toute autre place, le Donneur prévu reste le
+ * même Participant, décalé d'un rang si l'insertion se fait avant lui. Personne ne perd son tour.
+ * [participantCount] est le nombre de Participants avant l'insertion.
  */
-fun nextDealerIndexAfterInsertion(currentDealerIndex: Int, insertPosition: Int): Int = when {
-    insertPosition == currentDealerIndex + 1 -> insertPosition
-    insertPosition <= currentDealerIndex -> currentDealerIndex + 1
-    else -> currentDealerIndex
+fun nextDealerIndexAfterInsertion(currentDealerIndex: Int, insertPosition: Int, participantCount: Int): Int {
+    // Les places 0 et participantCount sont la même place à table : entre le dernier et le premier.
+    val seatsJustBeforeDealer = insertPosition == currentDealerIndex ||
+        (currentDealerIndex == 0 && insertPosition == participantCount)
+    return when {
+        seatsJustBeforeDealer -> insertPosition
+        insertPosition < currentDealerIndex -> currentDealerIndex + 1
+        else -> currentDealerIndex
+    }
 }
 
 /**
@@ -71,7 +79,7 @@ class AddParticipantUseCase @Inject constructor(
                 listPosition = position
             )
             val updatedParty = party.copy(
-                currentDealerIndex = nextDealerIndexAfterInsertion(party.currentDealerIndex, position)
+                currentDealerIndex = nextDealerIndexAfterInsertion(party.currentDealerIndex, position, participants.size)
             )
             try {
                 partyRepository.addParticipant(participant, updatedParty)
