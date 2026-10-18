@@ -28,7 +28,6 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.ColorFilter
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
@@ -122,8 +121,7 @@ private fun GameTile(tile: GameTileUiModel, onClick: () -> Unit, modifier: Modif
                 contentDescription = null,
                 modifier = Modifier
                     .size(72.dp)
-                    .testTag("game_tile_logo_${tile.gameId}"),
-                colorFilter = ColorFilter.tint(MaterialTheme.colorScheme.primary)
+                    .testTag("game_tile_logo_${tile.gameId}")
             )
             Spacer(modifier = Modifier.height(8.dp))
             Text(

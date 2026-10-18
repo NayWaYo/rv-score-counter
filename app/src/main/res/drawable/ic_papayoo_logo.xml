@@ -1,16 +1,69 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- Original geometric "P" monogram with four score dots, monochrome for tinting -->
+<!-- Les quatre 7 du Papayoo (Pique, Cœur, Trèfle, Carreau) en éventail sur fond ambre, en couleurs : ne pas teinter.
+     Chaque carte porte son index (7 et couleur) dans le coin visible de l'éventail ; seule la carte de devant a sa grande couleur. -->
 <vector xmlns:android="http://schemas.android.com/apk/res/android"
-    android:width="24dp"
-    android:height="24dp"
-    android:viewportWidth="24"
-    android:viewportHeight="24">
-    <path
-        android:fillColor="#FFFFFF"
-        android:fillType="evenOdd"
-        android:pathData="M5,3 L8,3 L8,21 L5,21 Z M8,3 L15,3 C17.2,3 19,4.8 19,7 L19,9 C19,11.2 17.2,13 15,13 L8,13 L8,10 L15,10 C15.6,10 16,9.6 16,9 L16,7 C16,6.4 15.6,6 15,6 L8,6 Z" />
-    <path android:fillColor="#FFFFFF" android:pathData="M17,16.5 m-1,0 a1,1 0 1,0 2,0 a1,1 0 1,0 -2,0" />
-    <path android:fillColor="#FFFFFF" android:pathData="M20,16.5 m-1,0 a1,1 0 1,0 2,0 a1,1 0 1,0 -2,0" />
-    <path android:fillColor="#FFFFFF" android:pathData="M17,19.5 m-1,0 a1,1 0 1,0 2,0 a1,1 0 1,0 -2,0" />
-    <path android:fillColor="#FFFFFF" android:pathData="M20,19.5 m-1,0 a1,1 0 1,0 2,0 a1,1 0 1,0 -2,0" />
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+    <path android:fillColor="#FFB74D" android:pathData="M24,0h60a24,24 0,0 1,24 24v60a24,24 0,0 1,-24 24h-60a24,24 0,0 1,-24 -24v-60a24,24 0,0 1,24 -24Z" />
+
+    <!-- 7 de Pique -->
+    <group android:rotation="-22" android:pivotX="54" android:pivotY="108">
+        <group android:translateX="36" android:translateY="24">
+            <path android:fillColor="#121212" android:strokeColor="#E8E0D5" android:strokeWidth="1.5"
+                android:pathData="M4,0h28a4,4 0,0 1,4 4v44a4,4 0,0 1,-4 4h-28a4,4 0,0 1,-4 -4v-44a4,4 0,0 1,4 -4Z" />
+            <group android:translateX="4" android:translateY="4" android:scaleX="1.25" android:scaleY="1.25">
+                <path android:fillColor="#90A4AE" android:pathData="M0,0h6v1.6L2.6,8H0.8L4.2,1.6H0Z" />
+            </group>
+            <group android:translateX="2.5" android:translateY="15" android:scaleX="0.4" android:scaleY="0.4">
+                <path android:fillColor="#90A4AE" android:pathData="M12,2C9,6 3,9.5 3,14C3,16.8 5.2,18.5 7.5,18.5C9,18.5 10.3,17.8 11,16.8L10,21L9,22L15,22L14,21L13,16.8C13.7,17.8 15,18.5 16.5,18.5C18.8,18.5 21,16.8 21,14C21,9.5 15,6 12,2Z" />
+            </group>
+        </group>
+    </group>
+
+    <!-- 7 de Cœur -->
+    <group android:rotation="-7" android:pivotX="54" android:pivotY="108">
+        <group android:translateX="36" android:translateY="24">
+            <path android:fillColor="#121212" android:strokeColor="#E8E0D5" android:strokeWidth="1.5"
+                android:pathData="M4,0h28a4,4 0,0 1,4 4v44a4,4 0,0 1,-4 4h-28a4,4 0,0 1,-4 -4v-44a4,4 0,0 1,4 -4Z" />
+            <group android:translateX="4" android:translateY="4" android:scaleX="1.25" android:scaleY="1.25">
+                <path android:fillColor="#EF5350" android:pathData="M0,0h6v1.6L2.6,8H0.8L4.2,1.6H0Z" />
+            </group>
+            <group android:translateX="2.5" android:translateY="15" android:scaleX="0.4" android:scaleY="0.4">
+                <path android:fillColor="#EF5350" android:pathData="M12,21.35L10.55,20.03C5.4,15.36 2,12.28 2,8.5C2,5.42 4.42,3 7.5,3C9.24,3 10.91,3.81 12,5.09C13.09,3.81 14.76,3 16.5,3C19.58,3 22,5.42 22,8.5C22,12.28 18.6,15.36 13.45,20.04L12,21.35Z" />
+            </group>
+        </group>
+    </group>
+
+    <!-- 7 de Trèfle -->
+    <group android:rotation="7" android:pivotX="54" android:pivotY="108">
+        <group android:translateX="36" android:translateY="24">
+            <path android:fillColor="#121212" android:strokeColor="#E8E0D5" android:strokeWidth="1.5"
+                android:pathData="M4,0h28a4,4 0,0 1,4 4v44a4,4 0,0 1,-4 4h-28a4,4 0,0 1,-4 -4v-44a4,4 0,0 1,4 -4Z" />
+            <group android:translateX="4" android:translateY="4" android:scaleX="1.25" android:scaleY="1.25">
+                <path android:fillColor="#66BB6A" android:pathData="M0,0h6v1.6L2.6,8H0.8L4.2,1.6H0Z" />
+            </group>
+            <group android:translateX="2.5" android:translateY="15" android:scaleX="0.4" android:scaleY="0.4">
+                <path android:fillColor="#66BB6A" android:pathData="M7.3,7.2a4.7,4.7 0,1 0,9.4 0a4.7,4.7 0,1 0,-9.4 0ZM2.3,13.6a4.7,4.7 0,1 0,9.4 0a4.7,4.7 0,1 0,-9.4 0ZM12.3,13.6a4.7,4.7 0,1 0,9.4 0a4.7,4.7 0,1 0,-9.4 0ZM11,12L10,21L9,22L15,22L14,21L13,12Z" />
+            </group>
+        </group>
+    </group>
+
+    <!-- 7 de Carreau -->
+    <group android:rotation="22" android:pivotX="54" android:pivotY="108">
+        <group android:translateX="36" android:translateY="24">
+            <path android:fillColor="#121212" android:strokeColor="#E8E0D5" android:strokeWidth="1.5"
+                android:pathData="M4,0h28a4,4 0,0 1,4 4v44a4,4 0,0 1,-4 4h-28a4,4 0,0 1,-4 -4v-44a4,4 0,0 1,4 -4Z" />
+            <group android:translateX="4" android:translateY="4" android:scaleX="1.25" android:scaleY="1.25">
+                <path android:fillColor="#42A5F5" android:pathData="M0,0h6v1.6L2.6,8H0.8L4.2,1.6H0Z" />
+            </group>
+            <group android:translateX="2.5" android:translateY="15" android:scaleX="0.4" android:scaleY="0.4">
+                <path android:fillColor="#42A5F5" android:pathData="M12,2L20,12L12,22L4,12Z" />
+            </group>
+            <group android:translateX="9" android:translateY="21" android:scaleX="0.75" android:scaleY="0.75">
+                <path android:fillColor="#42A5F5" android:pathData="M12,2L20,12L12,22L4,12Z" />
+            </group>
+        </group>
+    </group>
 </vector>
