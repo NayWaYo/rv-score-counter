@@ -36,6 +36,7 @@ fun SetupRoute(
         onRemoveParticipant = viewModel::onRemoveParticipant,
         onMoveParticipant = viewModel::onMoveParticipant,
         onStartParty = viewModel::onStartParty,
+        onHistoryEntrySelected = viewModel::onHistoryEntrySelected,
         modifier = modifier
     )
 }

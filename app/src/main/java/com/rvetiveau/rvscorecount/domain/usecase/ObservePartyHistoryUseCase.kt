@@ -16,9 +16,12 @@ import kotlinx.coroutines.flow.mapLatest
 class ObservePartyHistoryUseCase @Inject constructor(
     private val partyRepository: PartyRepository
 ) {
+    /** [gameId] restricts the history to one Jeu (Création de Partie); null keeps every Jeu. */
     @OptIn(ExperimentalCoroutinesApi::class)
-    operator fun invoke(): Flow<List<PartySummary>> =
-        partyRepository.observeFinishedParties().mapLatest { parties -> parties.map { summarize(it) } }
+    operator fun invoke(gameId: String? = null): Flow<List<PartySummary>> =
+        partyRepository.observeFinishedParties().mapLatest { parties ->
+            parties.filter { gameId == null || it.gameId == gameId }.map { summarize(it) }
+        }
 
     private suspend fun summarize(party: Party): PartySummary {
         val participants = partyRepository.getParticipantsByPartyId(party.id)

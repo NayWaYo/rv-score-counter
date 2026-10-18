@@ -6,11 +6,13 @@ import com.rvetiveau.rvscorecount.domain.engine.RoundValidation
 import com.rvetiveau.rvscorecount.domain.model.Participant
 import com.rvetiveau.rvscorecount.domain.model.ParticipantId
 import com.rvetiveau.rvscorecount.domain.model.Party
+import com.rvetiveau.rvscorecount.domain.model.PartyState
 import com.rvetiveau.rvscorecount.domain.model.Round
 import com.rvetiveau.rvscorecount.domain.model.RoundScore
 import com.rvetiveau.rvscorecount.domain.repository.PartyRepository
 import com.rvetiveau.rvscorecount.domain.usecase.CreatePartyUseCase
 import com.rvetiveau.rvscorecount.domain.usecase.GetAvailableGamesUseCase
+import com.rvetiveau.rvscorecount.domain.usecase.ObservePartyHistoryUseCase
 import com.rvetiveau.rvscorecount.ui.navigation.NavigationEvent
 import com.rvetiveau.rvscorecount.ui.navigation.Routes
 import java.util.UUID
@@ -20,6 +22,7 @@ import kotlin.coroutines.suspendCoroutine
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
@@ -73,13 +76,14 @@ class SetupViewModelTest {
         override suspend fun getPartyById(id: UUID): Party? = error("not used in this test")
         override fun observeParty(id: UUID): Flow<Party?> = flowOf(null)
         override suspend fun getPartyInProgress(): Party? = error("not used in this test")
-        override fun observeFinishedParties(): Flow<List<Party>> = error("not used in this test")
+        val finishedParties = MutableStateFlow<List<Party>>(emptyList())
+        override fun observeFinishedParties(): Flow<List<Party>> = finishedParties
         override suspend fun deleteParty(id: UUID) = error("not used in this test")
         override suspend fun addParticipant(participant: Participant, updatedParty: Party) = error("not used in this test")
-        override suspend fun getParticipantsByPartyId(partyId: UUID): List<Participant> = error("not used in this test")
+        override suspend fun getParticipantsByPartyId(partyId: UUID): List<Participant> = emptyList()
         override fun observeParticipants(partyId: UUID): Flow<List<Participant>> = flowOf(emptyList())
         override suspend fun saveRound(round: Round, scores: Map<UUID, Int>, updatedParty: Party) = error("not used in this test")
-        override suspend fun getRoundsByPartyId(partyId: UUID): List<Round> = error("not used in this test")
+        override suspend fun getRoundsByPartyId(partyId: UUID): List<Round> = emptyList()
         override suspend fun getScoresByRoundId(roundId: UUID): List<RoundScore> = error("not used in this test")
     }
 
@@ -106,7 +110,8 @@ class SetupViewModelTest {
     ): SetupViewModel =
         SetupViewModel(
             GetAvailableGamesUseCase(mapOf(engine.gameId to engine)),
-            createPartyUseCase(engine, partyRepository)
+            createPartyUseCase(engine, partyRepository),
+            ObservePartyHistoryUseCase(partyRepository)
         ).also { it.initialize(engine.gameId) }
 
     private fun SetupViewModel.addName(name: String) {
@@ -117,7 +122,7 @@ class SetupViewModelTest {
     @Test
     fun `default state before initialize disables start and add`() {
         val engine = FakeGameEngine("papayoo")
-        val vm = SetupViewModel(GetAvailableGamesUseCase(mapOf("papayoo" to engine)), createPartyUseCase(engine))
+        val vm = SetupViewModel(GetAvailableGamesUseCase(mapOf("papayoo" to engine)), createPartyUseCase(engine), ObservePartyHistoryUseCase(FakePartyRepository()))
 
         val state = vm.uiState.value
         assertFalse(state.isInitialized)
@@ -138,7 +143,7 @@ class SetupViewModelTest {
     @Test
     fun `initialize is idempotent across repeated calls`() {
         val engine = FakeGameEngine("papayoo")
-        val vm = SetupViewModel(GetAvailableGamesUseCase(mapOf("papayoo" to engine)), createPartyUseCase(engine))
+        val vm = SetupViewModel(GetAvailableGamesUseCase(mapOf("papayoo" to engine)), createPartyUseCase(engine), ObservePartyHistoryUseCase(FakePartyRepository()))
         vm.initialize("papayoo")
         vm.addName("Alice")
 
@@ -150,7 +155,7 @@ class SetupViewModelTest {
     @Test
     fun `fails fast when no engine is registered for the requested gameId`() {
         val engine = FakeGameEngine("belote")
-        val vm = SetupViewModel(GetAvailableGamesUseCase(mapOf("belote" to engine)), createPartyUseCase(engine))
+        val vm = SetupViewModel(GetAvailableGamesUseCase(mapOf("belote" to engine)), createPartyUseCase(engine), ObservePartyHistoryUseCase(FakePartyRepository()))
 
         assertThrows(IllegalStateException::class.java) { vm.initialize("papayoo") }
     }
@@ -401,5 +406,34 @@ class SetupViewModelTest {
 
         val event = vm.navigationEvents.first()
         assertTrue(event is NavigationEvent.NavigateTo)
+    }
+
+    // --- Historique du Jeu sous la Création de Partie ---
+
+    private fun aFinishedParty(gameId: String, createdAt: Long) =
+        Party(id = UUID.randomUUID(), gameId = gameId, status = PartyState.FINISHED, currentDealerIndex = 0, createdAt = createdAt)
+
+    @Test
+    fun `lists only the finished parties of the selected game and follows Room`() = runTest {
+        val repository = FakePartyRepository()
+        val papayoo = aFinishedParty("papayoo", 20L)
+        repository.finishedParties.value = listOf(papayoo, aFinishedParty("belote", 10L))
+        val vm = viewModel(partyRepository = repository)
+
+        assertEquals(listOf(papayoo.id), vm.uiState.value.history.map { it.partyId })
+
+        val newer = aFinishedParty("papayoo", 30L)
+        repository.finishedParties.value = listOf(newer, papayoo)
+        assertEquals(listOf(newer.id, papayoo.id), vm.uiState.value.history.map { it.partyId })
+    }
+
+    @Test
+    fun `selecting a past party opens its detail`() = runTest {
+        val vm = viewModel()
+        val partyId = UUID.randomUUID()
+
+        vm.onHistoryEntrySelected(partyId)
+
+        assertEquals(NavigationEvent.NavigateTo(Routes.PartyDetail(partyId.toString())), vm.navigationEvents.first())
     }
 }

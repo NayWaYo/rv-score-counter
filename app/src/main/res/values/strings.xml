@@ -69,6 +69,7 @@
     <string name="results_unavailable">Résultats indisponibles pour cette partie.</string>
 
     <!-- Historique des parties -->
+    <string name="setup_history_title">Parties précédentes</string>
     <string name="history_title">Historique</string>
     <string name="history_empty">Aucune partie terminée pour l\'instant.</string>
     <string name="history_load_error">Impossible de charger l\'historique.</string>

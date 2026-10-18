@@ -37,7 +37,7 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import com.rvetiveau.rvscorecount.R
 import com.rvetiveau.rvscorecount.domain.model.PartySummary
-import com.rvetiveau.rvscorecount.ui.components.gamePresentation
+import com.rvetiveau.rvscorecount.ui.components.PartySummaryRow
 import java.time.Instant
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
@@ -165,61 +165,11 @@ private fun SwipeToDeleteEntry(entry: PartySummary, onSelected: () -> Unit, onDe
             }
         }
     ) {
-        HistoryEntryRow(
+        PartySummaryRow(
             entry = entry,
             onSelected = onSelected,
             onDeleteRequested = onDeleteRequested,
             modifier = Modifier.testTag("history_entry_${entry.partyId}")
-        )
-    }
-}
-
-@Composable
-private fun HistoryEntryRow(
-    entry: PartySummary,
-    onSelected: () -> Unit,
-    onDeleteRequested: () -> Unit,
-    modifier: Modifier = Modifier
-) {
-    val dateFormatter = remember { DateTimeFormatter.ofLocalizedDate(FormatStyle.MEDIUM) }
-    val date = Instant.ofEpochMilli(entry.createdAt).atZone(ZoneId.systemDefault()).format(dateFormatter)
-    val deleteLabel = stringResource(R.string.history_delete_action)
-    val outcome = when {
-        !entry.isConsistent -> stringResource(R.string.history_inconsistent)
-        entry.winningScore == null -> stringResource(R.string.history_no_round)
-        else -> stringResource(
-            R.string.history_winner,
-            pluralStringResource(R.plurals.results_winner_label, entry.winners.size),
-            entry.winners.joinToString(", "),
-            pluralStringResource(R.plurals.results_winner_score, entry.winningScore, entry.winningScore)
-        )
-    }
-    Column(
-        modifier = modifier
-            .fillMaxWidth()
-            .heightIn(min = 56.dp)
-            .clip(RoundedCornerShape(8.dp))
-            .background(MaterialTheme.colorScheme.surfaceVariant)
-            .clickable(onClick = onSelected)
-            .padding(horizontal = 16.dp, vertical = 8.dp)
-            .semantics(mergeDescendants = true) {
-                customActions = listOf(CustomAccessibilityAction(deleteLabel) { onDeleteRequested(); true })
-            }
-    ) {
-        Text(
-            text = stringResource(
-                R.string.history_entry_header,
-                date,
-                stringResource(gamePresentation(entry.gameId).nameRes),
-                pluralStringResource(R.plurals.history_round_count, entry.roundCount, entry.roundCount)
-            ),
-            style = MaterialTheme.typography.bodySmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant
-        )
-        Text(
-            text = outcome,
-            style = MaterialTheme.typography.bodyLarge,
-            color = MaterialTheme.colorScheme.onSurfaceVariant
         )
     }
 }

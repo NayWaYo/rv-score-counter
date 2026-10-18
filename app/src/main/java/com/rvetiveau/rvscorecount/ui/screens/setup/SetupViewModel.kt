@@ -8,11 +8,13 @@ import com.rvetiveau.rvscorecount.domain.model.ParticipantCreationData
 import com.rvetiveau.rvscorecount.domain.usecase.CreatePartyUseCase
 import com.rvetiveau.rvscorecount.domain.usecase.GetAvailableGamesUseCase
 import com.rvetiveau.rvscorecount.domain.usecase.InvalidPartyConfigurationException
+import com.rvetiveau.rvscorecount.domain.usecase.ObservePartyHistoryUseCase
 import com.rvetiveau.rvscorecount.ui.navigation.NavigationEvent
 import com.rvetiveau.rvscorecount.ui.navigation.Routes
 import dagger.hilt.android.lifecycle.HiltViewModel
 import java.util.UUID
 import javax.inject.Inject
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -29,7 +31,8 @@ import kotlinx.coroutines.launch
 @HiltViewModel
 class SetupViewModel @Inject constructor(
     private val getAvailableGamesUseCase: GetAvailableGamesUseCase,
-    private val createPartyUseCase: CreatePartyUseCase
+    private val createPartyUseCase: CreatePartyUseCase,
+    private val observePartyHistoryUseCase: ObservePartyHistoryUseCase
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(SetupUiState())
@@ -50,6 +53,27 @@ class SetupViewModel @Inject constructor(
                 maxPlayers = engine.maxPlayers,
                 isInitialized = true
             )
+        }
+        observeHistory(engine.gameId)
+    }
+
+    private fun observeHistory(gameId: String) {
+        viewModelScope.launch {
+            try {
+                observePartyHistoryUseCase(gameId).collect { history ->
+                    _uiState.update { it.copy(history = history, historyLoadFailed = false) }
+                }
+            } catch (cancellation: CancellationException) {
+                throw cancellation
+            } catch (_: Throwable) {
+                _uiState.update { it.copy(historyLoadFailed = true) }
+            }
+        }
+    }
+
+    fun onHistoryEntrySelected(partyId: UUID) {
+        viewModelScope.launch {
+            _navigationEvents.send(NavigationEvent.NavigateTo(Routes.PartyDetail(partyId.toString())))
         }
     }
 
