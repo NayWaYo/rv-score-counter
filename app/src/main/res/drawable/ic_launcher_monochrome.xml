@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+    <!-- Pique, Cœur, Trèfle, Carreau aux quatre coins du dé -->
+    <group android:translateX="34" android:translateY="34" android:scaleX="0.54" android:scaleY="0.54">
+        <path android:fillColor="#FFFFFF" android:pathData="M12,2C9,6 3,9.5 3,14C3,16.8 5.2,18.5 7.5,18.5C9,18.5 10.3,17.8 11,16.8L10,21L9,22L15,22L14,21L13,16.8C13.7,17.8 15,18.5 16.5,18.5C18.8,18.5 21,16.8 21,14C21,9.5 15,6 12,2Z" />
+    </group>
+    <group android:translateX="61" android:translateY="34" android:scaleX="0.54" android:scaleY="0.54">
+        <path android:fillColor="#FFFFFF" android:pathData="M12,21.35L10.55,20.03C5.4,15.36 2,12.28 2,8.5C2,5.42 4.42,3 7.5,3C9.24,3 10.91,3.81 12,5.09C13.09,3.81 14.76,3 16.5,3C19.58,3 22,5.42 22,8.5C22,12.28 18.6,15.36 13.45,20.04L12,21.35Z" />
+    </group>
+    <group android:translateX="34" android:translateY="61" android:scaleX="0.54" android:scaleY="0.54">
+        <path android:fillColor="#FFFFFF" android:pathData="M7.3,7.2a4.7,4.7 0,1 0,9.4 0a4.7,4.7 0,1 0,-9.4 0ZM2.3,13.6a4.7,4.7 0,1 0,9.4 0a4.7,4.7 0,1 0,-9.4 0ZM12.3,13.6a4.7,4.7 0,1 0,9.4 0a4.7,4.7 0,1 0,-9.4 0ZM11,12L10,21L9,22L15,22L14,21L13,12Z" />
+    </group>
+    <group android:translateX="61" android:translateY="61" android:scaleX="0.54" android:scaleY="0.54">
+        <path android:fillColor="#FFFFFF" android:pathData="M12,2L20,12L12,22L4,12Z" />
+    </group>
+    <!-- Le « + » au centre -->
+    <path android:fillColor="#FFFFFF" android:pathData="M50.5,52.5h7a1.5,1.5 0,0 1,0 3h-7a1.5,1.5 0,0 1,0 -3ZM52.5,50.5a1.5,1.5 0,0 1,3 0v7a1.5,1.5 0,0 1,-3 0Z" />
+</vector>
