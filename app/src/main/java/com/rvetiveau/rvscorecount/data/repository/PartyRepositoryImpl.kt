@@ -10,6 +10,7 @@ import com.rvetiveau.rvscorecount.data.entity.toDomain
 import com.rvetiveau.rvscorecount.data.entity.toEntity
 import com.rvetiveau.rvscorecount.domain.model.Participant
 import com.rvetiveau.rvscorecount.domain.model.Party
+import com.rvetiveau.rvscorecount.domain.model.PartyState
 import com.rvetiveau.rvscorecount.domain.model.Round
 import com.rvetiveau.rvscorecount.domain.model.RoundScore
 import com.rvetiveau.rvscorecount.domain.repository.PartyRepository
@@ -53,6 +54,13 @@ class PartyRepositoryImpl @Inject constructor(
 
     override suspend fun getPartyInProgress(): Party? =
         partyDao.getPartyInProgress()?.toDomain()
+
+    override fun observeFinishedParties(): Flow<List<Party>> =
+        partyDao.observeByStatus(PartyState.FINISHED.name).map { list -> list.map { it.toDomain() } }
+
+    override suspend fun deleteParty(id: UUID) {
+        partyDao.deleteById(id.toString())
+    }
 
     override suspend fun addParticipant(participant: Participant, updatedParty: Party) {
         require(updatedParty.id == participant.partyId) { "The updated party must be the participant's party" }

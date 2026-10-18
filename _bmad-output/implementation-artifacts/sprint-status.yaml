@@ -110,9 +110,9 @@ development_status:
   # -------------------------------------------------------
   # Epic 6: Historique (2 stories)
   # -------------------------------------------------------
-  epic-6: backlog
+  epic-6: in-progress
 
-  6-1-ecran-historique-liste-des-parties-passees: backlog
+  6-1-ecran-historique-liste-des-parties-passees: done
   6-2-detail-de-partie-scores-par-manche-avec-couleur-du-7: backlog
 
   epic-6-retrospective: optional

@@ -80,6 +80,8 @@ class PartyViewModelTest {
             emitAll(partyFlow)
         }
         override suspend fun getPartyInProgress(): Party? = error("not used in this test")
+        override fun observeFinishedParties(): Flow<List<Party>> = error("not used in this test")
+        override suspend fun deleteParty(id: UUID) = error("not used in this test")
         override suspend fun addParticipant(participant: Participant, updatedParty: Party) {
             addFailure?.let { throw it }
             participantsFlow.value = participantsFlow.value.map {

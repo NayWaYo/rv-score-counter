@@ -16,6 +16,10 @@ interface PartyRepository {
     suspend fun getPartyById(id: UUID): Party?
     fun observeParty(id: UUID): Flow<Party?>
     suspend fun getPartyInProgress(): Party?
+    /** FINISHED parties, most recent first (Historique). */
+    fun observeFinishedParties(): Flow<List<Party>>
+    /** Definitive delete of a Party and, by cascade, its Participants, Rounds and RoundScores. */
+    suspend fun deleteParty(id: UUID)
     /** Atomic write (FR-4): Participants at or after [participant]'s listPosition move one place
      * down, [participant] is inserted and [updatedParty] (next Donneur) is saved, or nothing is. */
     suspend fun addParticipant(participant: Participant, updatedParty: Party)

@@ -13,6 +13,7 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.toRoute
 import com.rvetiveau.rvscorecount.R
+import com.rvetiveau.rvscorecount.ui.screens.history.HistoryRoute
 import com.rvetiveau.rvscorecount.ui.screens.home.HomeRoute
 import com.rvetiveau.rvscorecount.ui.screens.party.PartyRoute
 import com.rvetiveau.rvscorecount.ui.screens.results.ResultsRoute
@@ -65,7 +66,7 @@ fun RvScoreCounterNavHost(
             )
         }
         composable<Routes.History> {
-            RoutePlaceholder(stringResource(R.string.route_placeholder_history))
+            HistoryRoute(onNavigate = { event -> navController.dispatch(event) })
         }
         composable<Routes.PartyDetail> { backStackEntry ->
             val route: Routes.PartyDetail = backStackEntry.toRoute()

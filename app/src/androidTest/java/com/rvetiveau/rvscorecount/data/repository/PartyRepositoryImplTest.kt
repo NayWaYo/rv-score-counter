@@ -9,6 +9,7 @@ import com.rvetiveau.rvscorecount.domain.model.Party
 import com.rvetiveau.rvscorecount.domain.model.PartyState
 import com.rvetiveau.rvscorecount.domain.model.Round
 import java.util.UUID
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.runTest
 import org.junit.After
 import org.junit.Assert.assertEquals
@@ -97,6 +98,36 @@ class PartyRepositoryImplTest {
         assertTrue(thrown != null)
         assertNull(repository.getPartyById(party.id))
         assertTrue(repository.getParticipantsByPartyId(party.id).isEmpty())
+    }
+
+    // --- Story 6.1 : historique et suppression ---
+
+    @Test
+    fun observeFinishedPartiesListsOnlyFinishedOnesMostRecentFirst() = runTest {
+        val old = aParty().copy(status = PartyState.FINISHED, createdAt = 10L)
+        val recent = aParty().copy(status = PartyState.FINISHED, createdAt = 20L)
+        val inProgress = aParty().copy(createdAt = 30L)
+        listOf(old, recent, inProgress).forEach { party ->
+            repository.createPartyWithParticipants(party, listOf(aParticipant(party.id, "Alice", 0)))
+        }
+
+        assertEquals(listOf(recent.id, old.id), repository.observeFinishedParties().first().map { it.id })
+    }
+
+    @Test
+    fun deletePartyCascadesToParticipantsRoundsAndScores() = runTest {
+        val party = aParty().copy(status = PartyState.FINISHED)
+        val alice = aParticipant(party.id, "Alice", 0)
+        repository.createPartyWithParticipants(party, listOf(alice))
+        val round = Round(UUID.randomUUID(), party.id, 1, CardSuit.CLUB)
+        repository.saveRound(round, mapOf(alice.id to 250), party)
+
+        repository.deleteParty(party.id)
+
+        assertNull(repository.getPartyById(party.id))
+        assertTrue(repository.getParticipantsByPartyId(party.id).isEmpty())
+        assertTrue(repository.getRoundsByPartyId(party.id).isEmpty())
+        assertTrue(repository.getScoresByRoundId(round.id).isEmpty())
     }
 
     // --- Story 4.2 : addParticipant (AC 3, 5) ---

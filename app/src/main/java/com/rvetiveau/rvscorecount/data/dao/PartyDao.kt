@@ -24,4 +24,11 @@ interface PartyDao {
 
     @Query("SELECT * FROM parties WHERE status = :status LIMIT 1")
     suspend fun getPartyInProgress(status: String = "IN_PROGRESS"): PartyEntity?
+
+    @Query("SELECT * FROM parties WHERE status = :status ORDER BY createdAt DESC")
+    fun observeByStatus(status: String): Flow<List<PartyEntity>>
+
+    /** Participants, rounds and round scores follow through the CASCADE foreign keys. */
+    @Query("DELETE FROM parties WHERE id = :id")
+    suspend fun deleteById(id: String)
 }

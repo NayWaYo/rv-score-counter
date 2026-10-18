@@ -1,8 +1,7 @@
 package com.rvetiveau.rvscorecount.ui.screens.home
 
-import com.rvetiveau.rvscorecount.R
-import com.rvetiveau.rvscorecount.domain.engine.GameIds
 import com.rvetiveau.rvscorecount.domain.usecase.GetAvailableGamesUseCase
+import com.rvetiveau.rvscorecount.ui.components.gamePresentation
 import com.rvetiveau.rvscorecount.ui.navigation.NavigationEvent
 import com.rvetiveau.rvscorecount.ui.navigation.Routes
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -41,13 +40,8 @@ class HomeViewModel @Inject constructor(
         viewModelScope.launch { _navigationEvents.send(NavigationEvent.NavigateTo(Routes.History)) }
     }
 
-    // Presentation lives in the UI layer; an unmapped registered gameId must fail loudly, not disappear.
-    private fun String.toTileUiModel(): GameTileUiModel = when (this) {
-        GameIds.PAPAYOO -> GameTileUiModel(
-            gameId = this,
-            nameRes = R.string.game_name_papayoo,
-            logoRes = R.drawable.ic_papayoo_logo
-        )
-        else -> error("No Home presentation registered for gameId '$this'")
+    private fun String.toTileUiModel(): GameTileUiModel {
+        val presentation = gamePresentation(this)
+        return GameTileUiModel(gameId = this, nameRes = presentation.nameRes, logoRes = presentation.logoRes)
     }
 }

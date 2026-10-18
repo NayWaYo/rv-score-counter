@@ -3,7 +3,6 @@
     <string name="app_name">rv-score-counter</string>
 
     <!-- Placeholders temporaires : remplacés écran par écran dans les epics 2 à 6 -->
-    <string name="route_placeholder_history">Historique (à venir)</string>
     <string name="route_placeholder_party_detail">Détail de partie %1$s (à venir)</string>
 
     <!-- Démarrage : reprise automatique d'une Partie en cours -->
@@ -71,6 +70,25 @@
     <string name="results_back_home">Retour à l\'accueil</string>
     <string name="results_load_error">Impossible de charger les résultats.</string>
     <string name="results_unavailable">Résultats indisponibles pour cette partie.</string>
+
+    <!-- Historique des parties -->
+    <string name="history_title">Historique</string>
+    <string name="history_empty">Aucune partie terminée pour l\'instant.</string>
+    <string name="history_load_error">Impossible de charger l\'historique.</string>
+    <string name="history_entry_header">%1$s · %2$s · %3$s</string>
+    <plurals name="history_round_count">
+        <item quantity="one">%1$d manche</item>
+        <item quantity="many">%1$d manches</item>
+        <item quantity="other">%1$d manches</item>
+    </plurals>
+    <string name="history_winner">%1$s : %2$s · %3$s</string>
+    <string name="history_no_round">Aucune manche jouée</string>
+    <string name="history_inconsistent">Données incohérentes</string>
+    <string name="history_delete_action">Supprimer</string>
+    <string name="history_delete_cancel">Annuler</string>
+    <string name="history_delete_dialog_title">Supprimer cette partie ?</string>
+    <string name="history_delete_dialog_message">La partie et toutes ses manches seront définitivement supprimées.</string>
+    <string name="history_delete_error">Impossible de supprimer la partie. Réessayez.</string>
 
     <!-- Historique des manches (round-history-row) -->
     <string name="round_history_title">Manche %1$d</string>

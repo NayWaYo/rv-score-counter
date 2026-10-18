@@ -49,6 +49,8 @@ class CreatePartyUseCaseTest {
         override suspend fun getPartyById(id: UUID): Party? = referenceParty?.takeIf { it.id == id }
         override fun observeParty(id: UUID): Flow<Party?> = flowOf(null)
         override suspend fun getPartyInProgress(): Party? = error("not used in this test")
+        override fun observeFinishedParties(): Flow<List<Party>> = error("not used in this test")
+        override suspend fun deleteParty(id: UUID) = error("not used in this test")
         override suspend fun addParticipant(participant: Participant, updatedParty: Party) = error("not used in this test")
         override suspend fun getParticipantsByPartyId(partyId: UUID): List<Participant> =
             referenceParticipants.filter { it.partyId == partyId }
