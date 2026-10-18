@@ -100,9 +100,9 @@ development_status:
   # -------------------------------------------------------
   # Epic 5: Cloture & Relance (2 stories)
   # -------------------------------------------------------
-  epic-5: backlog
+  epic-5: in-progress
 
-  5-1-cloture-de-partie-et-resultats-finaux: backlog
+  5-1-cloture-de-partie-et-resultats-finaux: done
   5-2-relance-rapide-rejouer-avec-les-memes-joueurs: backlog
 
   epic-5-retrospective: optional

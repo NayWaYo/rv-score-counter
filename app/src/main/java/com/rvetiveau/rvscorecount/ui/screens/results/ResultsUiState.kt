@@ -1,0 +1,18 @@
+package com.rvetiveau.rvscorecount.ui.screens.results
+
+import com.rvetiveau.rvscorecount.ui.components.StandingRow
+
+/**
+ * Résultats finaux d'une Partie FINISHED (Story 5.1). [Loaded.standings] is sorted by Score
+ * Cumulé; [Loaded.winners] are all the rank-1 rows (ties included).
+ */
+sealed interface ResultsUiState {
+    data object Loading : ResultsUiState
+    data class Loaded(val standings: List<StandingRow>) : ResultsUiState {
+        val winners: List<StandingRow> get() = standings.filter { it.rank == 1 }
+    }
+    data object LoadError : ResultsUiState
+
+    /** Party missing, not FINISHED, or with an inconsistent aggregate: no results to show. */
+    data object Unavailable : ResultsUiState
+}

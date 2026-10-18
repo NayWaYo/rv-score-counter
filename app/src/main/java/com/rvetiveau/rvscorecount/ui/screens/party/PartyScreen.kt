@@ -16,7 +16,9 @@ import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
@@ -38,6 +40,7 @@ import androidx.compose.ui.unit.dp
 import com.rvetiveau.rvscorecount.R
 import com.rvetiveau.rvscorecount.ui.components.RoundHistoryItem
 import com.rvetiveau.rvscorecount.ui.components.RoundHistoryRow
+import com.rvetiveau.rvscorecount.ui.components.StandingRowItem
 
 /**
  * Stateless Partie en cours screen (Story 4.1): Classement sorted by Score Cumulé with the
@@ -56,7 +59,10 @@ fun PartyScreen(
     onInsertionPositionSelected: (Int) -> Unit = {},
     onAdditionCancelled: () -> Unit = {},
     onShowRoundHistory: () -> Unit = {},
-    onHideRoundHistory: () -> Unit = {}
+    onHideRoundHistory: () -> Unit = {},
+    onEndPartyClick: () -> Unit = {},
+    onEndPartyConfirmed: () -> Unit = {},
+    onEndPartyDismissed: () -> Unit = {}
 ) {
     when (state) {
         is PartyUiState.Loading -> CenteredMessage(modifier) {
@@ -165,6 +171,13 @@ fun PartyScreen(
                     Text(text = stringResource(R.string.party_rounds_link, state.roundHistory.size))
                 }
             }
+            if (state.closure.isConfirmationOpen) {
+                EndPartyDialog(
+                    isClosing = state.closure.isClosing,
+                    onConfirm = onEndPartyConfirmed,
+                    onDismiss = onEndPartyDismissed
+                )
+            }
             if (state.isRoundHistoryOpen) {
                 RoundHistorySheet(rounds = state.roundHistory, onDismiss = onHideRoundHistory)
             }
@@ -175,7 +188,9 @@ fun PartyScreen(
                     .fillMaxWidth()
                     .testTag("party_standings")
             ) {
-                items(state.standings, key = { it.participantId }) { row -> StandingRowItem(row) }
+                items(state.standings, key = { it.participantId }) { row ->
+                    StandingRowItem(row, modifier = Modifier.testTag("party_standing_row_${row.participantId}"))
+                }
             }
             if (state.canStartRound) {
                 Button(
@@ -188,10 +203,19 @@ fun PartyScreen(
                 ) {
                     Text(text = stringResource(R.string.party_start_round_button))
                 }
-                // La clôture arrive avec la Story 5.1 : le bouton est visible mais inactif d'ici là.
+                state.closure.errorRes?.let { errorRes ->
+                    Text(
+                        text = stringResource(errorRes),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.error,
+                        modifier = Modifier
+                            .padding(top = 8.dp)
+                            .testTag("party_end_error")
+                    )
+                }
                 OutlinedButton(
-                    onClick = {},
-                    enabled = false,
+                    onClick = onEndPartyClick,
+                    enabled = !state.closure.isClosing,
                     modifier = Modifier
                         .padding(top = 8.dp)
                         .fillMaxWidth()
@@ -299,6 +323,36 @@ private fun InsertionPositionSheet(
     }
 }
 
+/** Confirmation of a destructive closure (Story 5.1): Confirmer in error color, Annuler. */
+@Composable
+private fun EndPartyDialog(isClosing: Boolean, onConfirm: () -> Unit, onDismiss: () -> Unit) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text(text = stringResource(R.string.party_end_dialog_title)) },
+        text = { Text(text = stringResource(R.string.party_end_dialog_message)) },
+        confirmButton = {
+            TextButton(
+                onClick = onConfirm,
+                enabled = !isClosing,
+                colors = ButtonDefaults.textButtonColors(contentColor = MaterialTheme.colorScheme.error),
+                modifier = Modifier.testTag("party_end_confirm_button")
+            ) {
+                Text(text = stringResource(R.string.party_end_dialog_confirm))
+            }
+        },
+        dismissButton = {
+            TextButton(
+                onClick = onDismiss,
+                enabled = !isClosing,
+                modifier = Modifier.testTag("party_end_cancel_button")
+            ) {
+                Text(text = stringResource(R.string.party_add_cancel))
+            }
+        },
+        modifier = Modifier.testTag("party_end_dialog")
+    )
+}
+
 /** Read-only list of validated Manches, most recent first (Story 4.3). */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -322,60 +376,6 @@ private fun RoundHistorySheet(rounds: List<RoundHistoryItem>, onDismiss: () -> U
                 )
             }
         }
-    }
-}
-
-/** scoreboard-row : rang (meta), nom + badge Donneur (body), Score Cumulé (title), 56dp minimum. */
-@Composable
-private fun StandingRowItem(row: StandingRow) {
-    Row(
-        verticalAlignment = Alignment.CenterVertically,
-        modifier = Modifier
-            .fillMaxWidth()
-            .heightIn(min = 56.dp)
-            .clip(RoundedCornerShape(8.dp))
-            .background(MaterialTheme.colorScheme.surfaceVariant)
-            .padding(horizontal = 16.dp, vertical = 8.dp)
-            .semantics(mergeDescendants = true) {}
-            .testTag("party_standing_row_${row.participantId}")
-    ) {
-        Text(
-            text = stringResource(R.string.party_standing_rank, row.rank),
-            style = MaterialTheme.typography.bodySmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-            modifier = Modifier.widthIn(min = 32.dp)
-        )
-        Row(
-            verticalAlignment = Alignment.CenterVertically,
-            modifier = Modifier
-                .weight(1f)
-                .padding(horizontal = 8.dp)
-        ) {
-            Text(
-                text = row.name,
-                style = MaterialTheme.typography.bodyLarge,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.weight(1f, fill = false)
-            )
-            if (row.isDealer) {
-                Text(
-                    text = stringResource(R.string.party_dealer_badge),
-                    style = MaterialTheme.typography.labelLarge,
-                    color = MaterialTheme.colorScheme.onPrimary,
-                    modifier = Modifier
-                        .padding(start = 8.dp)
-                        .clip(RoundedCornerShape(8.dp))
-                        .background(MaterialTheme.colorScheme.primary)
-                        .padding(horizontal = 8.dp, vertical = 2.dp)
-                        .testTag("party_dealer_badge")
-                )
-            }
-        }
-        Text(
-            text = row.cumulativeScore.toString(),
-            style = MaterialTheme.typography.headlineMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant
-        )
     }
 }
 

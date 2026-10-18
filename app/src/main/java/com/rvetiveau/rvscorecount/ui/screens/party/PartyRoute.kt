@@ -54,6 +54,9 @@ fun PartyRoute(
         onAdditionCancelled = viewModel::onAdditionCancelled,
         onShowRoundHistory = viewModel::onShowRoundHistory,
         onHideRoundHistory = viewModel::onHideRoundHistory,
+        onEndPartyClick = viewModel::onEndPartyClick,
+        onEndPartyConfirmed = viewModel::onEndPartyConfirmed,
+        onEndPartyDismissed = viewModel::onEndPartyDismissed,
         modifier = modifier
     )
 }

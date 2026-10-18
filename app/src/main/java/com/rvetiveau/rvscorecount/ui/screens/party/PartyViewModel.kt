@@ -9,10 +9,12 @@ import com.rvetiveau.rvscorecount.domain.model.PartyState
 import com.rvetiveau.rvscorecount.domain.model.computeStandings
 import com.rvetiveau.rvscorecount.domain.repository.PartyRepository
 import com.rvetiveau.rvscorecount.domain.usecase.AddParticipantUseCase
+import com.rvetiveau.rvscorecount.domain.usecase.ClosePartyUseCase
 import com.rvetiveau.rvscorecount.domain.usecase.GetAvailableGamesUseCase
 import com.rvetiveau.rvscorecount.domain.usecase.nextDealerIndexAfterInsertion
 import com.rvetiveau.rvscorecount.ui.components.RoundHistoryItem
 import com.rvetiveau.rvscorecount.ui.components.RoundHistoryScore
+import com.rvetiveau.rvscorecount.ui.components.toStandingRows
 import com.rvetiveau.rvscorecount.ui.navigation.NavigationEvent
 import com.rvetiveau.rvscorecount.ui.navigation.Routes
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -40,7 +42,8 @@ import kotlinx.coroutines.launch
 class PartyViewModel @Inject constructor(
     private val partyRepository: PartyRepository,
     private val getAvailableGamesUseCase: GetAvailableGamesUseCase,
-    private val addParticipantUseCase: AddParticipantUseCase
+    private val addParticipantUseCase: AddParticipantUseCase,
+    private val closePartyUseCase: ClosePartyUseCase
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow<PartyUiState>(PartyUiState.Loading)
@@ -57,6 +60,7 @@ class PartyViewModel @Inject constructor(
     private var roomState: PartyUiState = PartyUiState.Loading
     private var addition: ParticipantAdditionUiState? = null
     private var isRoundHistoryOpen = false
+    private var closure = PartyClosureUiState()
     private var seating: List<Participant> = emptyList()
     private var currentDealerIndex: Int = 0
 
@@ -73,7 +77,7 @@ class PartyViewModel @Inject constructor(
     private fun publish() {
         val state = roomState
         _uiState.value = if (state is PartyUiState.Loaded) {
-            state.copy(addition = addition, isRoundHistoryOpen = isRoundHistoryOpen)
+            state.copy(addition = addition, isRoundHistoryOpen = isRoundHistoryOpen, closure = closure)
         } else {
             state
         }
@@ -138,16 +142,7 @@ class PartyViewModel @Inject constructor(
                 )
             }
 
-        // Rang « 1, 1, 3 » : la liste est triée, un ex æquo prend le rang du premier de son score.
-        val rows = standings.map { standing ->
-            StandingRow(
-                participantId = standing.participant.id,
-                rank = standings.indexOfFirst { it.cumulativeScore == standing.cumulativeScore } + 1,
-                name = standing.participant.name,
-                cumulativeScore = standing.cumulativeScore,
-                isDealer = standing.participant.id == dealer.id
-            )
-        }
+        val rows = standings.toStandingRows(dealerId = dealer.id)
         seating = participants.sortedBy { it.listPosition }
         currentDealerIndex = party.currentDealerIndex
         return PartyUiState.Loaded(
@@ -178,6 +173,39 @@ class PartyViewModel @Inject constructor(
 
     fun onScreenResumed() {
         navigationPending = false
+    }
+
+    // --- Story 5.1 : clôture de Partie ---
+
+    fun onEndPartyClick() {
+        val state = roomState as? PartyUiState.Loaded ?: return
+        if (!state.canStartRound || closure.isClosing) return
+        closure = PartyClosureUiState(isConfirmationOpen = true)
+        publish()
+    }
+
+    fun onEndPartyDismissed() {
+        if (closure.isClosing) return
+        closure = PartyClosureUiState()
+        publish()
+    }
+
+    /** Clôt la Partie puis remplace toute la pile par les Résultats finaux (UX : pas de retour
+     * vers une Partie terminée). Un échec ferme le dialog et laisse la Partie en cours. */
+    fun onEndPartyConfirmed() {
+        val partyId = initializedPartyId ?: return
+        if (!closure.isConfirmationOpen || closure.isClosing) return
+        closure = closure.copy(isClosing = true)
+        publish()
+
+        viewModelScope.launch {
+            if (closePartyUseCase(partyId).isSuccess) {
+                _navigationEvents.send(NavigationEvent.ReplaceAll(Routes.Results(partyId.toString())))
+            } else {
+                closure = PartyClosureUiState(errorRes = R.string.party_end_error)
+                publish()
+            }
+        }
     }
 
     // --- Story 4.3 : historique des Manches ---

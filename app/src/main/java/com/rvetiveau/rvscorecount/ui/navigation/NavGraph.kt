@@ -15,6 +15,7 @@ import androidx.navigation.toRoute
 import com.rvetiveau.rvscorecount.R
 import com.rvetiveau.rvscorecount.ui.screens.home.HomeRoute
 import com.rvetiveau.rvscorecount.ui.screens.party.PartyRoute
+import com.rvetiveau.rvscorecount.ui.screens.results.ResultsRoute
 import com.rvetiveau.rvscorecount.ui.screens.round.RoundEntryRoute
 import com.rvetiveau.rvscorecount.ui.screens.setup.SetupRoute
 import java.util.UUID
@@ -58,7 +59,10 @@ fun RvScoreCounterNavHost(
         }
         composable<Routes.Results> { backStackEntry ->
             val route: Routes.Results = backStackEntry.toRoute()
-            RoutePlaceholder(stringResource(R.string.route_placeholder_results, route.partyId))
+            ResultsRoute(
+                partyId = UUID.fromString(route.partyId),
+                onNavigate = { event -> navController.dispatch(event) }
+            )
         }
         composable<Routes.History> {
             RoutePlaceholder(stringResource(R.string.route_placeholder_history))
@@ -83,5 +87,9 @@ private fun NavHostController.dispatch(event: NavigationEvent) {
         is NavigationEvent.NavigateTo -> navigate(event.route) { launchSingleTop = true }
         NavigationEvent.NavigateBack -> navigateUp()
         is NavigationEvent.NavigateBackTo -> popBackStack(route = event.route, inclusive = event.inclusive)
+        is NavigationEvent.ReplaceAll -> navigate(event.route) {
+            popUpTo(graph.id) { inclusive = true }
+            launchSingleTop = true
+        }
     }
 }

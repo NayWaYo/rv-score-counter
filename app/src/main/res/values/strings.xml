@@ -3,7 +3,6 @@
     <string name="app_name">rv-score-counter</string>
 
     <!-- Placeholders temporaires : remplacés écran par écran dans les epics 2 à 6 -->
-    <string name="route_placeholder_results">Résultats finaux — partie %1$s (à venir)</string>
     <string name="route_placeholder_history">Historique (à venir)</string>
     <string name="route_placeholder_party_detail">Détail de partie %1$s (à venir)</string>
 
@@ -48,8 +47,29 @@
     <string name="party_add_position_becomes_dealer">Sera le prochain donneur</string>
     <string name="party_add_error_empty_name">Veuillez entrer un prénom</string>
     <string name="party_add_error_failed">Impossible d\'ajouter le joueur. Réessayez.</string>
+    <string name="party_end_dialog_title">Fin de partie ?</string>
+    <string name="party_end_dialog_message">Voulez-vous vraiment mettre fin à cette partie ?</string>
+    <string name="party_end_dialog_confirm">Confirmer</string>
+    <string name="party_end_error">Impossible de terminer la partie. Réessayez.</string>
     <string name="party_rounds_link">Voir les manches (%1$d)</string>
     <string name="party_rounds_title">Manches jouées</string>
+
+    <!-- Résultats finaux -->
+    <string name="results_title">Résultats finaux</string>
+    <plurals name="results_winner_label">
+        <item quantity="one">Vainqueur</item>
+        <item quantity="many">Vainqueurs</item>
+        <item quantity="other">Vainqueurs</item>
+    </plurals>
+    <plurals name="results_winner_score">
+        <item quantity="one">%1$d point</item>
+        <item quantity="many">%1$d points</item>
+        <item quantity="other">%1$d points</item>
+    </plurals>
+    <string name="results_replay">Rejouer</string>
+    <string name="results_back_home">Retour à l\'accueil</string>
+    <string name="results_load_error">Impossible de charger les résultats.</string>
+    <string name="results_unavailable">Résultats indisponibles pour cette partie.</string>
 
     <!-- Historique des manches (round-history-row) -->
     <string name="round_history_title">Manche %1$d</string>

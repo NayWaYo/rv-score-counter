@@ -22,6 +22,7 @@ import com.rvetiveau.rvscorecount.R
 import com.rvetiveau.rvscorecount.domain.model.CardSuit
 import com.rvetiveau.rvscorecount.ui.components.RoundHistoryItem
 import com.rvetiveau.rvscorecount.ui.components.RoundHistoryScore
+import com.rvetiveau.rvscorecount.ui.components.StandingRow
 import com.rvetiveau.rvscorecount.ui.theme.RvScoreCounterTheme
 import java.util.UUID
 import org.junit.Assert.assertEquals
@@ -83,7 +84,7 @@ class PartyScreenTest {
     fun showsTheDealerBadgeOnlyOnTheDealerRowAndAnnouncesIt() {
         setContent(aLoadedStateWithStandings())
 
-        composeTestRule.onAllNodesWithTag("party_dealer_badge", useUnmergedTree = true).assertCountEquals(1)
+        composeTestRule.onAllNodesWithTag("dealer_badge", useUnmergedTree = true).assertCountEquals(1)
         composeTestRule.onNodeWithTag("party_standing_row_$bobId").assertTextContains("Donneur")
     }
 
@@ -96,11 +97,50 @@ class PartyScreenTest {
     }
 
     @Test
-    fun showsBothBottomActionsWithEndOfPartyDisabledUntilClosureExists() {
-        setContent(aLoadedStateWithStandings())
+    fun showsBothBottomActionsAndEndOfPartyEmitsItsIntent() {
+        var endClicked = false
+        composeTestRule.setContent {
+            RvScoreCounterTheme {
+                PartyScreen(state = aLoadedStateWithStandings(), onEndPartyClick = { endClicked = true })
+            }
+        }
 
         composeTestRule.onNodeWithTag("party_start_round_button").assertIsEnabled()
-        composeTestRule.onNodeWithTag("party_end_button").assertTextEquals("Fin de partie").assertIsNotEnabled()
+        composeTestRule.onNodeWithTag("party_end_button").assertTextEquals("Fin de partie").performClick()
+
+        assertTrue(endClicked)
+    }
+
+    // --- Story 5.1 ---
+
+    @Test
+    fun theEndConfirmationDialogAsksAndEmitsConfirmOrCancel() {
+        var confirmed = false
+        var dismissed = false
+        composeTestRule.setContent {
+            RvScoreCounterTheme {
+                PartyScreen(
+                    state = aLoadedStateWithStandings().copy(closure = PartyClosureUiState(isConfirmationOpen = true)),
+                    onEndPartyConfirmed = { confirmed = true },
+                    onEndPartyDismissed = { dismissed = true }
+                )
+            }
+        }
+
+        composeTestRule.onNodeWithText("Fin de partie ?").assertIsDisplayed()
+        composeTestRule.onNodeWithText("Voulez-vous vraiment mettre fin à cette partie ?").assertIsDisplayed()
+        composeTestRule.onNodeWithTag("party_end_confirm_button").assertTextEquals("Confirmer").performClick()
+        composeTestRule.onNodeWithTag("party_end_cancel_button").performClick()
+
+        assertTrue(confirmed)
+        assertTrue(dismissed)
+    }
+
+    @Test
+    fun showsTheClosureErrorUnderTheActions() {
+        setContent(aLoadedStateWithStandings().copy(closure = PartyClosureUiState(errorRes = R.string.party_end_error)))
+
+        composeTestRule.onNodeWithTag("party_end_error").assertTextEquals("Impossible de terminer la partie. Réessayez.")
     }
 
     @Test

@@ -10,10 +10,12 @@ import com.rvetiveau.rvscorecount.R
 import com.rvetiveau.rvscorecount.domain.engine.GameEngine
 import com.rvetiveau.rvscorecount.domain.repository.PartyRepository
 import com.rvetiveau.rvscorecount.domain.usecase.AddParticipantUseCase
+import com.rvetiveau.rvscorecount.domain.usecase.ClosePartyUseCase
 import com.rvetiveau.rvscorecount.domain.usecase.GetAvailableGamesUseCase
 import com.rvetiveau.rvscorecount.game.papayoo.PapayooEngine
 import com.rvetiveau.rvscorecount.ui.components.RoundHistoryItem
 import com.rvetiveau.rvscorecount.ui.components.RoundHistoryScore
+import com.rvetiveau.rvscorecount.ui.components.StandingRow
 import com.rvetiveau.rvscorecount.ui.navigation.NavigationEvent
 import com.rvetiveau.rvscorecount.ui.navigation.Routes
 import java.util.UUID
@@ -63,7 +65,12 @@ class PartyViewModelTest {
         val participantsFlow = MutableStateFlow(participants)
 
         override suspend fun createParty(party: Party) = error("not used in this test")
-        override suspend fun updateParty(party: Party) = error("not used in this test")
+        var updateFailure: Throwable? = null
+
+        override suspend fun updateParty(party: Party) {
+            updateFailure?.let { throw it }
+            partyFlow.emit(party)
+        }
         override suspend fun createPartyWithParticipants(party: Party, participants: List<Participant>) = error("not used in this test")
         var addFailure: Throwable? = null
 
@@ -97,7 +104,8 @@ class PartyViewModelTest {
         return PartyViewModel(
             repository,
             GetAvailableGamesUseCase(engines),
-            AddParticipantUseCase(repository, engines)
+            AddParticipantUseCase(repository, engines),
+            ClosePartyUseCase(repository)
         )
     }
 
@@ -562,5 +570,56 @@ class PartyViewModelTest {
         assertTrue(!state.canAddParticipant)
         assertTrue(state.isMaxPlayersReached)
         assertNull(state.addition)
+    }
+
+    // --- Story 5.1 clôture ---
+
+    @Test
+    fun `confirming the end of party finishes it and replaces the stack with the results`() = runTest {
+        val partyId = UUID.randomUUID()
+        val vm = viewModel(FakePartyRepository(party = aParty(partyId), participants = listOf(aParticipant(partyId, "Alice", 0))))
+        vm.initialize(partyId)
+
+        vm.onEndPartyClick()
+        assertTrue(loadedState(vm).closure.isConfirmationOpen)
+        vm.onEndPartyConfirmed()
+
+        assertEquals(NavigationEvent.ReplaceAll(Routes.Results(partyId.toString())), vm.navigationEvents.first())
+        val state = loadedState(vm)
+        assertTrue(!state.canStartRound)
+        assertTrue(!state.canAddParticipant)
+    }
+
+    @Test
+    fun `cancelling the confirmation keeps the party in progress`() = runTest {
+        val partyId = UUID.randomUUID()
+        val vm = viewModel(FakePartyRepository(party = aParty(partyId), participants = listOf(aParticipant(partyId, "Alice", 0))))
+        vm.initialize(partyId)
+
+        vm.onEndPartyClick()
+        vm.onEndPartyDismissed()
+        vm.onEndPartyConfirmed()
+
+        assertEquals(PartyClosureUiState(), loadedState(vm).closure)
+        assertTrue(loadedState(vm).canStartRound)
+        assertNull(withTimeoutOrNull(100) { vm.navigationEvents.first() })
+    }
+
+    @Test
+    fun `a failed closure shows an error and stays on the party`() = runTest {
+        val partyId = UUID.randomUUID()
+        val repository = FakePartyRepository(party = aParty(partyId), participants = listOf(aParticipant(partyId, "Alice", 0)))
+        repository.updateFailure = IllegalStateException("Room write failed")
+        val vm = viewModel(repository)
+        vm.initialize(partyId)
+
+        vm.onEndPartyClick()
+        vm.onEndPartyConfirmed()
+
+        val closure = loadedState(vm).closure
+        assertEquals(R.string.party_end_error, closure.errorRes)
+        assertTrue(!closure.isConfirmationOpen)
+        assertTrue(loadedState(vm).canStartRound)
+        assertNull(withTimeoutOrNull(100) { vm.navigationEvents.first() })
     }
 }

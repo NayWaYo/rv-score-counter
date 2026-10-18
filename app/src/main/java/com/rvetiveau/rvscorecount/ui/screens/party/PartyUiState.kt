@@ -2,13 +2,14 @@ package com.rvetiveau.rvscorecount.ui.screens.party
 
 import androidx.annotation.StringRes
 import com.rvetiveau.rvscorecount.ui.components.RoundHistoryItem
-import java.util.UUID
+import com.rvetiveau.rvscorecount.ui.components.StandingRow
 
 /**
  * Room-backed state of the Partie en cours (Story 4.1). [Loaded.standings] is already sorted by
  * Score Cumulé; [Loaded.roundNumber] is the Manche about to be played. [Loaded.addition] is the
  * in-memory draft of a late Participant (Story 4.2), null when no addition is in progress.
  * [Loaded.roundHistory] lists the validated Manches, most recent first (Story 4.3).
+ * [Loaded.closure] tracks the « Fin de partie » confirmation (Story 5.1).
  */
 sealed interface PartyUiState {
     data object Loading : PartyUiState
@@ -20,7 +21,8 @@ sealed interface PartyUiState {
         val maxPlayers: Int = 0,
         val addition: ParticipantAdditionUiState? = null,
         val roundHistory: List<RoundHistoryItem> = emptyList(),
-        val isRoundHistoryOpen: Boolean = false
+        val isRoundHistoryOpen: Boolean = false,
+        val closure: PartyClosureUiState = PartyClosureUiState()
     ) : PartyUiState {
         val canAddParticipant: Boolean get() = canStartRound && standings.size < maxPlayers
         val isMaxPlayersReached: Boolean get() = canStartRound && maxPlayers > 0 && standings.size >= maxPlayers
@@ -30,12 +32,10 @@ sealed interface PartyUiState {
     data object InconsistentParticipants : PartyUiState
 }
 
-data class StandingRow(
-    val participantId: UUID,
-    val rank: Int,
-    val name: String,
-    val cumulativeScore: Int,
-    val isDealer: Boolean
+data class PartyClosureUiState(
+    val isConfirmationOpen: Boolean = false,
+    val isClosing: Boolean = false,
+    @StringRes val errorRes: Int? = null
 )
 
 /** [insertionOptions] is non-empty only once a valid name was confirmed (position step). */
