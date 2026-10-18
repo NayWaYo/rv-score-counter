@@ -38,6 +38,7 @@ fun RoundEntryRoute(
         onRetry = { viewModel.retry(partyId) },
         onValidate = viewModel::onValidate,
         onSevenHolderSelected = viewModel::onSevenHolderSelected,
+        onPanelSelected = viewModel::onPanelSelected,
         modifier = modifier
     )
 }

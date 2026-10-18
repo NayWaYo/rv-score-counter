@@ -6,6 +6,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.FlowRow
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
@@ -14,6 +15,7 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -23,18 +25,27 @@ import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.selected
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.rvetiveau.rvscorecount.R
 import com.rvetiveau.rvscorecount.domain.model.CardSuit
 import com.rvetiveau.rvscorecount.ui.components.DieRoller
+import com.rvetiveau.rvscorecount.ui.components.RoundHistoryRow
+import com.rvetiveau.rvscorecount.ui.components.RoundRecordLine
+import com.rvetiveau.rvscorecount.ui.components.SevenChampionLine
+import com.rvetiveau.rvscorecount.ui.components.StandingRowItem
 import com.rvetiveau.rvscorecount.ui.components.ScoreField
 import com.rvetiveau.rvscorecount.ui.components.SumIndicator
 import com.rvetiveau.rvscorecount.ui.theme.nameRes
 import java.util.UUID
 
 /**
- * Stateless Saisie de Manche screen (AC 1-12): die roll, free-order score entry and running sum
+ * Stateless Saisie de Manche screen (AC 1-12): a large die in the middle, then « Classement » and
+ * « Saisir les scores », each showing its panel (Classement, statistics and Manches, or free-order
+ * score entry and running sum)
  * once the Partie/Participants aggregate is loaded. Loading/error states never render partial
  * fields and gate the die's actions until the content is ready (AC 10).
  */
@@ -46,7 +57,8 @@ fun RoundEntryScreen(
     onRetry: () -> Unit,
     modifier: Modifier = Modifier,
     onValidate: () -> Unit = {},
-    onSevenHolderSelected: (UUID) -> Unit = {}
+    onSevenHolderSelected: (UUID) -> Unit = {},
+    onPanelSelected: (RoundEntryPanel) -> Unit = {}
 ) {
     Column(
         modifier = modifier
@@ -87,29 +99,143 @@ fun RoundEntryScreen(
                 }
             }
 
-            content != null -> RoundEntryContentColumn(
-                suit = state.suit,
-                rerollEnabled = state.rerollEnabled,
-                content = content,
-                canValidate = state.canValidate,
-                saveError = state.saveError,
-                onRoll = onRoll,
-                onScoreChanged = onScoreChanged,
-                onValidate = onValidate,
-                onSevenHolderSelected = onSevenHolderSelected
+            content != null -> {
+                Text(
+                    text = stringResource(R.string.round_entry_suit_label),
+                    style = MaterialTheme.typography.titleMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    textAlign = TextAlign.Center,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(top = 16.dp, bottom = 16.dp)
+                        .testTag("round_entry_suit_label")
+                )
+                DieRoller(
+                    suit = state.suit,
+                    onRoll = onRoll,
+                    rerollEnabled = state.rerollEnabled,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(bottom = 32.dp)
+                        .testTag("round_entry_die_roller")
+                )
+                PanelButtons(panel = state.panel, onPanelSelected = onPanelSelected)
+                when (state.panel) {
+                    RoundEntryPanel.NONE -> Unit
+                    RoundEntryPanel.STANDINGS -> StandingsPanel(summary = content.summary)
+                    RoundEntryPanel.SCORES -> ScoreForm(
+                        suit = state.suit,
+                        content = content,
+                        canValidate = state.canValidate,
+                        saveError = state.saveError,
+                        onScoreChanged = onScoreChanged,
+                        onValidate = onValidate,
+                        onSevenHolderSelected = onSevenHolderSelected
+                    )
+                }
+            }
+        }
+    }
+}
+
+/** « Classement » and « Saisir les scores »: each shows its panel under the die, or hides it. */
+@Composable
+private fun PanelButtons(panel: RoundEntryPanel, onPanelSelected: (RoundEntryPanel) -> Unit) {
+    Row(
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(bottom = 16.dp)
+    ) {
+        PanelButton(
+            selected = panel == RoundEntryPanel.STANDINGS,
+            label = stringResource(R.string.round_entry_standings_button),
+            onClick = { onPanelSelected(RoundEntryPanel.STANDINGS) },
+            modifier = Modifier
+                .weight(1f)
+                .testTag("round_entry_standings_button")
+        )
+        PanelButton(
+            selected = panel == RoundEntryPanel.SCORES,
+            label = stringResource(R.string.round_entry_scores_button),
+            onClick = { onPanelSelected(RoundEntryPanel.SCORES) },
+            modifier = Modifier
+                .weight(1f)
+                .testTag("round_entry_scores_button")
+        )
+    }
+}
+
+@Composable
+private fun PanelButton(selected: Boolean, label: String, onClick: () -> Unit, modifier: Modifier) {
+    val selectable = modifier
+        .heightIn(min = 56.dp)
+        .semantics { this.selected = selected }
+    if (selected) {
+        Button(onClick = onClick, modifier = selectable) {
+            Text(text = label, textAlign = TextAlign.Center)
+        }
+    } else {
+        OutlinedButton(onClick = onClick, modifier = selectable) {
+            Text(text = label, textAlign = TextAlign.Center)
+        }
+    }
+}
+
+/** The Partie so far: Classement, statistics, then the validated Manches, most recent first. */
+@Composable
+private fun StandingsPanel(summary: RoundEntrySummary) {
+    Column(
+        verticalArrangement = Arrangement.spacedBy(8.dp),
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(bottom = 16.dp)
+            .testTag("round_entry_standings_panel")
+    ) {
+        summary.standings.forEach { row ->
+            StandingRowItem(row, modifier = Modifier.testTag("round_entry_standing_row_${row.participantId}"))
+        }
+        if (summary.sevenChampion != null || summary.roundRecord != null) {
+            PanelHeading(text = stringResource(R.string.round_entry_stats_title))
+            summary.sevenChampion?.let { champion ->
+                SevenChampionLine(champion = champion, modifier = Modifier.testTag("round_entry_seven_champion"))
+            }
+            summary.roundRecord?.let { record ->
+                RoundRecordLine(record = record, modifier = Modifier.testTag("round_entry_round_record"))
+            }
+        }
+        PanelHeading(text = stringResource(R.string.party_rounds_title))
+        if (summary.roundHistory.isEmpty()) {
+            Text(
+                text = stringResource(R.string.history_no_round),
+                style = MaterialTheme.typography.bodyLarge,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.testTag("round_entry_no_round")
             )
+        }
+        summary.roundHistory.forEach { round ->
+            RoundHistoryRow(item = round, modifier = Modifier.testTag("round_entry_round_history_${round.roundNumber}"))
         }
     }
 }
 
 @Composable
-private fun RoundEntryContentColumn(
+private fun PanelHeading(text: String) {
+    Text(
+        text = text,
+        style = MaterialTheme.typography.titleMedium,
+        color = MaterialTheme.colorScheme.onBackground,
+        modifier = Modifier.padding(top = 8.dp)
+    )
+}
+
+/** Score entry, « Qui a eu le 40 ? », running sum and « Valider la Manche » (Stories 3.2-3.4). */
+@Composable
+private fun ScoreForm(
     suit: CardSuit?,
-    rerollEnabled: Boolean,
     content: RoundEntryContent,
     canValidate: Boolean,
     saveError: Boolean,
-    onRoll: () -> Unit,
     onScoreChanged: (UUID, String) -> Unit,
     onValidate: () -> Unit,
     onSevenHolderSelected: (UUID) -> Unit
@@ -120,29 +246,11 @@ private fun RoundEntryContentColumn(
         participantIds.associateWith { FocusRequester() }
     }
 
-    // Runs once per entry into this composable (i.e. once per loading -> ready transition, AC 7).
+    // Runs each time the form is shown (AC 7): focus goes to the first empty field.
     LaunchedEffect(Unit) {
         val firstEmpty = content.participants.firstOrNull { content.scores[it.id].isNullOrEmpty() }
         firstEmpty?.let { focusRequesters.getValue(it.id).requestFocus() }
     }
-
-    Text(
-        text = stringResource(R.string.round_entry_suit_label),
-        style = MaterialTheme.typography.bodyLarge,
-        color = MaterialTheme.colorScheme.onSurfaceVariant,
-        modifier = Modifier
-            .padding(bottom = 8.dp)
-            .testTag("round_entry_suit_label")
-    )
-    DieRoller(
-        suit = suit,
-        onRoll = onRoll,
-        rerollEnabled = rerollEnabled,
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(bottom = 24.dp)
-            .testTag("round_entry_die_roller")
-    )
 
     content.participants.forEachIndexed { index, participant ->
         val imeAction = if (index == content.participants.lastIndex) ImeAction.Done else ImeAction.Next

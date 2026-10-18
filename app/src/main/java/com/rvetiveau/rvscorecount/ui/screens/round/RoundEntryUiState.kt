@@ -1,6 +1,10 @@
 package com.rvetiveau.rvscorecount.ui.screens.round
 
 import com.rvetiveau.rvscorecount.domain.model.CardSuit
+import com.rvetiveau.rvscorecount.ui.components.RoundHistoryItem
+import com.rvetiveau.rvscorecount.ui.components.RoundRecordUi
+import com.rvetiveau.rvscorecount.ui.components.SevenChampionUi
+import com.rvetiveau.rvscorecount.ui.components.StandingRow
 import java.util.UUID
 
 /**
@@ -15,7 +19,9 @@ data class RoundEntryUiState(
     val isLoading: Boolean = true,
     val loadError: Boolean = false,
     val isSaving: Boolean = false,
-    val saveError: Boolean = false
+    val saveError: Boolean = false,
+    /** Section shown under the die: none, the Partie's Classement or the score form. */
+    val panel: RoundEntryPanel = RoundEntryPanel.NONE
 ) {
     val currentSum: Long get() = content?.currentSum ?: 0L
 
@@ -37,7 +43,8 @@ data class RoundEntryContent(
     val precomputedParticipantId: UUID? = null,
     /** Points of the suit seven when the game records its holder (Papayoo : 40), else null. */
     val sevenPoints: Int? = null,
-    val sevenHolderId: UUID? = null
+    val sevenHolderId: UUID? = null,
+    val summary: RoundEntrySummary = RoundEntrySummary()
 ) {
     /** The chosen holder's entered score is below the seven's own points: impossible. */
     val isSevenHolderScoreTooLow: Boolean
@@ -87,4 +94,21 @@ enum class SumIndicatorState {
 data class RoundEntryParticipant(
     val id: UUID,
     val name: String
+)
+
+enum class RoundEntryPanel {
+    NONE,
+    STANDINGS,
+    SCORES
+}
+
+/**
+ * The Partie so far, read once when the screen loads: Classement with the Donneur badge,
+ * validated Manches (most recent first) and statistics, each null before it means anything.
+ */
+data class RoundEntrySummary(
+    val standings: List<StandingRow> = emptyList(),
+    val roundHistory: List<RoundHistoryItem> = emptyList(),
+    val sevenChampion: SevenChampionUi? = null,
+    val roundRecord: RoundRecordUi? = null
 )

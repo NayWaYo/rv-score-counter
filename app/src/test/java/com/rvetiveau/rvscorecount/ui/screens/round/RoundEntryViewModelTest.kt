@@ -56,7 +56,9 @@ class RoundEntryViewModelTest {
     private class FakePartyRepository(
         private val party: Party? = null,
         private val participants: List<Participant> = emptyList(),
-        var failure: Throwable? = null
+        var failure: Throwable? = null,
+        private val rounds: List<Round> = emptyList(),
+        private val roundScores: List<RoundScore> = emptyList()
     ) : PartyRepository {
         var saveRoundInvocationCount = 0
             private set
@@ -86,8 +88,9 @@ class RoundEntryViewModelTest {
             savedRound = round
             savedScores = scores
         }
-        override suspend fun getRoundsByPartyId(partyId: UUID): List<Round> = emptyList()
-        override suspend fun getScoresByRoundId(roundId: UUID): List<RoundScore> = emptyList()
+        override suspend fun getRoundsByPartyId(partyId: UUID): List<Round> = rounds
+        override suspend fun getScoresByRoundId(roundId: UUID): List<RoundScore> =
+            roundScores.filter { it.roundId == roundId }
     }
 
     private class RecordingGameEngine : GameEngine by PapayooEngine() {
@@ -885,5 +888,122 @@ class RoundEntryViewModelTest {
         restored.initialize(partyId)
 
         assertEquals(participants[2].id, restored.uiState.value.content!!.sevenHolderId)
+    }
+
+    // --- Classement, Manches et statistiques sous le dé ---
+
+    private fun aPlayedParty(): Triple<UUID, List<Participant>, FakePartyRepository> {
+        val partyId = UUID.randomUUID()
+        val alice = aParticipant(partyId, "Alice", 0)
+        val bob = aParticipant(partyId, "Bob", 1)
+        val round1 = Round(UUID.randomUUID(), partyId, 1, CardSuit.HEART, sevenHolderId = bob.id)
+        val round2 = Round(UUID.randomUUID(), partyId, 2, CardSuit.CLUB, sevenHolderId = bob.id)
+        val repository = FakePartyRepository(
+            party = aParty(partyId).copy(currentDealerIndex = 1),
+            participants = listOf(alice, bob),
+            rounds = listOf(round1, round2),
+            roundScores = listOf(
+                RoundScore(round1.id, alice.id, 40),
+                RoundScore(round1.id, bob.id, 210),
+                RoundScore(round2.id, alice.id, 100),
+                RoundScore(round2.id, bob.id, 150)
+            )
+        )
+        return Triple(partyId, listOf(alice, bob), repository)
+    }
+
+    @Test
+    fun `loads the standings, the rounds and the statistics of the party`() = runTest {
+        val (partyId, participants, repository) = aPlayedParty()
+        val (alice, bob) = participants
+        val vm = viewModel(partyRepository = repository).also { it.initialize(partyId) }
+
+        val summary = vm.uiState.value.content!!.summary
+        assertEquals(listOf(alice.id, bob.id), summary.standings.map { it.participantId })
+        assertEquals(listOf(140, 360), summary.standings.map { it.cumulativeScore })
+        assertEquals(listOf(false, true), summary.standings.map { it.isDealer })
+        assertEquals(listOf(2, 1), summary.roundHistory.map { it.roundNumber })
+        assertEquals(listOf("Bob"), summary.sevenChampion!!.names)
+        assertEquals(2, summary.sevenChampion!!.count)
+        assertEquals(210, summary.roundRecord!!.points)
+        assertEquals(listOf("Bob" to 1), summary.roundRecord!!.entries.map { it.participantName to it.roundNumber })
+    }
+
+    @Test
+    fun `the first round has an empty summary`() = runTest {
+        val vm = initializedViewModel()
+
+        val summary = vm.uiState.value.content!!.summary
+        assertEquals(1, summary.standings.size)
+        assertTrue(summary.roundHistory.isEmpty())
+        assertNull(summary.sevenChampion)
+        assertNull(summary.roundRecord)
+    }
+
+    @Test
+    fun `a round score from an unknown participant is a load error`() = runTest {
+        val partyId = UUID.randomUUID()
+        val round = Round(UUID.randomUUID(), partyId, 1, CardSuit.HEART)
+        val repository = FakePartyRepository(
+            party = aParty(partyId),
+            participants = listOf(aParticipant(partyId, "Alice", 0)),
+            rounds = listOf(round),
+            roundScores = listOf(RoundScore(round.id, UUID.randomUUID(), 250))
+        )
+        val vm = viewModel(partyRepository = repository).also { it.initialize(partyId) }
+
+        assertTrue(vm.uiState.value.loadError)
+        assertNull(vm.uiState.value.content)
+    }
+
+    @Test
+    fun `only the die is shown until a panel is chosen`() = runTest {
+        val vm = initializedViewModel()
+
+        assertEquals(RoundEntryPanel.NONE, vm.uiState.value.panel)
+    }
+
+    @Test
+    fun `each panel button shows its panel, and hides it on a second tap`() = runTest {
+        val savedStateHandle = SavedStateHandle()
+        val vm = initializedViewModel(savedStateHandle)
+
+        vm.onPanelSelected(RoundEntryPanel.STANDINGS)
+        assertEquals(RoundEntryPanel.STANDINGS, vm.uiState.value.panel)
+
+        vm.onPanelSelected(RoundEntryPanel.SCORES)
+        assertEquals(RoundEntryPanel.SCORES, vm.uiState.value.panel)
+        assertEquals("SCORES", savedStateHandle.get<String>("panel"))
+
+        vm.onPanelSelected(RoundEntryPanel.SCORES)
+        assertEquals(RoundEntryPanel.NONE, vm.uiState.value.panel)
+    }
+
+    @Test
+    fun `panels stay closed while the party is loading`() = runTest {
+        val vm = viewModel()
+
+        vm.onPanelSelected(RoundEntryPanel.SCORES)
+
+        assertEquals(RoundEntryPanel.NONE, vm.uiState.value.panel)
+    }
+
+    @Test
+    fun `a restored panel is shown again`() = runTest {
+        val vm = initializedViewModel(SavedStateHandle(mapOf("panel" to "STANDINGS")))
+
+        assertEquals(RoundEntryPanel.STANDINGS, vm.uiState.value.panel)
+    }
+
+    @Test
+    fun `a restored score draft reopens the score form`() = runTest {
+        val partyId = UUID.randomUUID()
+        val alice = aParticipant(partyId, "Alice", 0)
+        val vm = viewModel(
+            savedStateHandle = SavedStateHandle(mapOf("score_${alice.id}" to "120")),
+            partyRepository = FakePartyRepository(aParty(partyId), listOf(alice))
+        ).also { it.initialize(partyId) }
+
+        assertEquals(RoundEntryPanel.SCORES, vm.uiState.value.panel)
     }
 }

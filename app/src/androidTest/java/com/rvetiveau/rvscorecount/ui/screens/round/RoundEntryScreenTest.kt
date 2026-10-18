@@ -4,6 +4,8 @@ import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsEnabled
 import androidx.compose.ui.test.assertIsFocused
 import androidx.compose.ui.test.assertIsNotEnabled
+import androidx.compose.ui.test.assertIsNotSelected
+import androidx.compose.ui.test.assertIsSelected
 import androidx.compose.ui.test.assertTextEquals
 import androidx.compose.ui.test.assertIsNotFocused
 import androidx.compose.ui.test.assert
@@ -18,6 +20,12 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.ui.semantics.SemanticsProperties
 import androidx.compose.ui.test.SemanticsMatcher
 import com.rvetiveau.rvscorecount.domain.model.CardSuit
+import com.rvetiveau.rvscorecount.ui.components.RoundHistoryItem
+import com.rvetiveau.rvscorecount.ui.components.RoundHistoryScore
+import com.rvetiveau.rvscorecount.ui.components.RoundRecordEntryUi
+import com.rvetiveau.rvscorecount.ui.components.RoundRecordUi
+import com.rvetiveau.rvscorecount.ui.components.SevenChampionUi
+import com.rvetiveau.rvscorecount.ui.components.StandingRow
 import com.rvetiveau.rvscorecount.ui.theme.RvScoreCounterTheme
 import java.util.UUID
 import org.junit.Assert.assertEquals
@@ -39,11 +47,13 @@ class RoundEntryScreenTest {
     private fun aLoadedState(
         suit: CardSuit? = null,
         scores: Map<UUID, String> = mapOf(aliceId to "", bobId to ""),
-        precomputedParticipantId: UUID? = null
+        precomputedParticipantId: UUID? = null,
+        panel: RoundEntryPanel = RoundEntryPanel.SCORES
     ) = RoundEntryUiState(
         suit = suit,
         isLoading = false,
         loadError = false,
+        panel = panel,
         content = RoundEntryContent(
             participants = listOf(
                 RoundEntryParticipant(aliceId, "Alice"),
@@ -301,5 +311,80 @@ class RoundEntryScreenTest {
         composeTestRule.onNodeWithTag("round_entry_seven_error")
             .assertTextEquals("Bob a moins de 40 points sur cette manche : vérifiez le score ou le joueur.")
         composeTestRule.onNodeWithTag("round_entry_validate_button").assertIsNotEnabled()
+    }
+
+    // --- Panneaux sous le dé ---
+
+    private val aSummary = RoundEntrySummary(
+        standings = listOf(
+            StandingRow(aliceId, rank = 1, name = "Alice", cumulativeScore = 140, isDealer = false),
+            StandingRow(bobId, rank = 2, name = "Bob", cumulativeScore = 360, isDealer = true)
+        ),
+        roundHistory = listOf(
+            RoundHistoryItem(2, CardSuit.CLUB, listOf(RoundHistoryScore("Alice", 100), RoundHistoryScore("Bob", 150)), 250),
+            RoundHistoryItem(1, CardSuit.HEART, listOf(RoundHistoryScore("Alice", 40), RoundHistoryScore("Bob", 210)), 250)
+        ),
+        sevenChampion = SevenChampionUi(names = listOf("Bob"), count = 2),
+        roundRecord = RoundRecordUi(entries = listOf(RoundRecordEntryUi("Bob", 1)), points = 210)
+    )
+
+    @Test
+    fun showsOnlyTheDieAndThePanelButtonsUntilAPanelIsChosen() {
+        setContent(aLoadedState(panel = RoundEntryPanel.NONE))
+
+        composeTestRule.onNodeWithTag("round_entry_die_roller").assertIsDisplayed()
+        composeTestRule.onNodeWithTag("round_entry_standings_button").assertIsDisplayed()
+        composeTestRule.onNodeWithTag("round_entry_scores_button").assertIsDisplayed()
+        composeTestRule.onNodeWithTag("score_field_$aliceId").assertDoesNotExist()
+        composeTestRule.onNodeWithTag("round_entry_validate_button").assertDoesNotExist()
+        composeTestRule.onNodeWithTag("round_entry_standings_panel").assertDoesNotExist()
+    }
+
+    @Test
+    fun panelButtonsEmitTheirPanelAndMarkTheShownOneAsSelected() {
+        val chosen = mutableListOf<RoundEntryPanel>()
+        composeTestRule.setContent {
+            RvScoreCounterTheme {
+                RoundEntryScreen(
+                    state = aLoadedState(panel = RoundEntryPanel.SCORES),
+                    onRoll = {},
+                    onScoreChanged = { _, _ -> },
+                    onRetry = {},
+                    onPanelSelected = { chosen += it }
+                )
+            }
+        }
+
+        composeTestRule.onNodeWithTag("round_entry_scores_button").assertIsSelected()
+        composeTestRule.onNodeWithTag("round_entry_standings_button").assertIsNotSelected().performClick()
+        composeTestRule.onNodeWithTag("round_entry_scores_button").performClick()
+
+        assertEquals(listOf(RoundEntryPanel.STANDINGS, RoundEntryPanel.SCORES), chosen)
+    }
+
+    @Test
+    fun theStandingsPanelShowsTheStandingsStatisticsAndRounds() {
+        val state = aLoadedState(panel = RoundEntryPanel.STANDINGS)
+        setContent(state.copy(content = state.content!!.copy(summary = aSummary)))
+
+        composeTestRule.onNodeWithTag("score_field_$aliceId").assertDoesNotExist()
+        composeTestRule.onNodeWithTag("round_entry_standing_row_$aliceId").performScrollTo().assertIsDisplayed()
+        composeTestRule.onNodeWithTag("round_entry_standing_row_$bobId").performScrollTo().assertIsDisplayed()
+        composeTestRule.onNodeWithTag("round_entry_seven_champion").performScrollTo()
+            .assertTextEquals("Champion du 40 : Bob (2 fois)")
+        composeTestRule.onNodeWithTag("round_entry_round_record").performScrollTo()
+            .assertTextEquals("Record en une manche : Bob (manche 1) — 210 points")
+        composeTestRule.onNodeWithTag("round_entry_round_history_2").performScrollTo().assertIsDisplayed()
+        composeTestRule.onNodeWithTag("round_entry_round_history_1").performScrollTo().assertIsDisplayed()
+        composeTestRule.onNodeWithTag("round_entry_no_round").assertDoesNotExist()
+    }
+
+    @Test
+    fun theStandingsPanelOfTheFirstRoundHasNoStatisticsAndNoRound() {
+        setContent(aLoadedState(panel = RoundEntryPanel.STANDINGS))
+
+        composeTestRule.onNodeWithTag("round_entry_no_round").performScrollTo().assertIsDisplayed()
+        composeTestRule.onNodeWithTag("round_entry_seven_champion").assertDoesNotExist()
+        composeTestRule.onNodeWithTag("round_entry_round_record").assertDoesNotExist()
     }
 }

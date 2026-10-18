@@ -19,6 +19,7 @@ import androidx.compose.ui.text.TextLayoutResult
 import androidx.compose.ui.unit.Density
 import com.rvetiveau.rvscorecount.domain.model.CardSuit
 import com.rvetiveau.rvscorecount.ui.theme.RvScoreCounterTheme
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
@@ -179,5 +180,35 @@ class DieRollerTest {
         composeTestRule.mainClock.advanceTimeBy(DIE_ROLL_ANIMATION_MILLIS + 100L)
 
         composeTestRule.onNodeWithTag("die_result").assertContentDescriptionEquals("Couleur du 7 : Trèfle")
+    }
+
+    @Test
+    fun tappingTheBlankDieRollsLikeTheButton() {
+        var rolled = false
+        setContent(suit = null, onRoll = { rolled = true })
+
+        composeTestRule.onNodeWithTag("die_face_blank").performClick()
+
+        assertTrue(rolled)
+    }
+
+    @Test
+    fun tappingTheDrawnDieRerolls() {
+        var rolled = false
+        setContent(suit = CardSuit.SPADE, onRoll = { rolled = true })
+
+        composeTestRule.onNodeWithTag("die_result").performClick()
+
+        assertTrue(rolled)
+    }
+
+    @Test
+    fun tappingTheDrawnDieDoesNothingWhenRerollIsDisabled() {
+        var rolled = false
+        setContent(suit = CardSuit.SPADE, onRoll = { rolled = true }, rerollEnabled = false)
+
+        composeTestRule.onNodeWithTag("die_result").performClick()
+
+        assertFalse(rolled)
     }
 }

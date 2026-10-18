@@ -5,12 +5,19 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.rvetiveau.rvscorecount.domain.engine.GameEngine
 import com.rvetiveau.rvscorecount.domain.model.CardSuit
+import com.rvetiveau.rvscorecount.domain.model.Participant
 import com.rvetiveau.rvscorecount.domain.model.PartyState
+import com.rvetiveau.rvscorecount.domain.model.computeStandings
+import com.rvetiveau.rvscorecount.domain.model.roundRecord
+import com.rvetiveau.rvscorecount.domain.model.sevenChampion
 import com.rvetiveau.rvscorecount.domain.repository.PartyRepository
 import com.rvetiveau.rvscorecount.domain.usecase.GetAvailableGamesUseCase
 import com.rvetiveau.rvscorecount.domain.usecase.RollDieUseCase
 import com.rvetiveau.rvscorecount.domain.usecase.ValidateRoundOutcome
 import com.rvetiveau.rvscorecount.domain.usecase.ValidateRoundUseCase
+import com.rvetiveau.rvscorecount.ui.components.roundHistoryItems
+import com.rvetiveau.rvscorecount.ui.components.toStandingRows
+import com.rvetiveau.rvscorecount.ui.components.toUi
 import com.rvetiveau.rvscorecount.ui.navigation.NavigationEvent
 import dagger.hilt.android.lifecycle.HiltViewModel
 import java.util.UUID
@@ -27,6 +34,7 @@ import kotlinx.coroutines.launch
 private const val SUIT_KEY = "suit"
 private const val SCORE_KEY_PREFIX = "score_"
 private const val SEVEN_HOLDER_KEY = "seven_holder"
+private const val PANEL_KEY = "panel"
 
 /**
  * Holds the die roll and score entry draft in memory only (AC 9, 12) until « Valider la Manche »
@@ -115,7 +123,8 @@ class RoundEntryViewModel @Inject constructor(
                     scores = restoredScores,
                     totalPointsPerRound = engine.totalPointsPerRound,
                     sevenPoints = engine.suitSevenPoints,
-                    sevenHolderId = restoredSevenHolderId.takeIf { engine.suitSevenPoints != null }
+                    sevenHolderId = restoredSevenHolderId.takeIf { engine.suitSevenPoints != null },
+                    summary = loadSummary(partyId, participants, party.currentDealerIndex)
                 )
                 val content = if (hasRestoredScore) {
                     precomputeSoleEmptyScore(restoredContent, engine, invalidRestoredParticipantIds)
@@ -123,10 +132,16 @@ class RoundEntryViewModel @Inject constructor(
                     restoredContent
                 }
 
+                // A draft in progress reopens the score form; otherwise only the die is shown.
+                val restoredPanel = savedStateHandle.get<String>(PANEL_KEY)
+                    ?.let { name -> runCatching { RoundEntryPanel.valueOf(name) }.getOrNull() }
+                    ?: if (hasRestoredScore) RoundEntryPanel.SCORES else RoundEntryPanel.NONE
+
                 _uiState.value = _uiState.value.copy(
                     isLoading = false,
                     loadError = false,
-                    content = content
+                    content = content,
+                    panel = restoredPanel
                 )
             } catch (cancellation: CancellationException) {
                 initializedPartyId = null
@@ -149,6 +164,14 @@ class RoundEntryViewModel @Inject constructor(
         val suit = rollDieUseCase()
         savedStateHandle[SUIT_KEY] = suit.name
         _uiState.value = _uiState.value.copy(suit = suit)
+    }
+
+    /** Shows [panel] under the die, or hides it when it is already shown; one panel at a time. */
+    fun onPanelSelected(panel: RoundEntryPanel) {
+        if (_uiState.value.content == null) return
+        val next = if (_uiState.value.panel == panel) RoundEntryPanel.NONE else panel
+        savedStateHandle[PANEL_KEY] = next.name
+        _uiState.value = _uiState.value.copy(panel = next)
     }
 
     /** Records who took the 7 of the die's suit; ignored when the game has none or the id is unknown. */
@@ -206,6 +229,26 @@ class RoundEntryViewModel @Inject constructor(
                 _uiState.value = _uiState.value.copy(isSaving = false, saveError = true)
             }
         }
+    }
+
+    /** Classement, Manches and statistics of the Partie so far; an inconsistent score or 7 holder
+     * throws IllegalArgumentException, which [initialize] reports as a load error. */
+    private suspend fun loadSummary(
+        partyId: UUID,
+        participants: List<Participant>,
+        currentDealerIndex: Int
+    ): RoundEntrySummary {
+        val rounds = partyRepository.getRoundsByPartyId(partyId)
+        val scoresByRound = rounds.associateWith { partyRepository.getScoresByRoundId(it.id) }
+        val champion = sevenChampion(participants, rounds)
+        val standings = computeStandings(participants, scoresByRound.values.flatten())
+        val dealerId = participants.firstOrNull { it.listPosition == currentDealerIndex }?.id
+        return RoundEntrySummary(
+            standings = standings.toStandingRows(dealerId = dealerId),
+            roundHistory = roundHistoryItems(participants, scoresByRound).reversed(),
+            sevenChampion = champion?.toUi(),
+            roundRecord = roundRecord(participants, scoresByRound)?.toUi()
+        )
     }
 
     private fun precomputeSoleEmptyScore(
