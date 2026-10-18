@@ -36,3 +36,10 @@ out/
 # Local tooling metadata
 .vscode/
 **/.memlog.md
+
+# Clé de signature release (chemin et mots de passe)
+keystore.properties
+*.jks
+
+# Fichiers de release préparés localement (APK, notes)
+/dist/
