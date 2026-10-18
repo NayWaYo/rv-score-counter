@@ -32,7 +32,9 @@ class CreatePartyUseCaseTest {
     }
 
     private class FakePartyRepository(
-        private val failure: Throwable? = null
+        private val failure: Throwable? = null,
+        private val referenceParty: Party? = null,
+        private val referenceParticipants: List<Participant> = emptyList()
     ) : PartyRepository {
         var createdParty: Party? = null
         var createdParticipants: List<Participant>? = null
@@ -44,11 +46,12 @@ class CreatePartyUseCaseTest {
             createdParty = party
             createdParticipants = participants
         }
-        override suspend fun getPartyById(id: UUID): Party? = error("not used in this test")
+        override suspend fun getPartyById(id: UUID): Party? = referenceParty?.takeIf { it.id == id }
         override fun observeParty(id: UUID): Flow<Party?> = flowOf(null)
         override suspend fun getPartyInProgress(): Party? = error("not used in this test")
         override suspend fun addParticipant(participant: Participant, updatedParty: Party) = error("not used in this test")
-        override suspend fun getParticipantsByPartyId(partyId: UUID): List<Participant> = error("not used in this test")
+        override suspend fun getParticipantsByPartyId(partyId: UUID): List<Participant> =
+            referenceParticipants.filter { it.partyId == partyId }
         override fun observeParticipants(partyId: UUID): Flow<List<Participant>> = flowOf(emptyList())
         override suspend fun saveRound(round: Round, scores: Map<UUID, Int>, updatedParty: Party) = error("not used in this test")
         override suspend fun getRoundsByPartyId(partyId: UUID): List<Round> = error("not used in this test")
@@ -56,6 +59,55 @@ class CreatePartyUseCaseTest {
     }
 
     private fun draft(name: String) = ParticipantCreationData(id = UUID.randomUUID(), name = name)
+
+    // --- Story 5.2 : fromParty (relance rapide) ---
+
+    private val referenceId = UUID.randomUUID()
+
+    private fun referenceParty(status: PartyState = PartyState.FINISHED) =
+        Party(id = referenceId, gameId = "papayoo", status = status, currentDealerIndex = 2, createdAt = 1L)
+
+    // Stored out of order on purpose: the replay must follow listPosition, not storage order.
+    private val referenceParticipants = listOf(
+        Participant(UUID.randomUUID(), referenceId, "Chloé", 2),
+        Participant(UUID.randomUUID(), referenceId, "Alice", 0),
+        Participant(UUID.randomUUID(), referenceId, "Bob", 1)
+    )
+
+    @Test
+    fun `fromParty recreates the same game with the same names in table order under new ids`() = runTest {
+        val repository = FakePartyRepository(referenceParty = referenceParty(), referenceParticipants = referenceParticipants)
+        val useCase = CreatePartyUseCase(repository, mapOf("papayoo" to FakeGameEngine("papayoo")))
+
+        val newPartyId = useCase.fromParty(referenceId).getOrThrow()
+
+        val party = repository.createdParty!!
+        assertEquals(newPartyId, party.id)
+        assertTrue(newPartyId != referenceId)
+        assertEquals("papayoo", party.gameId)
+        assertEquals(PartyState.IN_PROGRESS, party.status)
+        assertEquals(0, party.currentDealerIndex)
+        val created = repository.createdParticipants!!
+        assertEquals(listOf("Alice", "Bob", "Chloé"), created.map { it.name })
+        assertEquals(listOf(0, 1, 2), created.map { it.listPosition })
+        assertTrue(created.none { participant -> referenceParticipants.any { it.id == participant.id } })
+    }
+
+    @Test
+    fun `fromParty only accepts a finished reference party`() = runTest {
+        listOf(
+            FakePartyRepository(referenceParty = null, referenceParticipants = referenceParticipants),
+            FakePartyRepository(referenceParty = referenceParty(PartyState.IN_PROGRESS), referenceParticipants = referenceParticipants),
+            FakePartyRepository(referenceParty = referenceParty(), referenceParticipants = emptyList())
+        ).forEach { repository ->
+            val useCase = CreatePartyUseCase(repository, mapOf("papayoo" to FakeGameEngine("papayoo")))
+
+            val result = useCase.fromParty(referenceId)
+
+            assertTrue(result.exceptionOrNull() is InvalidPartyConfigurationException)
+            assertEquals(null, repository.createdParty)
+        }
+    }
 
     @Test
     fun `creates the party with exact gameId, generated id, IN_PROGRESS status and dealer index 0`() = runTest {

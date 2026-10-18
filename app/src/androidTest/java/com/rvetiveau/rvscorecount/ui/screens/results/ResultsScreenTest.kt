@@ -8,6 +8,7 @@ import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
+import com.rvetiveau.rvscorecount.R
 import com.rvetiveau.rvscorecount.ui.components.StandingRow
 import com.rvetiveau.rvscorecount.ui.theme.RvScoreCounterTheme
 import java.util.UUID
@@ -51,15 +52,29 @@ class ResultsScreenTest {
     }
 
     @Test
-    fun showsReplayDisabledUntilStoryFiveTwoAndBackToHomeEmitsItsIntent() {
+    fun replayAndBackToHomeEmitTheirIntents() {
+        var replayed = false
         var backHome = false
-        setContent(loaded, onBackToHome = { backHome = true })
+        composeTestRule.setContent {
+            RvScoreCounterTheme {
+                ResultsScreen(state = loaded, onReplay = { replayed = true }, onBackToHome = { backHome = true })
+            }
+        }
 
-        composeTestRule.onNodeWithTag("results_replay_button").assertTextEquals("Rejouer").assertIsNotEnabled()
+        composeTestRule.onNodeWithTag("results_replay_button").assertTextEquals("Rejouer").assertIsEnabled().performClick()
         composeTestRule.onNodeWithTag("results_back_home_button")
             .assertTextEquals("Retour à l'accueil").assertIsEnabled().performClick()
 
+        assertTrue(replayed)
         assertTrue(backHome)
+    }
+
+    @Test
+    fun disablesReplayWhileCreatingAndShowsAReplayError() {
+        setContent(loaded.copy(isReplaying = true, replayErrorRes = R.string.results_replay_error))
+
+        composeTestRule.onNodeWithTag("results_replay_button").assertIsNotEnabled()
+        composeTestRule.onNodeWithTag("results_replay_error").assertTextEquals("Impossible de relancer la partie. Réessayez.")
     }
 
     @Test

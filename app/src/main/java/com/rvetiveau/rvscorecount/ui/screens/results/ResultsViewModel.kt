@@ -2,9 +2,11 @@ package com.rvetiveau.rvscorecount.ui.screens.results
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.rvetiveau.rvscorecount.R
 import com.rvetiveau.rvscorecount.domain.model.PartyState
 import com.rvetiveau.rvscorecount.domain.model.computeStandings
 import com.rvetiveau.rvscorecount.domain.repository.PartyRepository
+import com.rvetiveau.rvscorecount.domain.usecase.CreatePartyUseCase
 import com.rvetiveau.rvscorecount.ui.components.toStandingRows
 import com.rvetiveau.rvscorecount.ui.navigation.NavigationEvent
 import com.rvetiveau.rvscorecount.ui.navigation.Routes
@@ -27,7 +29,8 @@ import kotlinx.coroutines.launch
  */
 @HiltViewModel
 class ResultsViewModel @Inject constructor(
-    private val partyRepository: PartyRepository
+    private val partyRepository: PartyRepository,
+    private val createPartyUseCase: CreatePartyUseCase
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow<ResultsUiState>(ResultsUiState.Loading)
@@ -79,6 +82,26 @@ class ResultsViewModel @Inject constructor(
 
     fun retry(partyId: UUID) {
         if (_uiState.value is ResultsUiState.LoadError) initialize(partyId)
+    }
+
+    /** « Rejouer » (FR-14): one new Partie per tap, then the whole stack is replaced by it. */
+    fun onReplay() {
+        val partyId = initializedPartyId ?: return
+        val state = _uiState.value as? ResultsUiState.Loaded ?: return
+        if (state.isReplaying) return
+        _uiState.value = state.copy(isReplaying = true, replayErrorRes = null)
+
+        viewModelScope.launch {
+            createPartyUseCase.fromParty(partyId)
+                .onSuccess { newPartyId ->
+                    _navigationEvents.send(NavigationEvent.ReplaceAll(Routes.Party(newPartyId.toString())))
+                }
+                .onFailure {
+                    (_uiState.value as? ResultsUiState.Loaded)?.let { loaded ->
+                        _uiState.value = loaded.copy(isReplaying = false, replayErrorRes = R.string.results_replay_error)
+                    }
+                }
+        }
     }
 
     /** « Retour à l'accueil » and system back: the finished Partie is left for the Accueil. */

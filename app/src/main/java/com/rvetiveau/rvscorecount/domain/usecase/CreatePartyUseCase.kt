@@ -81,4 +81,29 @@ class CreatePartyUseCase @Inject constructor(
             Result.failure(t)
         }
     }
+
+    /**
+     * Relance rapide (FR-14) : nouvelle Partie du même Jeu avec les mêmes prénoms dans le même
+     * ordre, sous de nouveaux identifiants, via la même validation et la même écriture atomique.
+     * Seule une Partie FINISHED sert de référence.
+     */
+    suspend fun fromParty(referencePartyId: UUID): Result<UUID> {
+        val (gameId, participants) = try {
+            val reference = partyRepository.getPartyById(referencePartyId)
+                ?: throw InvalidPartyConfigurationException("Reference party $referencePartyId not found")
+            if (reference.status != PartyState.FINISHED) {
+                throw InvalidPartyConfigurationException(
+                    "Reference party $referencePartyId is ${reference.status}, not FINISHED"
+                )
+            }
+            reference.gameId to partyRepository.getParticipantsByPartyId(referencePartyId)
+                .sortedBy { it.listPosition }
+                .map { ParticipantCreationData(id = UUID.randomUUID(), name = it.name) }
+        } catch (cancellation: CancellationException) {
+            throw cancellation
+        } catch (t: Throwable) {
+            return Result.failure(t)
+        }
+        return invoke(gameId = gameId, participants = participants)
+    }
 }

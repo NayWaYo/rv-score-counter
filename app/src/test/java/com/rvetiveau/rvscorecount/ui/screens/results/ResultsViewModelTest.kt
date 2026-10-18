@@ -6,7 +6,10 @@ import com.rvetiveau.rvscorecount.domain.model.Party
 import com.rvetiveau.rvscorecount.domain.model.PartyState
 import com.rvetiveau.rvscorecount.domain.model.Round
 import com.rvetiveau.rvscorecount.domain.model.RoundScore
+import com.rvetiveau.rvscorecount.R
 import com.rvetiveau.rvscorecount.domain.repository.PartyRepository
+import com.rvetiveau.rvscorecount.domain.usecase.CreatePartyUseCase
+import com.rvetiveau.rvscorecount.game.papayoo.PapayooEngine
 import com.rvetiveau.rvscorecount.ui.navigation.NavigationEvent
 import com.rvetiveau.rvscorecount.ui.navigation.Routes
 import java.util.UUID
@@ -20,6 +23,7 @@ import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.test.setMain
 import org.junit.After
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
 
@@ -45,7 +49,17 @@ class ResultsViewModelTest {
     ) : PartyRepository {
         override suspend fun createParty(party: Party) = error("not used in this test")
         override suspend fun updateParty(party: Party) = error("not used in this test")
-        override suspend fun createPartyWithParticipants(party: Party, participants: List<Participant>) = error("not used in this test")
+        var createFailure: Throwable? = null
+        var createdParty: Party? = null
+            private set
+        var createCount = 0
+            private set
+
+        override suspend fun createPartyWithParticipants(party: Party, participants: List<Participant>) {
+            createCount++
+            createFailure?.let { throw it }
+            createdParty = party
+        }
         override suspend fun getPartyById(id: UUID): Party? {
             failure?.let { throw it }
             return party
@@ -71,12 +85,17 @@ class ResultsViewModelTest {
 
     private fun scores(vararg points: Pair<Participant, Int>) = points.map { (p, value) -> RoundScore(round.id, p.id, value) }
 
+    private fun viewModel(repository: PartyRepository) = ResultsViewModel(
+        repository,
+        CreatePartyUseCase(repository, mapOf(PapayooEngine.GAME_ID to PapayooEngine()))
+    )
+
     @Test
     fun `shows the final classement with every tied winner`() = runTest {
         val repository = FakePartyRepository(
             aParty(), listOf(alice, bob, chloe), listOf(round), scores(alice to 100, bob to 50, chloe to 100)
         )
-        val vm = ResultsViewModel(repository)
+        val vm = viewModel(repository)
 
         vm.initialize(partyId)
 
@@ -85,7 +104,7 @@ class ResultsViewModelTest {
         assertEquals(listOf(1, 2, 2), state.standings.map { it.rank })
         assertEquals(listOf("Bob"), state.winners.map { it.name })
 
-        val tied = ResultsViewModel(
+        val tied = viewModel(
             FakePartyRepository(aParty(), listOf(alice, bob, chloe), listOf(round), scores(alice to 50, bob to 50, chloe to 150))
         ).also { it.initialize(partyId) }
         assertEquals(listOf("Alice", "Bob"), (tied.uiState.value as ResultsUiState.Loaded).winners.map { it.name })
@@ -99,7 +118,7 @@ class ResultsViewModelTest {
             FakePartyRepository(null, listOf(alice)),
             FakePartyRepository(aParty(), listOf(alice), listOf(round), listOf(stray))
         ).forEach { repository ->
-            val vm = ResultsViewModel(repository).also { it.initialize(partyId) }
+            val vm = viewModel(repository).also { it.initialize(partyId) }
             assertEquals(ResultsUiState.Unavailable, vm.uiState.value)
         }
     }
@@ -107,7 +126,7 @@ class ResultsViewModelTest {
     @Test
     fun `a read failure shows the error state and retry recovers`() = runTest {
         val repository = FakePartyRepository(aParty(), listOf(alice), failure = IllegalStateException("Room read failed"))
-        val vm = ResultsViewModel(repository)
+        val vm = viewModel(repository)
 
         vm.initialize(partyId)
         assertEquals(ResultsUiState.LoadError, vm.uiState.value)
@@ -117,9 +136,42 @@ class ResultsViewModelTest {
         assertEquals(listOf("Alice"), (vm.uiState.value as ResultsUiState.Loaded).winners.map { it.name })
     }
 
+    // --- Story 5.2 ---
+
+    @Test
+    fun `replay creates one new party and replaces the stack with it`() = runTest {
+        val repository = FakePartyRepository(aParty(), listOf(alice, bob, chloe))
+        val vm = viewModel(repository).also { it.initialize(partyId) }
+
+        vm.onReplay()
+        vm.onReplay()
+
+        val newParty = repository.createdParty!!
+        assertEquals(NavigationEvent.ReplaceAll(Routes.Party(newParty.id.toString())), vm.navigationEvents.first())
+        assertEquals(1, repository.createCount)
+        assertTrue((vm.uiState.value as ResultsUiState.Loaded).isReplaying)
+    }
+
+    @Test
+    fun `a failed replay shows an error and can be retried`() = runTest {
+        val repository = FakePartyRepository(aParty(), listOf(alice, bob, chloe))
+        repository.createFailure = IllegalStateException("Room write failed")
+        val vm = viewModel(repository).also { it.initialize(partyId) }
+
+        vm.onReplay()
+
+        val state = vm.uiState.value as ResultsUiState.Loaded
+        assertEquals(R.string.results_replay_error, state.replayErrorRes)
+        assertTrue(!state.isReplaying)
+
+        repository.createFailure = null
+        vm.onReplay()
+        assertEquals(NavigationEvent.ReplaceAll(Routes.Party(repository.createdParty!!.id.toString())), vm.navigationEvents.first())
+    }
+
     @Test
     fun `back to home replaces the whole stack with the home screen`() = runTest {
-        val vm = ResultsViewModel(FakePartyRepository(aParty(), listOf(alice)))
+        val vm = viewModel(FakePartyRepository(aParty(), listOf(alice)))
 
         vm.onBackToHome()
 

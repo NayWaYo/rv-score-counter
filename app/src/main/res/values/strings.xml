@@ -67,6 +67,7 @@
         <item quantity="other">%1$d points</item>
     </plurals>
     <string name="results_replay">Rejouer</string>
+    <string name="results_replay_error">Impossible de relancer la partie. Réessayez.</string>
     <string name="results_back_home">Retour à l\'accueil</string>
     <string name="results_load_error">Impossible de charger les résultats.</string>
     <string name="results_unavailable">Résultats indisponibles pour cette partie.</string>

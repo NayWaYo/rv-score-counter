@@ -31,14 +31,15 @@ import com.rvetiveau.rvscorecount.ui.components.StandingRowItem
 
 /**
  * Stateless Résultats finaux (Story 5.1, FR-13): winner banner, full final Classement with the
- * podium ranks accented, « Rejouer » (Story 5.2) and « Retour à l'accueil ».
+ * podium ranks accented, « Rejouer » (Story 5.2, FR-14) and « Retour à l'accueil ».
  */
 @Composable
 fun ResultsScreen(
     state: ResultsUiState,
     modifier: Modifier = Modifier,
     onRetry: () -> Unit = {},
-    onBackToHome: () -> Unit = {}
+    onBackToHome: () -> Unit = {},
+    onReplay: () -> Unit = {}
 ) {
     when (state) {
         is ResultsUiState.Loading -> CenteredMessage(modifier) {
@@ -101,10 +102,19 @@ fun ResultsScreen(
                     )
                 }
             }
-            // « Rejouer » est livré par la Story 5.2 : visible mais inactif d'ici là.
+            state.replayErrorRes?.let { errorRes ->
+                Text(
+                    text = stringResource(errorRes),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.error,
+                    modifier = Modifier
+                        .padding(top = 8.dp)
+                        .testTag("results_replay_error")
+                )
+            }
             Button(
-                onClick = {},
-                enabled = false,
+                onClick = onReplay,
+                enabled = !state.isReplaying,
                 modifier = Modifier
                     .padding(top = 16.dp)
                     .fillMaxWidth()
