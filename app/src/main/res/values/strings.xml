@@ -123,6 +123,7 @@
     <string name="suit_club_pictogram" translatable="false">♣</string>
     <string name="suit_diamond_pictogram" translatable="false">♦</string>
     <string name="die_result_content_description">Couleur du 7 : %1$s</string>
+    <string name="die_rolling_content_description">Lancer du dé en cours</string>
 
     <!-- Saisie de Manche : scores et somme courante (Story 3.2) -->
     <string name="round_entry_sum_label">Somme : %1$d</string>

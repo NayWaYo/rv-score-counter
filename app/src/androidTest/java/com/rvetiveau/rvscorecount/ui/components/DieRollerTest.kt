@@ -1,10 +1,15 @@
 package com.rvetiveau.rvscorecount.ui.components
 
 import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.semantics.SemanticsActions
 import androidx.compose.ui.test.assertContentDescriptionEquals
 import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.assertIsEnabled
 import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onNodeWithTag
@@ -18,7 +23,7 @@ import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
 
-/** Instrumented tests for the pure [DieRoller] (AC 2-4, 6, 10): no [kotlin.random.Random] or
+/** Instrumented tests for the pure [DieRoller] (AC 2-4, 6, 10) and its roll animation: no [kotlin.random.Random] or
  * ViewModel involved — state rendering and callbacks only. */
 class DieRollerTest {
 
@@ -127,5 +132,52 @@ class DieRollerTest {
 
         assertTrue(getTextLayoutResult.action?.invoke(textLayoutResults) == true)
         assertTrue(textLayoutResults.none { it.hasVisualOverflow })
+    }
+
+    @Test
+    fun playsARollAnimationBeforeRevealingTheDrawnSuit() {
+        composeTestRule.mainClock.autoAdvance = false
+        composeTestRule.setContent {
+            var suit by remember { mutableStateOf<CardSuit?>(null) }
+            RvScoreCounterTheme {
+                DieRoller(suit = suit, onRoll = { suit = CardSuit.HEART })
+            }
+        }
+
+        composeTestRule.onNodeWithTag("die_roll_button").performClick()
+        composeTestRule.mainClock.advanceTimeByFrame()
+
+        composeTestRule.onNodeWithTag("die_rolling")
+            .assertContentDescriptionEquals("Lancer du dé en cours")
+        composeTestRule.onNodeWithTag("die_result").assertDoesNotExist()
+        composeTestRule.onNodeWithTag("die_reroll_button").assertIsNotEnabled()
+
+        composeTestRule.mainClock.advanceTimeBy(DIE_ROLL_ANIMATION_MILLIS + 100L)
+
+        composeTestRule.onNodeWithTag("die_rolling").assertDoesNotExist()
+        composeTestRule.onNodeWithTag("die_result").assertContentDescriptionEquals("Couleur du 7 : Cœur")
+        composeTestRule.onNodeWithTag("die_reroll_button").assertIsEnabled()
+    }
+
+    @Test
+    fun replaysTheAnimationOnReroll() {
+        composeTestRule.mainClock.autoAdvance = false
+        composeTestRule.setContent {
+            var suit by remember { mutableStateOf(CardSuit.SPADE) }
+            RvScoreCounterTheme {
+                DieRoller(suit = suit, onRoll = { suit = CardSuit.CLUB })
+            }
+        }
+        composeTestRule.mainClock.advanceTimeByFrame()
+        composeTestRule.onNodeWithTag("die_result").assertContentDescriptionEquals("Couleur du 7 : Pique")
+
+        composeTestRule.onNodeWithTag("die_reroll_button").performClick()
+        composeTestRule.mainClock.advanceTimeByFrame()
+
+        composeTestRule.onNodeWithTag("die_rolling").assertExists()
+
+        composeTestRule.mainClock.advanceTimeBy(DIE_ROLL_ANIMATION_MILLIS + 100L)
+
+        composeTestRule.onNodeWithTag("die_result").assertContentDescriptionEquals("Couleur du 7 : Trèfle")
     }
 }
