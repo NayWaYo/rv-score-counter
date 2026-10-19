@@ -11,6 +11,7 @@ import androidx.compose.ui.test.getUnclippedBoundsInRoot
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithTag
+import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performImeAction
 import androidx.compose.ui.test.performTextInput
 import androidx.compose.ui.test.performTextReplacement
@@ -22,6 +23,7 @@ import androidx.compose.ui.test.SemanticsMatcher
 import com.rvetiveau.rvscorecount.ui.theme.RvScoreCounterTheme
 import java.util.UUID
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
@@ -39,7 +41,7 @@ class ScoreFieldTest {
     private fun setContent(
         value: String = "",
         imeAction: ImeAction = ImeAction.Next,
-        isPrecomputed: Boolean = false,
+        suggestion: Int? = null,
         isError: Boolean = false,
         onValueChange: (String) -> Unit = {},
         onImeAction: (ImeAction) -> Unit = {}
@@ -54,7 +56,7 @@ class ScoreFieldTest {
                         onValueChange = onValueChange,
                         imeAction = imeAction,
                         onImeAction = onImeAction,
-                        isPrecomputed = isPrecomputed,
+                        suggestion = suggestion,
                         isError = isError
                     )
                 }
@@ -71,15 +73,34 @@ class ScoreFieldTest {
     }
 
     @Test
-    fun showsTheCalculationIconAndDedicatedDescriptionWhenPrecomputed() {
-        setContent(value = "250", isPrecomputed = true)
+    fun showsTheSuggestionGreyedInTheEmptyFieldWithoutEnteringIt() {
+        var changed: String? = null
+        setContent(value = "", suggestion = 70, onValueChange = { changed = it })
 
-        composeTestRule.onNodeWithTag(
-            "score_field_calculate_icon_$participantId",
-            useUnmergedTree = true
-        ).assertIsDisplayed()
-        composeTestRule.onNodeWithContentDescription("Score calculé automatiquement pour Alice, modifiable")
+        composeTestRule.onNodeWithTag("score_field_suggestion_$participantId", useUnmergedTree = true)
             .assertIsDisplayed()
+        composeTestRule.onNodeWithContentDescription("Score de Alice, 70 suggéré").assertIsDisplayed()
+        assertNull(changed)
+    }
+
+    @Test
+    fun theCalculationIconEntersTheSuggestion() {
+        var changed: String? = null
+        setContent(value = "", suggestion = 70, onValueChange = { changed = it })
+
+        composeTestRule.onNodeWithContentDescription("Utiliser 70 pour Alice").performClick()
+
+        assertEquals("70", changed)
+    }
+
+    @Test
+    fun hidesTheSuggestionOnceAValueIsTyped() {
+        setContent(value = "5", suggestion = 70)
+
+        composeTestRule.onNodeWithTag("score_field_suggestion_$participantId", useUnmergedTree = true)
+            .assertDoesNotExist()
+        composeTestRule.onNodeWithTag("score_field_use_suggestion_$participantId").assertDoesNotExist()
+        composeTestRule.onNodeWithContentDescription("Score de Alice").assertIsDisplayed()
     }
 
     @Test

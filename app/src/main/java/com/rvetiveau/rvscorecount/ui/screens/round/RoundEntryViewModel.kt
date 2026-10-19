@@ -103,7 +103,6 @@ class RoundEntryViewModel @Inject constructor(
                 gameEngine = engine
 
                 val ordered = participants.sortedBy { it.listPosition }
-                val invalidRestoredParticipantIds = mutableSetOf<UUID>()
                 var hasRestoredScore = false
                 val restoredScores = ordered.associate { participant ->
                     val restored = savedStateHandle.get<String>("$SCORE_KEY_PREFIX${participant.id}")
@@ -112,7 +111,7 @@ class RoundEntryViewModel @Inject constructor(
                         restored.all(Char::isDigit) && restored.toIntOrNull() != null -> restored.also {
                             hasRestoredScore = true
                         }
-                        else -> "".also { invalidRestoredParticipantIds += participant.id }
+                        else -> ""
                     }
                     participant.id to validated
                 }
@@ -126,11 +125,7 @@ class RoundEntryViewModel @Inject constructor(
                     sevenHolderId = restoredSevenHolderId.takeIf { engine.suitSevenPoints != null },
                     summary = loadSummary(partyId, participants, party.currentDealerIndex)
                 )
-                val content = if (hasRestoredScore) {
-                    precomputeSoleEmptyScore(restoredContent, engine, invalidRestoredParticipantIds)
-                } else {
-                    restoredContent
-                }
+                val content = withSuggestion(restoredContent, engine)
 
                 // A draft in progress reopens the score form; otherwise only the die is shown.
                 val restoredPanel = savedStateHandle.get<String>(PANEL_KEY)
@@ -193,16 +188,7 @@ class RoundEntryViewModel @Inject constructor(
         val isValid = rawValue.isEmpty() || (rawValue.all(Char::isDigit) && rawValue.toIntOrNull() != null)
         if (!isValid) return
 
-        val wasPrecomputed = participantId == content.precomputedParticipantId
-        val updatedContent = content.copy(
-            scores = content.scores + (participantId to rawValue),
-            precomputedParticipantId = null
-        )
-        val nextContent = if (wasPrecomputed) {
-            updatedContent
-        } else {
-            precomputeSoleEmptyScore(updatedContent, engine)
-        }
+        val nextContent = withSuggestion(content.copy(scores = content.scores + (participantId to rawValue)), engine)
         _uiState.value = _uiState.value.copy(content = nextContent, saveError = false)
 
         val key = "$SCORE_KEY_PREFIX$participantId"
@@ -251,25 +237,19 @@ class RoundEntryViewModel @Inject constructor(
         )
     }
 
-    private fun precomputeSoleEmptyScore(
-        content: RoundEntryContent,
-        engine: GameEngine,
-        excludedParticipantIds: Set<UUID> = emptySet()
-    ): RoundEntryContent {
-        val emptyParticipantIds = content.participants
+    /** Recomputed from the drafts on every change, so it follows each digit typed in another field. */
+    private fun withSuggestion(content: RoundEntryContent, engine: GameEngine): RoundEntryContent {
+        val targetId = content.participants
             .map { it.id }
             .filter { content.scores[it].isNullOrEmpty() }
-        val targetId = emptyParticipantIds.singleOrNull()
-            ?.takeUnless { it in excludedParticipantIds }
-            ?: return content.copy(precomputedParticipantId = null)
+            .singleOrNull()
+            ?.takeIf { content.participants.size > 1 }
+            ?: return content.copy(suggestion = null)
         val enteredScores = content.participants
             .asSequence()
             .filterNot { it.id == targetId }
             .associate { participant -> participant.id to checkNotNull(content.scores[participant.id]?.toIntOrNull()) }
-        val computedScore = engine.precomputeLastScore(enteredScores)
-        return content.copy(
-            scores = content.scores + (targetId to computedScore.toString()),
-            precomputedParticipantId = targetId
-        )
+        val score = engine.precomputeLastScore(enteredScores)
+        return content.copy(suggestion = ScoreSuggestion(targetId, score).takeIf { score >= 0 })
     }
 }

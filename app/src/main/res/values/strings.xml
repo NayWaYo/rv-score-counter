@@ -140,5 +140,6 @@
     <string name="round_entry_seven_question_suit">Qui a eu le 7 de %1$s (%2$d points) ?</string>
     <string name="round_entry_seven_score_too_low">%1$s a moins de %2$d points sur cette manche : vérifiez le score ou le joueur.</string>
     <string name="round_entry_save_error">Impossible d\'enregistrer la manche. Réessayez.</string>
-    <string name="score_field_precomputed_content_description">Score calculé automatiquement pour %1$s, modifiable</string>
+    <string name="score_field_suggested_content_description">Score de %1$s, %2$d suggéré</string>
+    <string name="score_field_use_suggestion">Utiliser %1$d pour %2$s</string>
 </resources>

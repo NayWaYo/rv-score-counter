@@ -579,7 +579,7 @@ class RoundEntryViewModelTest {
     // --- Story 3.3 last-score precomputation (AC 1, 3, 4, 5) ---
 
     @Test
-    fun `fills and marks the sole remaining draft regardless of entry order`() = runTest {
+    fun `suggests the sole remaining score without entering it, regardless of entry order`() = runTest {
         val partyId = UUID.randomUUID()
         val participants = List(3) { aParticipant(partyId, "P$it", it) }
         val vm = viewModel(partyRepository = FakePartyRepository(aParty(partyId), participants))
@@ -589,44 +589,60 @@ class RoundEntryViewModelTest {
         vm.onScoreChanged(participants[0].id, "100")
 
         val content = vm.uiState.value.content!!
-        assertEquals("70", content.scores[participants[1].id])
-        assertEquals(participants[1].id, content.precomputedParticipantId)
+        assertEquals("", content.scores[participants[1].id])
+        assertEquals(ScoreSuggestion(participants[1].id, 70), content.suggestion)
     }
 
     @Test
-    fun `editing the precomputed draft clears its marker without immediately recomputing it`() = runTest {
+    fun `the suggestion follows each digit typed in another field`() = runTest {
         val partyId = UUID.randomUUID()
         val participants = List(3) { aParticipant(partyId, "P$it", it) }
         val vm = viewModel(partyRepository = FakePartyRepository(aParty(partyId), participants))
         vm.initialize(partyId)
         vm.onScoreChanged(participants[0].id, "100")
-        vm.onScoreChanged(participants[1].id, "80")
 
-        vm.onScoreChanged(participants[2].id, "")
+        vm.onScoreChanged(participants[1].id, "5")
+        assertEquals(ScoreSuggestion(participants[2].id, 145), vm.uiState.value.content!!.suggestion)
 
+        vm.onScoreChanged(participants[1].id, "50")
         val content = vm.uiState.value.content!!
         assertEquals("", content.scores[participants[2].id])
-        assertNull(content.precomputedParticipantId)
+        assertEquals(ScoreSuggestion(participants[2].id, 100), content.suggestion)
     }
 
     @Test
-    fun `changing another draft moves and recalculates the precomputed score`() = runTest {
+    fun `typing in the suggested field replaces the suggestion`() = runTest {
         val partyId = UUID.randomUUID()
         val participants = List(3) { aParticipant(partyId, "P$it", it) }
         val vm = viewModel(partyRepository = FakePartyRepository(aParty(partyId), participants))
         vm.initialize(partyId)
         vm.onScoreChanged(participants[0].id, "100")
         vm.onScoreChanged(participants[1].id, "80")
+
+        vm.onScoreChanged(participants[2].id, "7")
+
+        val content = vm.uiState.value.content!!
+        assertEquals("7", content.scores[participants[2].id])
+        assertNull(content.suggestion)
+    }
+
+    @Test
+    fun `clearing another field moves the suggestion there`() = runTest {
+        val partyId = UUID.randomUUID()
+        val participants = List(3) { aParticipant(partyId, "P$it", it) }
+        val vm = viewModel(partyRepository = FakePartyRepository(aParty(partyId), participants))
+        vm.initialize(partyId)
+        vm.onScoreChanged(participants[0].id, "100")
+        vm.onScoreChanged(participants[1].id, "80")
+        vm.onScoreChanged(participants[2].id, "70")
 
         vm.onScoreChanged(participants[0].id, "")
 
-        val content = vm.uiState.value.content!!
-        assertEquals("100", content.scores[participants[0].id])
-        assertEquals(participants[0].id, content.precomputedParticipantId)
+        assertEquals(ScoreSuggestion(participants[0].id, 100), vm.uiState.value.content!!.suggestion)
     }
 
     @Test
-    fun `keeps a negative precomputed complement unchanged`() = runTest {
+    fun `suggests nothing when the entered scores already exceed the total`() = runTest {
         val partyId = UUID.randomUUID()
         val participants = List(3) { aParticipant(partyId, "P$it", it) }
         val vm = viewModel(partyRepository = FakePartyRepository(aParty(partyId), participants))
@@ -636,8 +652,9 @@ class RoundEntryViewModelTest {
         vm.onScoreChanged(participants[1].id, "100")
 
         val content = vm.uiState.value.content!!
-        assertEquals("-50", content.scores[participants[2].id])
-        assertEquals(participants[2].id, content.precomputedParticipantId)
+        assertEquals("", content.scores[participants[2].id])
+        assertNull(content.suggestion)
+        assertEquals(SumIndicatorState.ERROR, content.sumIndicatorState)
     }
 
     @Test
@@ -725,7 +742,7 @@ class RoundEntryViewModelTest {
     }
 
     @Test
-    fun `a negative precomputed complement blocks validation even when the sum is exact`() = runTest {
+    fun `an exceeded total blocks validation`() = runTest {
         val partyId = UUID.randomUUID()
         val participants = List(3) { aParticipant(partyId, "P$it", it) }
         val repository = FakePartyRepository(aParty(partyId), participants)
@@ -754,7 +771,8 @@ class RoundEntryViewModelTest {
         val state = vm.uiState.value
         assertTrue(state.saveError)
         assertTrue(!state.isSaving)
-        assertEquals("70", state.content!!.scores[participants[2].id])
+        assertEquals("80", state.content!!.scores[participants[1].id])
+        assertEquals(ScoreSuggestion(participants[2].id, 70), state.content.suggestion)
         assertNull(withTimeoutOrNull(100) { vm.navigationEvents.first() })
 
         vm.onScoreChanged(participants[2].id, "7")
@@ -809,7 +827,7 @@ class RoundEntryViewModelTest {
     }
 
     @Test
-    fun `precomputes the sole empty draft after restoring valid saved scores`() = runTest {
+    fun `suggests the sole empty draft after restoring valid saved scores`() = runTest {
         val partyId = UUID.randomUUID()
         val participants = List(3) { aParticipant(partyId, "P$it", it) }
         val savedStateHandle = SavedStateHandle(
@@ -826,12 +844,12 @@ class RoundEntryViewModelTest {
         vm.initialize(partyId)
 
         val content = vm.uiState.value.content!!
-        assertEquals("70", content.scores[participants[2].id])
-        assertEquals(participants[2].id, content.precomputedParticipantId)
+        assertEquals("", content.scores[participants[2].id])
+        assertEquals(ScoreSuggestion(participants[2].id, 70), content.suggestion)
     }
 
     @Test
-    fun `does not turn an invalid restored draft into a precomputed score`() = runTest {
+    fun `an invalid restored draft is left empty and only suggested`() = runTest {
         val partyId = UUID.randomUUID()
         val alice = aParticipant(partyId, "Alice", 0)
         val bob = aParticipant(partyId, "Bob", 1)
@@ -847,7 +865,7 @@ class RoundEntryViewModelTest {
 
         val content = vm.uiState.value.content!!
         assertEquals("", content.scores[alice.id])
-        assertNull(content.precomputedParticipantId)
+        assertEquals(ScoreSuggestion(alice.id, 170), content.suggestion)
     }
 
     // --- Qui a eu le 40 ---

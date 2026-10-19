@@ -35,35 +35,44 @@ data class RoundEntryUiState(
 }
 
 /** One row per Participant ordered by listPosition (AC 1). [scores] holds the raw text draft
- * keyed by participant id; an absent or empty entry means "not entered" — never coerced to 0. */
+ * keyed by participant id; an absent or empty entry means "not entered" — never coerced to 0.
+ * [suggestion] is never written into [scores]: it only stands in for its still-empty field. */
 data class RoundEntryContent(
     val participants: List<RoundEntryParticipant>,
     val scores: Map<UUID, String> = emptyMap(),
     val totalPointsPerRound: Int,
-    val precomputedParticipantId: UUID? = null,
+    val suggestion: ScoreSuggestion? = null,
     /** Points of the suit seven when the game records its holder (Papayoo : 40), else null. */
     val sevenPoints: Int? = null,
     val sevenHolderId: UUID? = null,
     val summary: RoundEntrySummary = RoundEntrySummary()
 ) {
-    /** The chosen holder's entered score is below the seven's own points: impossible. */
+    /** The entered drafts plus the suggestion in its empty field: what « Valider la Manche » saves,
+     * since the complement is the only score that reaches the total. */
+    private val effectiveScores: Map<UUID, String>
+        get() = suggestion
+            ?.takeIf { scores[it.participantId].isNullOrEmpty() }
+            ?.let { scores + (it.participantId to it.score.toString()) }
+            ?: scores
+
+    /** The chosen holder's score is below the seven's own points: impossible. */
     val isSevenHolderScoreTooLow: Boolean
         get() {
             val points = sevenPoints ?: return false
-            val holderScore = sevenHolderId?.let { scores[it]?.toIntOrNull() } ?: return false
+            val holderScore = sevenHolderId?.let { effectiveScores[it]?.toIntOrNull() } ?: return false
             return holderScore < points
         }
 
     private val isSevenHolderValid: Boolean
         get() = sevenPoints == null ||
-            (sevenHolderId != null && scores[sevenHolderId]?.toIntOrNull() != null && !isSevenHolderScoreTooLow)
+            (sevenHolderId != null && effectiveScores[sevenHolderId]?.toIntOrNull() != null && !isSevenHolderScoreTooLow)
 
-    val currentSum: Long get() = scores.values.sumOf { it.toIntOrNull()?.toLong() ?: 0L }
+    val currentSum: Long get() = effectiveScores.values.sumOf { it.toIntOrNull()?.toLong() ?: 0L }
 
     val hasAnyScoreEntered: Boolean get() = scores.values.any { it.isNotEmpty() }
 
     val allFilled: Boolean
-        get() = participants.all { participant -> !scores[participant.id].isNullOrEmpty() }
+        get() = participants.all { participant -> !effectiveScores[participant.id].isNullOrEmpty() }
 
     val sumIndicatorState: SumIndicatorState
         get() = when {
@@ -72,18 +81,23 @@ data class RoundEntryContent(
             else -> SumIndicatorState.NEUTRAL
         }
 
-    /** A negative precomputed complement can still reach the exact total; it is never valid. */
     val canValidate: Boolean
         get() = allFilled &&
             sumIndicatorState == SumIndicatorState.SUCCESS &&
-            participants.all { (scores[it.id]?.toIntOrNull() ?: -1) >= 0 } &&
+            participants.all { (effectiveScores[it.id]?.toIntOrNull() ?: -1) >= 0 } &&
             isSevenHolderValid
 
-    /** Integer scores keyed by participant, or null while any draft is missing or not an Int. */
+    /** Integer scores keyed by participant, the suggestion included, or null while any is missing. */
     fun toScores(): Map<UUID, Int>? = participants.associate { participant ->
-        participant.id to (scores[participant.id]?.toIntOrNull() ?: return null)
+        participant.id to (effectiveScores[participant.id]?.toIntOrNull() ?: return null)
     }
 }
+
+/** The score that completes the total, offered in the only field still empty. Never negative. */
+data class ScoreSuggestion(
+    val participantId: UUID,
+    val score: Int
+)
 
 enum class SumIndicatorState {
     NEUTRAL,

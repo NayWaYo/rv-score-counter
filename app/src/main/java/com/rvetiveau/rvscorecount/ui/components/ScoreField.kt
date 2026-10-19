@@ -5,13 +5,13 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Text
@@ -32,13 +32,16 @@ import androidx.compose.ui.unit.dp
 import com.rvetiveau.rvscorecount.R
 import java.util.UUID
 
-/** Room for three digits and the precomputed field's calculation icon. */
+/** Room for three digits and the suggestion's calculation icon. */
 private val ScoreFieldWidth = 136.dp
 
 /**
  * Stateless free-order score field (AC 2, 3, 6, 7): the composable filters obviously invalid
  * characters for a responsive IME, but [RoundEntryViewModel.onScoreChanged] remains the sole
  * authority — `KeyboardType.Number` is only a hint the active IME may ignore.
+ *
+ * While the field is empty, [suggestion] shows greyed as a placeholder on an accent tint, with a
+ * calculation icon that enters it; typing replaces it.
  */
 @Composable
 fun ScoreField(
@@ -50,15 +53,16 @@ fun ScoreField(
     onImeAction: (ImeAction) -> Unit,
     modifier: Modifier = Modifier,
     focusRequester: FocusRequester? = null,
-    isPrecomputed: Boolean = false,
+    suggestion: Int? = null,
     isError: Boolean = false
 ) {
-    val accessibilityLabel = if (isPrecomputed) {
-        stringResource(R.string.score_field_precomputed_content_description, participantName)
+    val shownSuggestion = suggestion?.takeIf { value.isEmpty() }
+    val accessibilityLabel = if (shownSuggestion != null) {
+        stringResource(R.string.score_field_suggested_content_description, participantName, shownSuggestion)
     } else {
         stringResource(R.string.score_field_content_description, participantName)
     }
-    val containerColor = if (isPrecomputed) {
+    val containerColor = if (shownSuggestion != null) {
         MaterialTheme.colorScheme.primary.copy(alpha = 0.12f)
     } else {
         MaterialTheme.colorScheme.surfaceVariant
@@ -93,24 +97,29 @@ fun ScoreField(
                 disabledContainerColor = containerColor,
                 errorContainerColor = containerColor
             ),
-            trailingIcon = if (isPrecomputed) {
+            placeholder = shownSuggestion?.let { score ->
                 {
-                    Box(
-                        contentAlignment = Alignment.Center,
-                        modifier = Modifier
-                            .size(48.dp)
-                            .testTag("score_field_calculate_icon_$participantId")
+                    Text(
+                        text = score.toString(),
+                        style = MaterialTheme.typography.bodyLarge,
+                        modifier = Modifier.testTag("score_field_suggestion_$participantId")
+                    )
+                }
+            },
+            trailingIcon = shownSuggestion?.let { score ->
+                {
+                    IconButton(
+                        onClick = { onValueChange(score.toString()) },
+                        modifier = Modifier.testTag("score_field_use_suggestion_$participantId")
                     ) {
                         Icon(
                             painter = painterResource(R.drawable.ic_calculate),
-                            contentDescription = null,
+                            contentDescription = stringResource(R.string.score_field_use_suggestion, score, participantName),
                             tint = MaterialTheme.colorScheme.primary,
                             modifier = Modifier.size(24.dp)
                         )
                     }
                 }
-            } else {
-                null
             },
             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number, imeAction = imeAction),
             keyboardActions = KeyboardActions(

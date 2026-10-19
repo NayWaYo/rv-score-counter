@@ -272,7 +272,7 @@ private fun ScoreForm(
                 }
             },
             focusRequester = focusRequesters[participant.id],
-            isPrecomputed = participant.id == content.precomputedParticipantId,
+            suggestion = content.suggestion?.takeIf { it.participantId == participant.id }?.score,
             isError = content.sumIndicatorState == SumIndicatorState.ERROR,
             modifier = Modifier.padding(bottom = 8.dp)
         )

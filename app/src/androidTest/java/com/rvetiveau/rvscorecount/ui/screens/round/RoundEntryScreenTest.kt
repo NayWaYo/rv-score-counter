@@ -49,7 +49,7 @@ class RoundEntryScreenTest {
     private fun aLoadedState(
         suit: CardSuit? = null,
         scores: Map<UUID, String> = mapOf(aliceId to "", bobId to ""),
-        precomputedParticipantId: UUID? = null,
+        suggestion: ScoreSuggestion? = null,
         panel: RoundEntryPanel = RoundEntryPanel.SCORES
     ) = RoundEntryUiState(
         suit = suit,
@@ -63,7 +63,7 @@ class RoundEntryScreenTest {
             ),
             scores = scores,
             totalPointsPerRound = 250,
-            precomputedParticipantId = precomputedParticipantId
+            suggestion = suggestion
         )
     )
 
@@ -135,22 +135,30 @@ class RoundEntryScreenTest {
     }
 
     @Test
-    fun showsPrecomputedStylingOnlyOnTheMarkedParticipant() {
+    fun showsTheSuggestionOnlyOnItsParticipantAndCountsItInTheSum() {
         setContent(
             aLoadedState(
-                scores = mapOf(aliceId to "100", bobId to "150"),
-                precomputedParticipantId = bobId
+                scores = mapOf(aliceId to "100", bobId to ""),
+                suggestion = ScoreSuggestion(bobId, 150)
             )
         )
 
-        composeTestRule.onNodeWithTag(
-            "score_field_calculate_icon_$bobId",
-            useUnmergedTree = true
-        ).assertIsDisplayed()
-        composeTestRule.onNodeWithTag(
-            "score_field_calculate_icon_$aliceId",
-            useUnmergedTree = true
-        ).assertDoesNotExist()
+        composeTestRule.onNodeWithTag("score_field_suggestion_$bobId", useUnmergedTree = true).assertIsDisplayed()
+        composeTestRule.onNodeWithTag("score_field_suggestion_$aliceId", useUnmergedTree = true).assertDoesNotExist()
+        composeTestRule.onNodeWithText("Somme : 250", substring = true).assertIsDisplayed()
+    }
+
+    @Test
+    fun usingTheSuggestionEntersItForItsParticipant() {
+        val changes = mutableListOf<Pair<UUID, String>>()
+        setContent(
+            aLoadedState(scores = mapOf(aliceId to "100", bobId to ""), suggestion = ScoreSuggestion(bobId, 150)),
+            onScoreChanged = { id, value -> changes += id to value }
+        )
+
+        composeTestRule.onNodeWithTag("score_field_use_suggestion_$bobId").performClick()
+
+        assertEquals(listOf(bobId to "150"), changes)
     }
 
     @Test
