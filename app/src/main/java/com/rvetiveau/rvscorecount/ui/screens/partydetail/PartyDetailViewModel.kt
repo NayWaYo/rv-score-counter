@@ -5,6 +5,7 @@ import androidx.lifecycle.viewModelScope
 import com.rvetiveau.rvscorecount.R
 import com.rvetiveau.rvscorecount.domain.model.PartyState
 import com.rvetiveau.rvscorecount.domain.model.computeStandings
+import com.rvetiveau.rvscorecount.domain.model.playerStats
 import com.rvetiveau.rvscorecount.domain.model.roundRecord
 import com.rvetiveau.rvscorecount.domain.model.sevenChampion
 import com.rvetiveau.rvscorecount.ui.components.toUi
@@ -82,7 +83,7 @@ class PartyDetailViewModel @Inject constructor(
             PartyDetailUiState.Loaded(
                 gameId = party.gameId,
                 createdAt = party.createdAt,
-                standings = standings.toStandingRows(),
+                standings = standings.toStandingRows(stats = playerStats(participants, scoresByRound)),
                 roundTable = roundTable(participants, scoresByRound),
                 sevenChampion = champion?.toUi(),
                 roundRecord = roundRecord(participants, scoresByRound)?.toUi()

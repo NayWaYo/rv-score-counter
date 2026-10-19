@@ -5,6 +5,7 @@ import androidx.lifecycle.viewModelScope
 import com.rvetiveau.rvscorecount.R
 import com.rvetiveau.rvscorecount.domain.model.PartyState
 import com.rvetiveau.rvscorecount.domain.model.computeStandings
+import com.rvetiveau.rvscorecount.domain.model.playerStats
 import com.rvetiveau.rvscorecount.domain.model.roundRecord
 import com.rvetiveau.rvscorecount.domain.model.sevenChampion
 import com.rvetiveau.rvscorecount.ui.components.toUi
@@ -78,7 +79,8 @@ class ResultsViewModel @Inject constructor(
         val scoresByRound = rounds.associateWith { partyRepository.getScoresByRoundId(it.id) }
         return try {
             ResultsUiState.Loaded(
-                standings = computeStandings(participants, scoresByRound.values.flatten()).toStandingRows(),
+                standings = computeStandings(participants, scoresByRound.values.flatten())
+                    .toStandingRows(stats = playerStats(participants, scoresByRound)),
                 sevenChampion = sevenChampion(participants, rounds)?.toUi(),
                 roundRecord = roundRecord(participants, scoresByRound)?.toUi(),
                 roundTable = roundTable(participants, scoresByRound)

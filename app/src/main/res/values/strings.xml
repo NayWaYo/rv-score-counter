@@ -104,6 +104,19 @@
     <string name="round_table_absent" translatable="false">—</string>
     <string name="round_table_legend">Case colorée : a pris le 40 · en gras : meilleur score de la manche · en rouge : pire</string>
 
+    <!-- Statistiques par joueur, sous sa ligne du classement -->
+    <string name="standing_expand">Voir les statistiques</string>
+    <string name="standing_collapse">Masquer les statistiques</string>
+    <string name="standing_state_expanded">Statistiques affichées</string>
+    <string name="standing_state_collapsed">Statistiques masquées</string>
+    <string name="player_stats_average_label">Moyenne</string>
+    <string name="player_stats_average_value">%1$.1f pts</string>
+    <string name="player_stats_zero_label">Manches à 0</string>
+    <string name="player_stats_sevens_label">40 pris</string>
+    <string name="player_stats_best_label">Meilleure manche</string>
+    <string name="player_stats_worst_label">Pire manche</string>
+    <string name="player_stats_round_value">%1$d pts · manche %2$d</string>
+
     <!-- Évolution des scores -->
     <string name="score_chart_title">Évolution des scores</string>
     <string name="score_chart_round">Manche %1$d</string>

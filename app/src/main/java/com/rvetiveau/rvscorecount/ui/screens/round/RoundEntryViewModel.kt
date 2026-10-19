@@ -8,6 +8,7 @@ import com.rvetiveau.rvscorecount.domain.model.CardSuit
 import com.rvetiveau.rvscorecount.domain.model.Participant
 import com.rvetiveau.rvscorecount.domain.model.PartyState
 import com.rvetiveau.rvscorecount.domain.model.computeStandings
+import com.rvetiveau.rvscorecount.domain.model.playerStats
 import com.rvetiveau.rvscorecount.domain.model.roundRecord
 import com.rvetiveau.rvscorecount.domain.model.sevenChampion
 import com.rvetiveau.rvscorecount.domain.repository.PartyRepository
@@ -230,7 +231,7 @@ class RoundEntryViewModel @Inject constructor(
         val standings = computeStandings(participants, scoresByRound.values.flatten())
         val dealerId = participants.firstOrNull { it.listPosition == currentDealerIndex }?.id
         return RoundEntrySummary(
-            standings = standings.toStandingRows(dealerId = dealerId),
+            standings = standings.toStandingRows(dealerId = dealerId, stats = playerStats(participants, scoresByRound)),
             roundTable = roundTable(participants, scoresByRound),
             sevenChampion = champion?.toUi(),
             roundRecord = roundRecord(participants, scoresByRound)?.toUi()

@@ -108,6 +108,7 @@ class ResultsViewModelTest {
         assertEquals(100, state.roundRecord!!.points)
         assertEquals(listOf("Alice", "Chloé"), state.roundRecord!!.entries.map { it.participantName })
         assertEquals(listOf(1), state.roundTable.rows.map { it.roundNumber })
+        assertEquals(50.0, state.standings.first().stats!!.averagePoints, 0.0)
         assertEquals(listOf("Alice", "Bob", "Chloé"), state.roundTable.players.map { it.name })
 
         val tied = viewModel(
