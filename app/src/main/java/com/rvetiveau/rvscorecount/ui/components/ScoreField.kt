@@ -1,10 +1,12 @@
 package com.rvetiveau.rvscorecount.ui.components
 
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
@@ -29,6 +31,9 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import com.rvetiveau.rvscorecount.R
 import java.util.UUID
+
+/** Room for three digits and the precomputed field's calculation icon. */
+private val ScoreFieldWidth = 136.dp
 
 /**
  * Stateless free-order score field (AC 2, 3, 6, 7): the composable filters obviously invalid
@@ -59,12 +64,17 @@ fun ScoreField(
         MaterialTheme.colorScheme.surfaceVariant
     }
 
-    Column(modifier = modifier.fillMaxWidth()) {
+    // Name and field share one row so every Participant fits above the keyboard.
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(12.dp),
+        modifier = modifier.fillMaxWidth()
+    ) {
         Text(
             text = participantName,
             style = MaterialTheme.typography.bodyLarge,
             modifier = Modifier
-                .fillMaxWidth()
+                .weight(1f)
                 .semantics { hideFromAccessibility() }
                 .testTag("score_field_label_$participantId")
         )
@@ -109,7 +119,7 @@ fun ScoreField(
             ),
             textStyle = MaterialTheme.typography.bodyLarge,
             modifier = Modifier
-                .fillMaxWidth()
+                .width(ScoreFieldWidth)
                 .heightIn(min = 56.dp)
                 .let { base -> if (focusRequester != null) base.focusRequester(focusRequester) else base }
                 .semantics { contentDescription = accessibilityLabel }

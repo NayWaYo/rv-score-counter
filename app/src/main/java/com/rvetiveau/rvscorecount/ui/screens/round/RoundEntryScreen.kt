@@ -100,23 +100,26 @@ fun RoundEntryScreen(
             }
 
             content != null -> {
+                // A small die while entering scores leaves the fields room above the keyboard.
+                val compactDie = state.panel == RoundEntryPanel.SCORES
                 Text(
                     text = stringResource(R.string.round_entry_suit_label),
                     style = MaterialTheme.typography.titleMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    textAlign = TextAlign.Center,
+                    textAlign = if (compactDie) TextAlign.Start else TextAlign.Center,
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(top = 16.dp, bottom = 16.dp)
+                        .padding(top = if (compactDie) 0.dp else 16.dp, bottom = if (compactDie) 8.dp else 16.dp)
                         .testTag("round_entry_suit_label")
                 )
                 DieRoller(
                     suit = state.suit,
                     onRoll = onRoll,
                     rerollEnabled = state.rerollEnabled,
+                    compact = compactDie,
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(bottom = 32.dp)
+                        .padding(bottom = if (compactDie) 16.dp else 32.dp)
                         .testTag("round_entry_die_roller")
                 )
                 PanelButtons(panel = state.panel, onPanelSelected = onPanelSelected)

@@ -7,6 +7,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assert
+import androidx.compose.ui.test.getUnclippedBoundsInRoot
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithTag
@@ -190,5 +191,16 @@ class ScoreFieldTest {
         composeTestRule.onNodeWithTag("score_field_$participantId").performImeAction()
 
         assertEquals(ImeAction.Done, triggered)
+    }
+
+    @Test
+    fun placesTheNameBesideTheFieldOnOneRow() {
+        setContent()
+
+        val label = composeTestRule.onNodeWithTag("score_field_label_$participantId").getUnclippedBoundsInRoot()
+        val field = composeTestRule.onNodeWithTag("score_field_$participantId").getUnclippedBoundsInRoot()
+
+        assertTrue(label.right <= field.left)
+        assertTrue(label.top < field.bottom && field.top < label.bottom)
     }
 }

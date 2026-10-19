@@ -11,12 +11,15 @@ import androidx.compose.ui.test.assertContentDescriptionEquals
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsEnabled
 import androidx.compose.ui.test.assertIsNotEnabled
+import androidx.compose.ui.test.getUnclippedBoundsInRoot
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.text.TextLayoutResult
 import androidx.compose.ui.unit.Density
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.height
 import com.rvetiveau.rvscorecount.domain.model.CardSuit
 import com.rvetiveau.rvscorecount.ui.theme.RvScoreCounterTheme
 import org.junit.Assert.assertFalse
@@ -198,6 +201,39 @@ class DieRollerTest {
         setContent(suit = CardSuit.SPADE, onRoll = { rolled = true })
 
         composeTestRule.onNodeWithTag("die_result").performClick()
+
+        assertTrue(rolled)
+    }
+
+    @Test
+    fun compactDieKeepsTheResultAndRerollOnOneRow() {
+        var rolled = false
+        composeTestRule.setContent {
+            RvScoreCounterTheme {
+                DieRoller(suit = CardSuit.HEART, onRoll = { rolled = true }, compact = true)
+            }
+        }
+
+        val result = composeTestRule.onNodeWithTag("die_result").getUnclippedBoundsInRoot()
+        val reroll = composeTestRule.onNodeWithTag("die_reroll_button").getUnclippedBoundsInRoot()
+        composeTestRule.onNodeWithTag("die_result").assertContentDescriptionEquals("Couleur du 7 : Cœur")
+        assertTrue(result.right <= reroll.left)
+        assertTrue(result.height < 100.dp)
+
+        composeTestRule.onNodeWithTag("die_reroll_button").performClick()
+        assertTrue(rolled)
+    }
+
+    @Test
+    fun compactBlankDieStillRolls() {
+        var rolled = false
+        composeTestRule.setContent {
+            RvScoreCounterTheme {
+                DieRoller(suit = null, onRoll = { rolled = true }, compact = true)
+            }
+        }
+
+        composeTestRule.onNodeWithTag("die_roll_button").performClick()
 
         assertTrue(rolled)
     }

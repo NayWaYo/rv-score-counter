@@ -6,8 +6,10 @@ import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -39,6 +41,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.rvetiveau.rvscorecount.R
 import com.rvetiveau.rvscorecount.domain.model.CardSuit
@@ -53,14 +56,19 @@ internal const val DIE_ROLL_ANIMATION_MILLIS = 800
 /** Number of suit faces shown while the die rolls, the last one being the drawn suit. */
 private const val DIE_ROLL_FACES = 9
 
-private val DieFaceSize = 168.dp
-private val DiePictogramSize = 104.dp
+private class DieDimensions(val face: Dp, val pictogram: Dp, val blankIcon: Dp, val corner: Dp)
+
+private val RegularDie = DieDimensions(face = 168.dp, pictogram = 104.dp, blankIcon = 72.dp, corner = 28.dp)
+private val CompactDie = DieDimensions(face = 64.dp, pictogram = 40.dp, blankIcon = 32.dp, corner = 12.dp)
 
 /**
  * Stateless die roll control (AC 2-4, 6, 10): no [kotlin.random.Random] and no ViewModel access
  * here. A large die face sits above the action: `suit == null` shows a blank face and « Lancer »;
  * a drawn suit shows its pictogram on the suit's tint, its French name and « Relancer », gated
  * only by [rerollEnabled]. Tapping the face rolls too, whenever the button would.
+ *
+ * [compact] lays a small face, the name and the action out on one row, leaving room for the score
+ * fields while the keyboard is open.
  *
  * Each tap plays a short roll animation (faces cycling while the pictogram spins) before the drawn
  * suit is revealed; the suit itself is already drawn by the caller. Only taps trigger it, so a
@@ -72,7 +80,8 @@ fun DieRoller(
     suit: CardSuit?,
     onRoll: () -> Unit,
     modifier: Modifier = Modifier,
-    rerollEnabled: Boolean = true
+    rerollEnabled: Boolean = true,
+    compact: Boolean = false
 ) {
     var rollCount by remember { mutableIntStateOf(0) }
     var startedRollCount by remember { mutableIntStateOf(0) }
@@ -93,27 +102,28 @@ fun DieRoller(
     }
     // The buttons already carry the roll for TalkBack: the face is a pointer shortcut only.
     val faceClick = Modifier.clickable(enabled = canRoll, onClick = roll)
+    val dimensions = if (compact) CompactDie else RegularDie
+    val buttonModifier = Modifier
+        .heightIn(min = 56.dp)
+        .let { base -> if (compact) base else base.widthIn(min = 200.dp) }
 
-    Column(modifier = modifier, horizontalAlignment = Alignment.CenterHorizontally) {
-        if (suit == null) {
-            Box(modifier = Modifier.testTag("die_face_blank").clearAndSetSemantics {}) {
-                DieFace(background = MaterialTheme.colorScheme.surfaceVariant, modifier = faceClick) {
+    val result: @Composable (Modifier) -> Unit
+    val action: @Composable () -> Unit
+    if (suit == null) {
+        result = { resultModifier ->
+            Box(modifier = resultModifier.testTag("die_face_blank").clearAndSetSemantics {}) {
+                DieFace(dimensions = dimensions, background = MaterialTheme.colorScheme.surfaceVariant, modifier = faceClick) {
                     Icon(
                         painter = painterResource(R.drawable.ic_casino),
                         contentDescription = null,
                         tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                        modifier = Modifier.size(72.dp)
+                        modifier = Modifier.size(dimensions.blankIcon)
                     )
                 }
             }
-            Spacer(modifier = Modifier.height(16.dp))
-            Button(
-                onClick = roll,
-                modifier = Modifier
-                    .widthIn(min = 200.dp)
-                    .heightIn(min = 56.dp)
-                    .testTag("die_roll_button")
-            ) {
+        }
+        action = {
+            Button(onClick = roll, modifier = buttonModifier.testTag("die_roll_button")) {
                 Icon(
                     painter = painterResource(R.drawable.ic_casino),
                     contentDescription = null,
@@ -122,82 +132,112 @@ fun DieRoller(
                 Spacer(modifier = Modifier.width(8.dp))
                 Text(text = stringResource(R.string.die_roll))
             }
+        }
+    } else {
+        val progress = if (pendingRoll) 0f else rollProgress.value
+        // Faces run backwards from the drawn suit so the last face shown is the result.
+        val faceIndex = (DIE_ROLL_FACES - 1 - (progress * DIE_ROLL_FACES).toInt()).coerceAtLeast(0)
+        val face = if (rolling) {
+            CardSuit.entries[(suit.ordinal + faceIndex) % CardSuit.entries.size]
         } else {
-            val progress = if (pendingRoll) 0f else rollProgress.value
-            // Faces run backwards from the drawn suit so the last face shown is the result.
-            val faceIndex = (DIE_ROLL_FACES - 1 - (progress * DIE_ROLL_FACES).toInt()).coerceAtLeast(0)
-            val face = if (rolling) {
-                CardSuit.entries[(suit.ordinal + faceIndex) % CardSuit.entries.size]
-            } else {
-                suit
-            }
-            val suitName = stringResource(suit.nameRes)
-            val resultDescription = if (rolling) {
-                stringResource(R.string.die_rolling_content_description)
-            } else {
-                stringResource(R.string.die_result_content_description, suitName)
-            }
-            // Sized in dp so the face keeps its size; the name below scales with the font.
-            val pictogramFontSize = with(LocalDensity.current) { DiePictogramSize.toSp() }
-            Column(
-                horizontalAlignment = Alignment.CenterHorizontally,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .testTag(if (rolling) "die_rolling" else "die_result")
-                    .clearAndSetSemantics { contentDescription = resultDescription }
-            ) {
-                DieFace(background = face.tint, modifier = faceClick) {
-                    Text(
-                        text = stringResource(face.pictogramRes),
-                        fontSize = pictogramFontSize,
-                        lineHeight = pictogramFontSize,
-                        color = face.color,
-                        modifier = Modifier.graphicsLayer {
-                            rotationZ = (1f - progress) * 720f
-                            val bounce = 1f + 0.3f * (1f - progress)
-                            scaleX = bounce
-                            scaleY = bounce
-                        }
-                    )
-                }
-                Spacer(modifier = Modifier.height(8.dp))
+            suit
+        }
+        val suitName = stringResource(suit.nameRes)
+        val resultDescription = if (rolling) {
+            stringResource(R.string.die_rolling_content_description)
+        } else {
+            stringResource(R.string.die_result_content_description, suitName)
+        }
+        // Sized in dp so the face keeps its size; the name below scales with the font.
+        val pictogramFontSize = with(LocalDensity.current) { dimensions.pictogram.toSp() }
+        val dieFace: @Composable () -> Unit = {
+            DieFace(dimensions = dimensions, background = face.tint, modifier = faceClick) {
                 Text(
-                    text = if (rolling) "" else suitName,
-                    style = MaterialTheme.typography.headlineSmall,
-                    color = suit.color,
-                    textAlign = TextAlign.Center,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .testTag("die_result_name")
+                    text = stringResource(face.pictogramRes),
+                    fontSize = pictogramFontSize,
+                    lineHeight = pictogramFontSize,
+                    color = face.color,
+                    modifier = Modifier.graphicsLayer {
+                        rotationZ = (1f - progress) * 720f
+                        val bounce = 1f + 0.3f * (1f - progress)
+                        scaleX = bounce
+                        scaleY = bounce
+                    }
                 )
             }
-            Spacer(modifier = Modifier.height(8.dp))
+        }
+        val name: @Composable (Modifier) -> Unit = { nameModifier ->
+            Text(
+                text = if (rolling) "" else suitName,
+                style = if (compact) MaterialTheme.typography.titleLarge else MaterialTheme.typography.headlineSmall,
+                color = suit.color,
+                textAlign = if (compact) TextAlign.Start else TextAlign.Center,
+                modifier = nameModifier.testTag("die_result_name")
+            )
+        }
+        result = { resultModifier ->
+            val groupModifier = resultModifier
+                .testTag(if (rolling) "die_rolling" else "die_result")
+                .clearAndSetSemantics { contentDescription = resultDescription }
+            if (compact) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(12.dp),
+                    modifier = groupModifier
+                ) {
+                    dieFace()
+                    name(Modifier.weight(1f))
+                }
+            } else {
+                Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = groupModifier.fillMaxWidth()) {
+                    dieFace()
+                    Spacer(modifier = Modifier.height(8.dp))
+                    name(Modifier.fillMaxWidth())
+                }
+            }
+        }
+        action = {
             OutlinedButton(
                 onClick = roll,
                 enabled = rerollEnabled && !rolling,
-                modifier = Modifier
-                    .widthIn(min = 200.dp)
-                    .heightIn(min = 56.dp)
-                    .testTag("die_reroll_button")
+                modifier = buttonModifier.testTag("die_reroll_button")
             ) {
                 Text(text = stringResource(R.string.die_reroll))
             }
         }
     }
+
+    if (compact) {
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(12.dp),
+            modifier = modifier
+        ) {
+            result(Modifier.weight(1f))
+            action()
+        }
+    } else {
+        Column(modifier = modifier, horizontalAlignment = Alignment.CenterHorizontally) {
+            result(Modifier)
+            Spacer(modifier = Modifier.height(if (suit == null) 16.dp else 8.dp))
+            action()
+        }
+    }
 }
 
-/** The die itself: a large rounded square holding the face's content. */
+/** The die itself: a rounded square holding the face's content. */
 @Composable
 private fun DieFace(
+    dimensions: DieDimensions,
     background: Color,
     modifier: Modifier = Modifier,
     content: @Composable () -> Unit
 ) {
-    val shape = RoundedCornerShape(28.dp)
+    val shape = RoundedCornerShape(dimensions.corner)
     Box(
         contentAlignment = Alignment.Center,
         modifier = Modifier
-            .size(DieFaceSize)
+            .size(dimensions.face)
             .clip(shape)
             .background(background)
             .border(2.dp, MaterialTheme.colorScheme.outlineVariant, shape)

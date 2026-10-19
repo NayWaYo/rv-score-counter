@@ -9,6 +9,8 @@ import androidx.compose.ui.test.assertIsSelected
 import androidx.compose.ui.test.assertTextEquals
 import androidx.compose.ui.test.assertIsNotFocused
 import androidx.compose.ui.test.assert
+import androidx.compose.ui.test.getUnclippedBoundsInRoot
+import androidx.compose.ui.unit.height
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
@@ -386,5 +388,23 @@ class RoundEntryScreenTest {
         composeTestRule.onNodeWithTag("round_entry_no_round").performScrollTo().assertIsDisplayed()
         composeTestRule.onNodeWithTag("round_entry_seven_champion").assertDoesNotExist()
         composeTestRule.onNodeWithTag("round_entry_round_record").assertDoesNotExist()
+    }
+
+    @Test
+    fun shrinksTheDieWhileTheScorePanelIsShown() {
+        val state = mutableStateOf(aLoadedState(suit = CardSuit.SPADE, panel = RoundEntryPanel.NONE))
+        composeTestRule.setContent {
+            RvScoreCounterTheme {
+                RoundEntryScreen(state = state.value, onRoll = {}, onScoreChanged = { _, _ -> }, onRetry = {})
+            }
+        }
+        val largeHeight = composeTestRule.onNodeWithTag("round_entry_die_roller").getUnclippedBoundsInRoot().height
+
+        state.value = aLoadedState(suit = CardSuit.SPADE, panel = RoundEntryPanel.SCORES)
+
+        val compactHeight = composeTestRule.onNodeWithTag("round_entry_die_roller").getUnclippedBoundsInRoot().height
+        assertTrue("compact $compactHeight vs large $largeHeight", compactHeight < largeHeight / 2)
+        composeTestRule.onNodeWithTag("die_result").assertIsDisplayed()
+        composeTestRule.onNodeWithTag("die_reroll_button").assertIsDisplayed()
     }
 }
