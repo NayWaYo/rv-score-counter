@@ -136,6 +136,9 @@ class ResultsScreenTest {
         composeTestRule.onNodeWithTag("round_table_row_2")
             .assertContentDescriptionEquals("Manche 2, Pique : Alice 180 · Bob 70, total 250, Le 40 : Bob")
         composeTestRule.onNodeWithTag("round_table_total_$aliceId", useUnmergedTree = true).assertTextEquals("380")
+        composeTestRule.onNodeWithTag("results_standings").performScrollToNode(hasTestTag("results_score_chart"))
+        composeTestRule.onNodeWithTag("score_chart_plot")
+            .assertContentDescriptionEquals("Évolution des scores sur 2 manches. Scores cumulés : Alice 380, Bob 120")
     }
 
     @Test
@@ -143,6 +146,7 @@ class ResultsScreenTest {
         setContent(loaded)
 
         composeTestRule.onNodeWithTag("results_round_table").assertDoesNotExist()
+        composeTestRule.onNodeWithTag("results_score_chart").assertDoesNotExist()
         composeTestRule.onNodeWithTag("results_stats").assertDoesNotExist()
     }
 }

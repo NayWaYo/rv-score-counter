@@ -35,3 +35,16 @@ val ChampionTint = Color(0xFF33270D)
 val ChampionInk = Color(0xFFFFD54F)
 val RecordTint = Color(0xFF261C38)
 val RecordInk = Color(0xFFB39DDB)
+
+// Chart series, dark steps of the reference categorical palette, in this fixed order (validated
+// as adjacent pairs for lines up to eight series); a series keeps its slot from its table position.
+val ChartSeries = listOf(
+    Color(0xFF3987E5),
+    Color(0xFFD95926),
+    Color(0xFF199E70),
+    Color(0xFFC98500),
+    Color(0xFFD55181),
+    Color(0xFF008300),
+    Color(0xFF9085E9),
+    Color(0xFFE66767)
+)

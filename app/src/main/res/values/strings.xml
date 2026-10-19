@@ -104,6 +104,12 @@
     <string name="round_table_absent" translatable="false">—</string>
     <string name="round_table_legend">Case colorée : a pris le 40 · en gras : meilleur score de la manche · en rouge : pire</string>
 
+    <!-- Évolution des scores -->
+    <string name="score_chart_title">Évolution des scores</string>
+    <string name="score_chart_round">Manche %1$d</string>
+    <string name="score_chart_selection">%1$s : %2$s</string>
+    <string name="score_chart_content_description">Évolution des scores sur %1$d manches. Scores cumulés : %2$s</string>
+
     <!-- Cartes de statistiques -->
     <string name="seven_champion">Roi du 40 : %1$s (%2$d fois)</string>
     <string name="stat_seven_champion_emoji" translatable="false">👑</string>

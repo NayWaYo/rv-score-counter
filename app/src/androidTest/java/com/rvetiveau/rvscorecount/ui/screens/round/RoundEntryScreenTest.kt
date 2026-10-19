@@ -389,9 +389,11 @@ class RoundEntryScreenTest {
             .assertContentDescriptionEquals("Roi du 40 : Bob (2 fois)")
         composeTestRule.onNodeWithTag("stat_card_round_record").performScrollTo()
             .assertContentDescriptionEquals("Record en une manche : Bob (manche 1) — 210 points")
-        composeTestRule.onNodeWithTag("round_table_row_1").performScrollTo().assertIsDisplayed()
-        composeTestRule.onNodeWithTag("round_table_row_2").performScrollTo().assertIsDisplayed()
+        composeTestRule.onNodeWithTag("round_entry_round_table").performScrollTo()
+        composeTestRule.onNodeWithTag("round_table_row_1").assertIsDisplayed()
+        composeTestRule.onNodeWithTag("round_table_row_2").assertExists()
         composeTestRule.onNodeWithTag("round_table_total_$bobId", useUnmergedTree = true).assertTextEquals("360")
+        composeTestRule.onNodeWithTag("round_entry_score_chart").performScrollTo().assertIsDisplayed()
         composeTestRule.onNodeWithTag("round_entry_no_round").assertDoesNotExist()
     }
 
@@ -402,6 +404,7 @@ class RoundEntryScreenTest {
         composeTestRule.onNodeWithTag("round_entry_no_round").performScrollTo().assertIsDisplayed()
         composeTestRule.onNodeWithTag("round_entry_stats").assertDoesNotExist()
         composeTestRule.onNodeWithTag("round_entry_round_table").assertDoesNotExist()
+        composeTestRule.onNodeWithTag("round_entry_score_chart").assertDoesNotExist()
     }
 
     @Test

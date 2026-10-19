@@ -22,6 +22,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import com.rvetiveau.rvscorecount.R
 import com.rvetiveau.rvscorecount.ui.components.RoundTable
+import com.rvetiveau.rvscorecount.ui.components.ScoreChart
 import com.rvetiveau.rvscorecount.ui.components.StatCards
 import com.rvetiveau.rvscorecount.ui.components.StandingRowItem
 import com.rvetiveau.rvscorecount.ui.components.WinnerBanner
@@ -110,6 +111,19 @@ fun ResultsScreen(
                                 .padding(top = 8.dp)
                                 .testTag("results_stats")
                         )
+                    }
+                }
+                if (state.roundTable.rows.size >= 2) {
+                    item(key = "score_chart") {
+                        Column {
+                            Text(
+                                text = stringResource(R.string.score_chart_title),
+                                style = MaterialTheme.typography.titleMedium,
+                                color = MaterialTheme.colorScheme.onBackground,
+                                modifier = Modifier.padding(top = 16.dp, bottom = 8.dp)
+                            )
+                            ScoreChart(table = state.roundTable, modifier = Modifier.testTag("results_score_chart"))
+                        }
                     }
                 }
                 if (state.roundTable.rows.isNotEmpty()) {

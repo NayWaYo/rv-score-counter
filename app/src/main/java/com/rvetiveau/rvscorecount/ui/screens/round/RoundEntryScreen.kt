@@ -34,6 +34,7 @@ import com.rvetiveau.rvscorecount.R
 import com.rvetiveau.rvscorecount.domain.model.CardSuit
 import com.rvetiveau.rvscorecount.ui.components.DieRoller
 import com.rvetiveau.rvscorecount.ui.components.RoundTable
+import com.rvetiveau.rvscorecount.ui.components.ScoreChart
 import com.rvetiveau.rvscorecount.ui.components.StatCards
 import com.rvetiveau.rvscorecount.ui.components.StandingRowItem
 import com.rvetiveau.rvscorecount.ui.components.ScoreField
@@ -204,6 +205,10 @@ private fun StandingsPanel(summary: RoundEntrySummary) {
                 roundRecord = summary.roundRecord,
                 modifier = Modifier.testTag("round_entry_stats")
             )
+        }
+        if (summary.roundTable.rows.size >= 2) {
+            PanelHeading(text = stringResource(R.string.score_chart_title))
+            ScoreChart(table = summary.roundTable, modifier = Modifier.testTag("round_entry_score_chart"))
         }
         PanelHeading(text = stringResource(R.string.party_rounds_title))
         if (summary.roundTable.rows.isEmpty()) {
