@@ -5,11 +5,12 @@ import androidx.lifecycle.viewModelScope
 import com.rvetiveau.rvscorecount.R
 import com.rvetiveau.rvscorecount.domain.model.PartyState
 import com.rvetiveau.rvscorecount.domain.model.computeStandings
+import com.rvetiveau.rvscorecount.domain.model.roundRecord
 import com.rvetiveau.rvscorecount.domain.model.sevenChampion
 import com.rvetiveau.rvscorecount.ui.components.toUi
 import com.rvetiveau.rvscorecount.domain.repository.PartyRepository
 import com.rvetiveau.rvscorecount.domain.usecase.CreatePartyUseCase
-import com.rvetiveau.rvscorecount.ui.components.roundHistoryItems
+import com.rvetiveau.rvscorecount.ui.components.roundTable
 import com.rvetiveau.rvscorecount.ui.components.toStandingRows
 import com.rvetiveau.rvscorecount.ui.navigation.NavigationEvent
 import com.rvetiveau.rvscorecount.ui.navigation.Routes
@@ -74,7 +75,7 @@ class PartyDetailViewModel @Inject constructor(
 
         val scoresByRound = partyRepository.getRoundsByPartyId(partyId)
             .associateWith { partyRepository.getScoresByRoundId(it.id) }
-        // computeStandings et sevenChampion vérifient scores et détenteurs du 7 avant roundHistoryItems.
+        // computeStandings et sevenChampion vérifient scores et détenteurs du 7 avant roundTable.
         return try {
             val standings = computeStandings(participants, scoresByRound.values.flatten())
             val champion = sevenChampion(participants, scoresByRound.keys.toList())
@@ -82,8 +83,9 @@ class PartyDetailViewModel @Inject constructor(
                 gameId = party.gameId,
                 createdAt = party.createdAt,
                 standings = standings.toStandingRows(),
-                rounds = roundHistoryItems(participants, scoresByRound),
-                sevenChampion = champion?.toUi()
+                roundTable = roundTable(participants, scoresByRound),
+                sevenChampion = champion?.toUi(),
+                roundRecord = roundRecord(participants, scoresByRound)?.toUi()
             )
         } catch (_: IllegalArgumentException) {
             PartyDetailUiState.Unavailable

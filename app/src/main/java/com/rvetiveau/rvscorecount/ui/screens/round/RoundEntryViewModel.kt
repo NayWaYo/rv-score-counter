@@ -15,7 +15,7 @@ import com.rvetiveau.rvscorecount.domain.usecase.GetAvailableGamesUseCase
 import com.rvetiveau.rvscorecount.domain.usecase.RollDieUseCase
 import com.rvetiveau.rvscorecount.domain.usecase.ValidateRoundOutcome
 import com.rvetiveau.rvscorecount.domain.usecase.ValidateRoundUseCase
-import com.rvetiveau.rvscorecount.ui.components.roundHistoryItems
+import com.rvetiveau.rvscorecount.ui.components.roundTable
 import com.rvetiveau.rvscorecount.ui.components.toStandingRows
 import com.rvetiveau.rvscorecount.ui.components.toUi
 import com.rvetiveau.rvscorecount.ui.navigation.NavigationEvent
@@ -231,7 +231,7 @@ class RoundEntryViewModel @Inject constructor(
         val dealerId = participants.firstOrNull { it.listPosition == currentDealerIndex }?.id
         return RoundEntrySummary(
             standings = standings.toStandingRows(dealerId = dealerId),
-            roundHistory = roundHistoryItems(participants, scoresByRound).reversed(),
+            roundTable = roundTable(participants, scoresByRound),
             sevenChampion = champion?.toUi(),
             roundRecord = roundRecord(participants, scoresByRound)?.toUi()
         )

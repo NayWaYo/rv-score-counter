@@ -15,6 +15,8 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
@@ -38,8 +40,7 @@ import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.unit.dp
 import com.rvetiveau.rvscorecount.R
-import com.rvetiveau.rvscorecount.ui.components.RoundHistoryItem
-import com.rvetiveau.rvscorecount.ui.components.RoundHistoryRow
+import com.rvetiveau.rvscorecount.ui.components.RoundTable
 import com.rvetiveau.rvscorecount.ui.components.StandingRowItem
 
 /**
@@ -161,14 +162,14 @@ fun PartyScreen(
                         .testTag("party_empty_state")
                 )
             }
-            if (state.roundHistory.isNotEmpty()) {
+            if (state.roundTable.rows.isNotEmpty()) {
                 TextButton(
                     onClick = onShowRoundHistory,
                     modifier = Modifier
                         .heightIn(min = 48.dp)
                         .testTag("party_rounds_link")
                 ) {
-                    Text(text = stringResource(R.string.party_rounds_link, state.roundHistory.size))
+                    Text(text = stringResource(R.string.party_rounds_link, state.roundTable.rows.size))
                 }
             }
             if (state.closure.isConfirmationOpen) {
@@ -179,7 +180,7 @@ fun PartyScreen(
                 )
             }
             if (state.isRoundHistoryOpen) {
-                RoundHistorySheet(rounds = state.roundHistory, onDismiss = onHideRoundHistory)
+                RoundHistorySheet(table = state.roundTable, onDismiss = onHideRoundHistory)
             }
             LazyColumn(
                 verticalArrangement = Arrangement.spacedBy(8.dp),
@@ -353,29 +354,23 @@ private fun EndPartyDialog(isClosing: Boolean, onConfirm: () -> Unit, onDismiss:
     )
 }
 
-/** Read-only list of validated Manches, most recent first (Story 4.3). */
+/** Read-only score sheet of the validated Manches (Story 4.3). */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun RoundHistorySheet(rounds: List<RoundHistoryItem>, onDismiss: () -> Unit) {
+private fun RoundHistorySheet(table: RoundTable, onDismiss: () -> Unit) {
     ModalBottomSheet(onDismissRequest = onDismiss) {
         Text(
             text = stringResource(R.string.party_rounds_title),
             style = MaterialTheme.typography.headlineSmall,
             modifier = Modifier.padding(start = 16.dp, end = 16.dp, bottom = 8.dp)
         )
-        LazyColumn(
-            verticalArrangement = Arrangement.spacedBy(8.dp),
+        RoundTable(
+            table = table,
             modifier = Modifier
+                .verticalScroll(rememberScrollState())
                 .padding(start = 16.dp, end = 16.dp, bottom = 32.dp)
                 .testTag("party_round_history")
-        ) {
-            items(rounds, key = { it.roundNumber }) { round ->
-                RoundHistoryRow(
-                    item = round,
-                    modifier = Modifier.testTag("party_round_history_${round.roundNumber}")
-                )
-            }
-        }
+        )
     }
 }
 

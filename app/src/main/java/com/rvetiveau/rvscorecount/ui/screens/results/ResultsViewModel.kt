@@ -5,10 +5,12 @@ import androidx.lifecycle.viewModelScope
 import com.rvetiveau.rvscorecount.R
 import com.rvetiveau.rvscorecount.domain.model.PartyState
 import com.rvetiveau.rvscorecount.domain.model.computeStandings
+import com.rvetiveau.rvscorecount.domain.model.roundRecord
 import com.rvetiveau.rvscorecount.domain.model.sevenChampion
 import com.rvetiveau.rvscorecount.ui.components.toUi
 import com.rvetiveau.rvscorecount.domain.repository.PartyRepository
 import com.rvetiveau.rvscorecount.domain.usecase.CreatePartyUseCase
+import com.rvetiveau.rvscorecount.ui.components.roundTable
 import com.rvetiveau.rvscorecount.ui.components.toStandingRows
 import com.rvetiveau.rvscorecount.ui.navigation.NavigationEvent
 import com.rvetiveau.rvscorecount.ui.navigation.Routes
@@ -73,11 +75,13 @@ class ResultsViewModel @Inject constructor(
         }
 
         val rounds = partyRepository.getRoundsByPartyId(partyId)
-        val scores = rounds.flatMap { partyRepository.getScoresByRoundId(it.id) }
+        val scoresByRound = rounds.associateWith { partyRepository.getScoresByRoundId(it.id) }
         return try {
             ResultsUiState.Loaded(
-                standings = computeStandings(participants, scores).toStandingRows(),
-                sevenChampion = sevenChampion(participants, rounds)?.toUi()
+                standings = computeStandings(participants, scoresByRound.values.flatten()).toStandingRows(),
+                sevenChampion = sevenChampion(participants, rounds)?.toUi(),
+                roundRecord = roundRecord(participants, scoresByRound)?.toUi(),
+                roundTable = roundTable(participants, scoresByRound)
             )
         } catch (_: IllegalArgumentException) {
             ResultsUiState.Unavailable

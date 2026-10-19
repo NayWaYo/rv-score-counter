@@ -20,8 +20,9 @@ import androidx.compose.ui.text.TextLayoutResult
 import androidx.compose.ui.unit.Density
 import com.rvetiveau.rvscorecount.R
 import com.rvetiveau.rvscorecount.domain.model.CardSuit
-import com.rvetiveau.rvscorecount.ui.components.RoundHistoryItem
-import com.rvetiveau.rvscorecount.ui.components.RoundHistoryScore
+import com.rvetiveau.rvscorecount.ui.components.RoundTable
+import com.rvetiveau.rvscorecount.ui.components.RoundTablePlayer
+import com.rvetiveau.rvscorecount.ui.components.RoundTableRow
 import com.rvetiveau.rvscorecount.ui.components.StandingRow
 import com.rvetiveau.rvscorecount.ui.theme.RvScoreCounterTheme
 import java.util.UUID
@@ -153,11 +154,11 @@ class PartyScreenTest {
 
     // --- Story 4.3 ---
 
-    private val heartRound = RoundHistoryItem(
-        roundNumber = 2,
-        suit = CardSuit.HEART,
-        scores = listOf(RoundHistoryScore("Bob", 40), RoundHistoryScore("Alice", 210)),
-        total = 250
+    private val roundAliceId = UUID.randomUUID()
+    private val roundBobId = UUID.randomUUID()
+    private val heartRoundTable = RoundTable(
+        players = listOf(RoundTablePlayer(roundAliceId, "Alice"), RoundTablePlayer(roundBobId, "Bob")),
+        rows = listOf(RoundTableRow(2, CardSuit.HEART, mapOf(roundBobId to 40, roundAliceId to 210)))
     )
 
     @Test
@@ -173,7 +174,7 @@ class PartyScreenTest {
         composeTestRule.setContent {
             RvScoreCounterTheme {
                 PartyScreen(
-                    state = aLoadedStateWithStandings().copy(roundHistory = listOf(heartRound)),
+                    state = aLoadedStateWithStandings().copy(roundTable = heartRoundTable),
                     onShowRoundHistory = { opened = true }
                 )
             }
@@ -186,10 +187,10 @@ class PartyScreenTest {
 
     @Test
     fun theOpenRoundHistoryReadsEachRowAsOneReadOnlyBlock() {
-        setContent(aLoadedStateWithStandings().copy(roundHistory = listOf(heartRound), isRoundHistoryOpen = true))
+        setContent(aLoadedStateWithStandings().copy(roundTable = heartRoundTable, isRoundHistoryOpen = true))
 
-        composeTestRule.onNodeWithTag("party_round_history_2")
-            .assertContentDescriptionEquals("Manche 2, Cœur : Bob 40 · Alice 210, total 250")
+        composeTestRule.onNodeWithTag("round_table_row_2")
+            .assertContentDescriptionEquals("Manche 2, Cœur : Alice 210 · Bob 40, total 250")
             .assertHasNoClickAction()
     }
 

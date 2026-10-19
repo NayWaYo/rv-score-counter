@@ -33,9 +33,8 @@ import androidx.compose.ui.unit.dp
 import com.rvetiveau.rvscorecount.R
 import com.rvetiveau.rvscorecount.domain.model.CardSuit
 import com.rvetiveau.rvscorecount.ui.components.DieRoller
-import com.rvetiveau.rvscorecount.ui.components.RoundHistoryRow
-import com.rvetiveau.rvscorecount.ui.components.RoundRecordLine
-import com.rvetiveau.rvscorecount.ui.components.SevenChampionLine
+import com.rvetiveau.rvscorecount.ui.components.RoundTable
+import com.rvetiveau.rvscorecount.ui.components.StatCards
 import com.rvetiveau.rvscorecount.ui.components.StandingRowItem
 import com.rvetiveau.rvscorecount.ui.components.ScoreField
 import com.rvetiveau.rvscorecount.ui.components.SumIndicator
@@ -185,7 +184,7 @@ private fun PanelButton(selected: Boolean, label: String, onClick: () -> Unit, m
     }
 }
 
-/** The Partie so far: Classement, statistics, then the validated Manches, most recent first. */
+/** The Partie so far: Classement, statistic cards, then the score sheet of the validated Manches. */
 @Composable
 private fun StandingsPanel(summary: RoundEntrySummary) {
     Column(
@@ -200,24 +199,22 @@ private fun StandingsPanel(summary: RoundEntrySummary) {
         }
         if (summary.sevenChampion != null || summary.roundRecord != null) {
             PanelHeading(text = stringResource(R.string.round_entry_stats_title))
-            summary.sevenChampion?.let { champion ->
-                SevenChampionLine(champion = champion, modifier = Modifier.testTag("round_entry_seven_champion"))
-            }
-            summary.roundRecord?.let { record ->
-                RoundRecordLine(record = record, modifier = Modifier.testTag("round_entry_round_record"))
-            }
+            StatCards(
+                sevenChampion = summary.sevenChampion,
+                roundRecord = summary.roundRecord,
+                modifier = Modifier.testTag("round_entry_stats")
+            )
         }
         PanelHeading(text = stringResource(R.string.party_rounds_title))
-        if (summary.roundHistory.isEmpty()) {
+        if (summary.roundTable.rows.isEmpty()) {
             Text(
                 text = stringResource(R.string.history_no_round),
                 style = MaterialTheme.typography.bodyLarge,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier.testTag("round_entry_no_round")
             )
-        }
-        summary.roundHistory.forEach { round ->
-            RoundHistoryRow(item = round, modifier = Modifier.testTag("round_entry_round_history_${round.roundNumber}"))
+        } else {
+            RoundTable(table = summary.roundTable, modifier = Modifier.testTag("round_entry_round_table"))
         }
     }
 }

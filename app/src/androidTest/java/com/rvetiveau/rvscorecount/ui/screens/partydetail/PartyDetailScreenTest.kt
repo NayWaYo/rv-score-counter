@@ -12,8 +12,11 @@ import androidx.compose.ui.test.performScrollToNode
 import androidx.compose.ui.test.hasTestTag
 import com.rvetiveau.rvscorecount.R
 import com.rvetiveau.rvscorecount.domain.model.CardSuit
-import com.rvetiveau.rvscorecount.ui.components.RoundHistoryItem
-import com.rvetiveau.rvscorecount.ui.components.RoundHistoryScore
+import com.rvetiveau.rvscorecount.ui.components.RoundRecordEntryUi
+import com.rvetiveau.rvscorecount.ui.components.RoundRecordUi
+import com.rvetiveau.rvscorecount.ui.components.RoundTable
+import com.rvetiveau.rvscorecount.ui.components.RoundTablePlayer
+import com.rvetiveau.rvscorecount.ui.components.RoundTableRow
 import com.rvetiveau.rvscorecount.ui.components.SevenChampionUi
 import com.rvetiveau.rvscorecount.ui.components.StandingRow
 import com.rvetiveau.rvscorecount.ui.theme.RvScoreCounterTheme
@@ -38,9 +41,12 @@ class PartyDetailScreenTest {
             StandingRow(aliceId, rank = 1, name = "Alice", cumulativeScore = 200, isDealer = false),
             StandingRow(bobId, rank = 2, name = "Bob", cumulativeScore = 300, isDealer = false)
         ),
-        rounds = listOf(
-            RoundHistoryItem(1, CardSuit.HEART, listOf(RoundHistoryScore("Alice", 200), RoundHistoryScore("Bob", 50)), 250),
-            RoundHistoryItem(2, CardSuit.SPADE, listOf(RoundHistoryScore("Alice", 0), RoundHistoryScore("Bob", 250)), 250)
+        roundTable = RoundTable(
+            players = listOf(RoundTablePlayer(aliceId, "Alice"), RoundTablePlayer(bobId, "Bob")),
+            rows = listOf(
+                RoundTableRow(1, CardSuit.HEART, mapOf(aliceId to 200, bobId to 50)),
+                RoundTableRow(2, CardSuit.SPADE, mapOf(aliceId to 0, bobId to 250))
+            )
         )
     )
 
@@ -62,23 +68,25 @@ class PartyDetailScreenTest {
     }
 
     @Test
-    fun listsTheRoundsChronologicallyAsReadOnlyRows() {
+    fun showsTheRoundsAsAChronologicalScoreSheetWithTotals() {
         setContent(loaded)
 
-        composeTestRule.onNodeWithTag("party_detail_content").performScrollToNode(hasTestTag("party_detail_round_2"))
-        composeTestRule.onNodeWithTag("party_detail_round_1")
+        composeTestRule.onNodeWithTag("party_detail_content").performScrollToNode(hasTestTag("party_detail_round_table"))
+        composeTestRule.onNodeWithTag("round_table_row_1")
             .assertContentDescriptionEquals("Manche 1, Cœur : Alice 200 · Bob 50, total 250")
             .assertHasNoClickAction()
-        composeTestRule.onNodeWithTag("party_detail_round_2")
+        composeTestRule.onNodeWithTag("round_table_row_2")
             .assertContentDescriptionEquals("Manche 2, Pique : Alice 0 · Bob 250, total 250")
-        val first = composeTestRule.onNodeWithTag("party_detail_round_1").fetchSemanticsNode().boundsInRoot.top
-        val second = composeTestRule.onNodeWithTag("party_detail_round_2").fetchSemanticsNode().boundsInRoot.top
+        val first = composeTestRule.onNodeWithTag("round_table_row_1").fetchSemanticsNode().boundsInRoot.top
+        val second = composeTestRule.onNodeWithTag("round_table_row_2").fetchSemanticsNode().boundsInRoot.top
         assertTrue(first < second)
+        composeTestRule.onNodeWithTag("round_table_total_$aliceId", useUnmergedTree = true).assertTextEquals("200")
+        composeTestRule.onNodeWithTag("round_table_total_$bobId", useUnmergedTree = true).assertTextEquals("300")
     }
 
     @Test
     fun aPartyWithoutRoundsSaysSoAndHasNoWinner() {
-        setContent(loaded.copy(rounds = emptyList()))
+        setContent(loaded.copy(roundTable = RoundTable()))
 
         composeTestRule.onNodeWithTag("party_detail_winner").assertDoesNotExist()
         composeTestRule.onNodeWithTag("party_detail_no_round").assertTextEquals("Aucune manche jouée")
@@ -110,17 +118,21 @@ class PartyDetailScreenTest {
     }
 
     @Test
-    fun showsWhoTookThe40InEachRoundAndThe40Champion() {
+    fun showsTheStatisticCardsAndWhoTookThe40InEachRound() {
         setContent(
             loaded.copy(
-                rounds = loaded.rounds.map { it.copy(sevenHolderName = "Bob") },
-                sevenChampion = SevenChampionUi(listOf("Bob"), 2)
+                roundTable = loaded.roundTable.copy(rows = loaded.roundTable.rows.map { it.copy(sevenHolderId = bobId) }),
+                sevenChampion = SevenChampionUi(listOf("Bob"), 2),
+                roundRecord = RoundRecordUi(listOf(RoundRecordEntryUi("Bob", 2)), 250)
             )
         )
 
-        composeTestRule.onNodeWithTag("party_detail_seven_champion").assertTextEquals("Champion du 40 : Bob (2 fois)")
-        composeTestRule.onNodeWithTag("party_detail_content").performScrollToNode(hasTestTag("party_detail_round_1"))
-        composeTestRule.onNodeWithTag("party_detail_round_1")
+        composeTestRule.onNodeWithTag("party_detail_content").performScrollToNode(hasTestTag("party_detail_stats"))
+        composeTestRule.onNodeWithTag("stat_card_seven_champion").assertContentDescriptionEquals("Roi du 40 : Bob (2 fois)")
+        composeTestRule.onNodeWithTag("stat_card_round_record")
+            .assertContentDescriptionEquals("Record en une manche : Bob (manche 2) — 250 points")
+        composeTestRule.onNodeWithTag("party_detail_content").performScrollToNode(hasTestTag("party_detail_round_table"))
+        composeTestRule.onNodeWithTag("round_table_row_1")
             .assertContentDescriptionEquals("Manche 1, Cœur : Alice 200 · Bob 50, total 250, Le 40 : Bob")
     }
 }

@@ -940,7 +940,7 @@ class RoundEntryViewModelTest {
         assertEquals(listOf(alice.id, bob.id), summary.standings.map { it.participantId })
         assertEquals(listOf(140, 360), summary.standings.map { it.cumulativeScore })
         assertEquals(listOf(false, true), summary.standings.map { it.isDealer })
-        assertEquals(listOf(2, 1), summary.roundHistory.map { it.roundNumber })
+        assertEquals(listOf(1, 2), summary.roundTable.rows.map { it.roundNumber })
         assertEquals(listOf("Bob"), summary.sevenChampion!!.names)
         assertEquals(2, summary.sevenChampion!!.count)
         assertEquals(210, summary.roundRecord!!.points)
@@ -953,7 +953,7 @@ class RoundEntryViewModelTest {
 
         val summary = vm.uiState.value.content!!.summary
         assertEquals(1, summary.standings.size)
-        assertTrue(summary.roundHistory.isEmpty())
+        assertTrue(summary.roundTable.rows.isEmpty())
         assertNull(summary.sevenChampion)
         assertNull(summary.roundRecord)
     }

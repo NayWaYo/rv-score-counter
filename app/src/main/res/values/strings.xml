@@ -95,14 +95,28 @@
     <string name="party_detail_load_error">Impossible de charger la partie.</string>
     <string name="party_detail_unavailable">Détail indisponible pour cette partie.</string>
 
-    <!-- Historique des manches (round-history-row) -->
-    <string name="round_history_title">Manche %1$d</string>
+    <!-- Tableau des manches -->
     <string name="round_history_score">%1$s %2$d</string>
     <string name="round_history_score_separator" translatable="false">" · "</string>
-    <string name="round_history_total">Total : %1$d</string>
     <string name="round_history_seven_holder">Le 40 : %1$s</string>
-    <string name="seven_champion">Champion du 40 : %1$s (%2$d fois)</string>
     <string name="round_history_content_description">Manche %1$d, %2$s : %3$s, total %4$d</string>
+    <string name="round_table_total">Total</string>
+    <string name="round_table_absent" translatable="false">—</string>
+    <string name="round_table_legend">Case colorée : a pris le 40 · en gras : meilleur score de la manche · en rouge : pire</string>
+
+    <!-- Cartes de statistiques -->
+    <string name="seven_champion">Roi du 40 : %1$s (%2$d fois)</string>
+    <string name="stat_seven_champion_emoji" translatable="false">👑</string>
+    <string name="stat_seven_champion_label">Roi du 40</string>
+    <string name="stat_seven_champion_value">%1$d fois</string>
+    <string name="stat_round_record_emoji" translatable="false">🚀</string>
+    <string name="stat_round_record_label">Record en une manche</string>
+    <string name="stat_round_record_value">%1$d pts · %2$s</string>
+    <plurals name="stat_round_record_rounds">
+        <item quantity="one">manche %1$s</item>
+        <item quantity="many">manches %1$s</item>
+        <item quantity="other">manches %1$s</item>
+    </plurals>
     <string name="party_empty_state">Lancez la première manche pour commencer.</string>
     <string name="party_load_error">Impossible de charger la partie.</string>
     <string name="party_not_found">Partie introuvable.</string>

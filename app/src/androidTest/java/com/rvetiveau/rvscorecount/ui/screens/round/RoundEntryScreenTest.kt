@@ -1,5 +1,6 @@
 package com.rvetiveau.rvscorecount.ui.screens.round
 
+import androidx.compose.ui.test.assertContentDescriptionEquals
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsEnabled
 import androidx.compose.ui.test.assertIsFocused
@@ -22,8 +23,9 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.ui.semantics.SemanticsProperties
 import androidx.compose.ui.test.SemanticsMatcher
 import com.rvetiveau.rvscorecount.domain.model.CardSuit
-import com.rvetiveau.rvscorecount.ui.components.RoundHistoryItem
-import com.rvetiveau.rvscorecount.ui.components.RoundHistoryScore
+import com.rvetiveau.rvscorecount.ui.components.RoundTable
+import com.rvetiveau.rvscorecount.ui.components.RoundTablePlayer
+import com.rvetiveau.rvscorecount.ui.components.RoundTableRow
 import com.rvetiveau.rvscorecount.ui.components.RoundRecordEntryUi
 import com.rvetiveau.rvscorecount.ui.components.RoundRecordUi
 import com.rvetiveau.rvscorecount.ui.components.SevenChampionUi
@@ -330,9 +332,12 @@ class RoundEntryScreenTest {
             StandingRow(aliceId, rank = 1, name = "Alice", cumulativeScore = 140, isDealer = false),
             StandingRow(bobId, rank = 2, name = "Bob", cumulativeScore = 360, isDealer = true)
         ),
-        roundHistory = listOf(
-            RoundHistoryItem(2, CardSuit.CLUB, listOf(RoundHistoryScore("Alice", 100), RoundHistoryScore("Bob", 150)), 250),
-            RoundHistoryItem(1, CardSuit.HEART, listOf(RoundHistoryScore("Alice", 40), RoundHistoryScore("Bob", 210)), 250)
+        roundTable = RoundTable(
+            players = listOf(RoundTablePlayer(aliceId, "Alice"), RoundTablePlayer(bobId, "Bob")),
+            rows = listOf(
+                RoundTableRow(1, CardSuit.HEART, mapOf(aliceId to 40, bobId to 210), sevenHolderId = aliceId),
+                RoundTableRow(2, CardSuit.CLUB, mapOf(aliceId to 100, bobId to 150))
+            )
         ),
         sevenChampion = SevenChampionUi(names = listOf("Bob"), count = 2),
         roundRecord = RoundRecordUi(entries = listOf(RoundRecordEntryUi("Bob", 1)), points = 210)
@@ -380,12 +385,13 @@ class RoundEntryScreenTest {
         composeTestRule.onNodeWithTag("score_field_$aliceId").assertDoesNotExist()
         composeTestRule.onNodeWithTag("round_entry_standing_row_$aliceId").performScrollTo().assertIsDisplayed()
         composeTestRule.onNodeWithTag("round_entry_standing_row_$bobId").performScrollTo().assertIsDisplayed()
-        composeTestRule.onNodeWithTag("round_entry_seven_champion").performScrollTo()
-            .assertTextEquals("Champion du 40 : Bob (2 fois)")
-        composeTestRule.onNodeWithTag("round_entry_round_record").performScrollTo()
-            .assertTextEquals("Record en une manche : Bob (manche 1) — 210 points")
-        composeTestRule.onNodeWithTag("round_entry_round_history_2").performScrollTo().assertIsDisplayed()
-        composeTestRule.onNodeWithTag("round_entry_round_history_1").performScrollTo().assertIsDisplayed()
+        composeTestRule.onNodeWithTag("stat_card_seven_champion").performScrollTo()
+            .assertContentDescriptionEquals("Roi du 40 : Bob (2 fois)")
+        composeTestRule.onNodeWithTag("stat_card_round_record").performScrollTo()
+            .assertContentDescriptionEquals("Record en une manche : Bob (manche 1) — 210 points")
+        composeTestRule.onNodeWithTag("round_table_row_1").performScrollTo().assertIsDisplayed()
+        composeTestRule.onNodeWithTag("round_table_row_2").performScrollTo().assertIsDisplayed()
+        composeTestRule.onNodeWithTag("round_table_total_$bobId", useUnmergedTree = true).assertTextEquals("360")
         composeTestRule.onNodeWithTag("round_entry_no_round").assertDoesNotExist()
     }
 
@@ -394,8 +400,8 @@ class RoundEntryScreenTest {
         setContent(aLoadedState(panel = RoundEntryPanel.STANDINGS))
 
         composeTestRule.onNodeWithTag("round_entry_no_round").performScrollTo().assertIsDisplayed()
-        composeTestRule.onNodeWithTag("round_entry_seven_champion").assertDoesNotExist()
-        composeTestRule.onNodeWithTag("round_entry_round_record").assertDoesNotExist()
+        composeTestRule.onNodeWithTag("round_entry_stats").assertDoesNotExist()
+        composeTestRule.onNodeWithTag("round_entry_round_table").assertDoesNotExist()
     }
 
     @Test

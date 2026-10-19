@@ -1,7 +1,7 @@
 package com.rvetiveau.rvscorecount.ui.screens.round
 
 import com.rvetiveau.rvscorecount.domain.model.CardSuit
-import com.rvetiveau.rvscorecount.ui.components.RoundHistoryItem
+import com.rvetiveau.rvscorecount.ui.components.RoundTable
 import com.rvetiveau.rvscorecount.ui.components.RoundRecordUi
 import com.rvetiveau.rvscorecount.ui.components.SevenChampionUi
 import com.rvetiveau.rvscorecount.ui.components.StandingRow
@@ -118,11 +118,11 @@ enum class RoundEntryPanel {
 
 /**
  * The Partie so far, read once when the screen loads: Classement with the Donneur badge,
- * validated Manches (most recent first) and statistics, each null before it means anything.
+ * the score sheet of validated Manches and statistics, each null before it means anything.
  */
 data class RoundEntrySummary(
     val standings: List<StandingRow> = emptyList(),
-    val roundHistory: List<RoundHistoryItem> = emptyList(),
+    val roundTable: RoundTable = RoundTable(),
     val sevenChampion: SevenChampionUi? = null,
     val roundRecord: RoundRecordUi? = null
 )

@@ -13,8 +13,9 @@ import com.rvetiveau.rvscorecount.domain.usecase.AddParticipantUseCase
 import com.rvetiveau.rvscorecount.domain.usecase.ClosePartyUseCase
 import com.rvetiveau.rvscorecount.domain.usecase.GetAvailableGamesUseCase
 import com.rvetiveau.rvscorecount.game.papayoo.PapayooEngine
-import com.rvetiveau.rvscorecount.ui.components.RoundHistoryItem
-import com.rvetiveau.rvscorecount.ui.components.RoundHistoryScore
+import com.rvetiveau.rvscorecount.ui.components.RoundTable
+import com.rvetiveau.rvscorecount.ui.components.RoundTablePlayer
+import com.rvetiveau.rvscorecount.ui.components.RoundTableRow
 import com.rvetiveau.rvscorecount.ui.components.StandingRow
 import com.rvetiveau.rvscorecount.ui.navigation.NavigationEvent
 import com.rvetiveau.rvscorecount.ui.navigation.Routes
@@ -405,7 +406,7 @@ class PartyViewModelTest {
     // --- Story 4.3 historique des Manches ---
 
     @Test
-    fun `lists validated rounds most recent first with scores in table order and their total`() = runTest {
+    fun `builds the score sheet in chronological order with players in table order`() = runTest {
         val partyId = UUID.randomUUID()
         val alice = aParticipant(partyId, "Alice", 0)
         val bob = aParticipant(partyId, "Bob", 1)
@@ -417,11 +418,14 @@ class PartyViewModelTest {
         repository.saveRound(Round(UUID.randomUUID(), partyId, 2, CardSuit.CLUB), mapOf(alice.id to 0, bob.id to 250), aParty(partyId, 0))
 
         assertEquals(
-            listOf(
-                RoundHistoryItem(2, CardSuit.CLUB, listOf(RoundHistoryScore("Alice", 0), RoundHistoryScore("Bob", 250)), 250),
-                RoundHistoryItem(1, CardSuit.HEART, listOf(RoundHistoryScore("Alice", 200), RoundHistoryScore("Bob", 50)), 250)
+            RoundTable(
+                players = listOf(RoundTablePlayer(alice.id, "Alice"), RoundTablePlayer(bob.id, "Bob")),
+                rows = listOf(
+                    RoundTableRow(1, CardSuit.HEART, mapOf(alice.id to 200, bob.id to 50)),
+                    RoundTableRow(2, CardSuit.CLUB, mapOf(alice.id to 0, bob.id to 250))
+                )
             ),
-            loadedState(vm).roundHistory
+            loadedState(vm).roundTable
         )
     }
 
@@ -440,7 +444,9 @@ class PartyViewModelTest {
         vm.onAdditionNameConfirmed()
         vm.onInsertionPositionSelected(1)
 
-        assertEquals(listOf("Alice", "Bob"), loadedState(vm).roundHistory.single().scores.map { it.participantName })
+        val table = loadedState(vm).roundTable
+        assertEquals(listOf("Alice", "Zoé", "Bob"), table.players.map { it.name })
+        assertEquals(setOf(alice.id, bob.id), table.rows.single().points.keys)
         assertEquals(3, loadedState(vm).standings.size)
     }
 

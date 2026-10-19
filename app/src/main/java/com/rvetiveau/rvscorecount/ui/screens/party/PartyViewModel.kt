@@ -13,7 +13,7 @@ import com.rvetiveau.rvscorecount.domain.usecase.AddParticipantUseCase
 import com.rvetiveau.rvscorecount.domain.usecase.ClosePartyUseCase
 import com.rvetiveau.rvscorecount.domain.usecase.GetAvailableGamesUseCase
 import com.rvetiveau.rvscorecount.domain.usecase.nextDealerIndexAfterInsertion
-import com.rvetiveau.rvscorecount.ui.components.roundHistoryItems
+import com.rvetiveau.rvscorecount.ui.components.roundTable
 import com.rvetiveau.rvscorecount.ui.components.toStandingRows
 import com.rvetiveau.rvscorecount.ui.navigation.NavigationEvent
 import com.rvetiveau.rvscorecount.ui.navigation.Routes
@@ -129,7 +129,7 @@ class PartyViewModel @Inject constructor(
             return PartyUiState.InconsistentParticipants
         }
         // sevenChampion et computeStandings ont vérifié détenteurs du 7 et scores.
-        val roundHistory = roundHistoryItems(participants, scoresByRound).reversed()
+        val roundTable = roundTable(participants, scoresByRound)
 
         val rows = standings.toStandingRows(dealerId = dealer.id)
         seating = participants.sortedBy { it.listPosition }
@@ -140,7 +140,7 @@ class PartyViewModel @Inject constructor(
             standings = rows,
             canStartRound = party.status == PartyState.IN_PROGRESS,
             maxPlayers = engine.maxPlayers,
-            roundHistory = roundHistory
+            roundTable = roundTable
         )
     }
 
@@ -201,7 +201,7 @@ class PartyViewModel @Inject constructor(
 
     fun onShowRoundHistory() {
         val state = roomState as? PartyUiState.Loaded ?: return
-        if (state.roundHistory.isEmpty()) return
+        if (state.roundTable.rows.isEmpty()) return
         isRoundHistoryOpen = true
         publish()
     }

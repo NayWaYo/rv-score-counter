@@ -1,7 +1,8 @@
 package com.rvetiveau.rvscorecount.ui.screens.partydetail
 
 import androidx.annotation.StringRes
-import com.rvetiveau.rvscorecount.ui.components.RoundHistoryItem
+import com.rvetiveau.rvscorecount.ui.components.RoundRecordUi
+import com.rvetiveau.rvscorecount.ui.components.RoundTable
 import com.rvetiveau.rvscorecount.ui.components.SevenChampionUi
 import com.rvetiveau.rvscorecount.ui.components.StandingRow
 
@@ -15,12 +16,13 @@ sealed interface PartyDetailUiState {
         val gameId: String,
         val createdAt: Long,
         val standings: List<StandingRow>,
-        val rounds: List<RoundHistoryItem>,
+        val roundTable: RoundTable,
         val sevenChampion: SevenChampionUi? = null,
+        val roundRecord: RoundRecordUi? = null,
         val isReplaying: Boolean = false,
         @StringRes val replayErrorRes: Int? = null
     ) : PartyDetailUiState {
-        val winners: List<StandingRow> get() = if (rounds.isEmpty()) emptyList() else standings.filter { it.rank == 1 }
+        val winners: List<StandingRow> get() = if (roundTable.rows.isEmpty()) emptyList() else standings.filter { it.rank == 1 }
     }
     data object LoadError : PartyDetailUiState
 

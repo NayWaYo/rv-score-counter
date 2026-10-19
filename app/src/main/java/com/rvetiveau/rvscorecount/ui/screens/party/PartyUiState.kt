@@ -1,14 +1,14 @@
 package com.rvetiveau.rvscorecount.ui.screens.party
 
 import androidx.annotation.StringRes
-import com.rvetiveau.rvscorecount.ui.components.RoundHistoryItem
+import com.rvetiveau.rvscorecount.ui.components.RoundTable
 import com.rvetiveau.rvscorecount.ui.components.StandingRow
 
 /**
  * Room-backed state of the Partie en cours (Story 4.1). [Loaded.standings] is already sorted by
  * Score Cumulé; [Loaded.roundNumber] is the Manche about to be played. [Loaded.addition] is the
  * in-memory draft of a late Participant (Story 4.2), null when no addition is in progress.
- * [Loaded.roundHistory] lists the validated Manches, most recent first (Story 4.3).
+ * [Loaded.roundTable] is the score sheet of the validated Manches (Story 4.3).
  * [Loaded.closure] tracks the « Fin de partie » confirmation (Story 5.1).
  */
 sealed interface PartyUiState {
@@ -20,7 +20,7 @@ sealed interface PartyUiState {
         val canStartRound: Boolean = true,
         val maxPlayers: Int = 0,
         val addition: ParticipantAdditionUiState? = null,
-        val roundHistory: List<RoundHistoryItem> = emptyList(),
+        val roundTable: RoundTable = RoundTable(),
         val isRoundHistoryOpen: Boolean = false,
         val closure: PartyClosureUiState = PartyClosureUiState()
     ) : PartyUiState {

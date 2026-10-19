@@ -29,3 +29,9 @@ val SpadeTint = Color(0xFF1A2328)
 val HeartTint = Color(0xFF2D1517)
 val ClubTint = Color(0xFF182A1A)
 val DiamondTint = Color(0xFF16222E)
+
+// Statistic cards: a tinted card with its own ink per statistic
+val ChampionTint = Color(0xFF33270D)
+val ChampionInk = Color(0xFFFFD54F)
+val RecordTint = Color(0xFF261C38)
+val RecordInk = Color(0xFFB39DDB)

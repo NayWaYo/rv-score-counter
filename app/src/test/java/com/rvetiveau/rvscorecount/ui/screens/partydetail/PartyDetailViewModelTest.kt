@@ -10,8 +10,9 @@ import com.rvetiveau.rvscorecount.domain.model.RoundScore
 import com.rvetiveau.rvscorecount.domain.repository.PartyRepository
 import com.rvetiveau.rvscorecount.domain.usecase.CreatePartyUseCase
 import com.rvetiveau.rvscorecount.game.papayoo.PapayooEngine
-import com.rvetiveau.rvscorecount.ui.components.RoundHistoryItem
-import com.rvetiveau.rvscorecount.ui.components.RoundHistoryScore
+import com.rvetiveau.rvscorecount.ui.components.RoundRecordEntryUi
+import com.rvetiveau.rvscorecount.ui.components.RoundRecordUi
+import com.rvetiveau.rvscorecount.ui.components.RoundTableRow
 import com.rvetiveau.rvscorecount.ui.components.SevenChampionUi
 import com.rvetiveau.rvscorecount.ui.navigation.NavigationEvent
 import com.rvetiveau.rvscorecount.ui.navigation.Routes
@@ -26,6 +27,7 @@ import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.test.setMain
 import org.junit.After
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
@@ -112,11 +114,13 @@ class PartyDetailViewModelTest {
         assertEquals(listOf("Alice"), state.winners.map { it.name })
         assertEquals(
             listOf(
-                RoundHistoryItem(1, CardSuit.HEART, listOf(RoundHistoryScore("Alice", 200), RoundHistoryScore("Bob", 50)), 250),
-                RoundHistoryItem(2, CardSuit.SPADE, listOf(RoundHistoryScore("Alice", 0), RoundHistoryScore("Bob", 250)), 250)
+                RoundTableRow(1, CardSuit.HEART, mapOf(alice.id to 200, bob.id to 50)),
+                RoundTableRow(2, CardSuit.SPADE, mapOf(alice.id to 0, bob.id to 250))
             ),
-            state.rounds
+            state.roundTable.rows
         )
+        assertEquals(listOf("Alice", "Bob"), state.roundTable.players.map { it.name })
+        assertEquals(RoundRecordUi(listOf(RoundRecordEntryUi("Bob", 2)), 250), state.roundRecord)
     }
 
     @Test
@@ -124,7 +128,8 @@ class PartyDetailViewModelTest {
         val vm = viewModel(FakePartyRepository(aParty(), listOf(alice, bob))).also { it.initialize(partyId) }
 
         val state = vm.uiState.value as PartyDetailUiState.Loaded
-        assertTrue(state.rounds.isEmpty())
+        assertTrue(state.roundTable.rows.isEmpty())
+        assertNull(state.roundRecord)
         assertTrue(state.winners.isEmpty())
     }
 
@@ -194,7 +199,7 @@ class PartyDetailViewModelTest {
         val vm = viewModel(repository).also { it.initialize(partyId) }
 
         val state = vm.uiState.value as PartyDetailUiState.Loaded
-        assertEquals(listOf("Alice", "Bob", "Bob"), state.rounds.map { it.sevenHolderName })
+        assertEquals(listOf(alice.id, bob.id, bob.id), state.roundTable.rows.map { it.sevenHolderId })
         assertEquals(SevenChampionUi(listOf("Bob"), 2), state.sevenChampion)
     }
 }

@@ -1,5 +1,6 @@
 package com.rvetiveau.rvscorecount.ui.screens.results
 
+import androidx.compose.ui.test.assertContentDescriptionEquals
 import androidx.compose.ui.test.assertIsEnabled
 import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.assertTextContains
@@ -7,8 +8,17 @@ import androidx.compose.ui.test.assertTextEquals
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
+import androidx.compose.ui.test.hasTestTag
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performScrollToNode
 import com.rvetiveau.rvscorecount.R
+import com.rvetiveau.rvscorecount.domain.model.CardSuit
+import com.rvetiveau.rvscorecount.ui.components.RoundRecordEntryUi
+import com.rvetiveau.rvscorecount.ui.components.RoundRecordUi
+import com.rvetiveau.rvscorecount.ui.components.RoundTable
+import com.rvetiveau.rvscorecount.ui.components.RoundTablePlayer
+import com.rvetiveau.rvscorecount.ui.components.RoundTableRow
+import com.rvetiveau.rvscorecount.ui.components.SevenChampionUi
 import com.rvetiveau.rvscorecount.ui.components.StandingRow
 import com.rvetiveau.rvscorecount.ui.theme.RvScoreCounterTheme
 import java.util.UUID
@@ -100,5 +110,39 @@ class ResultsScreenTest {
         composeTestRule.onNodeWithText("Réessayer").performClick()
 
         assertTrue(retried)
+    }
+
+    @Test
+    fun showsTheStatisticCardsAndTheScoreSheet() {
+        setContent(
+            loaded.copy(
+                sevenChampion = SevenChampionUi(listOf("Bob"), 2),
+                roundRecord = RoundRecordUi(listOf(RoundRecordEntryUi("Alice", 1), RoundRecordEntryUi("Alice", 3)), 200),
+                roundTable = RoundTable(
+                    players = listOf(RoundTablePlayer(aliceId, "Alice"), RoundTablePlayer(bobId, "Bob")),
+                    rows = listOf(
+                        RoundTableRow(1, CardSuit.HEART, mapOf(aliceId to 200, bobId to 50), sevenHolderId = bobId),
+                        RoundTableRow(2, CardSuit.SPADE, mapOf(aliceId to 180, bobId to 70), sevenHolderId = bobId)
+                    )
+                )
+            )
+        )
+
+        composeTestRule.onNodeWithTag("results_standings").performScrollToNode(hasTestTag("results_stats"))
+        composeTestRule.onNodeWithTag("stat_card_seven_champion").assertContentDescriptionEquals("Roi du 40 : Bob (2 fois)")
+        composeTestRule.onNodeWithTag("stat_card_round_record")
+            .assertContentDescriptionEquals("Record en une manche : Alice (manche 1), Alice (manche 3) — 200 points")
+        composeTestRule.onNodeWithTag("results_standings").performScrollToNode(hasTestTag("results_round_table"))
+        composeTestRule.onNodeWithTag("round_table_row_2")
+            .assertContentDescriptionEquals("Manche 2, Pique : Alice 180 · Bob 70, total 250, Le 40 : Bob")
+        composeTestRule.onNodeWithTag("round_table_total_$aliceId", useUnmergedTree = true).assertTextEquals("380")
+    }
+
+    @Test
+    fun hasNoScoreSheetWithoutRounds() {
+        setContent(loaded)
+
+        composeTestRule.onNodeWithTag("results_round_table").assertDoesNotExist()
+        composeTestRule.onNodeWithTag("results_stats").assertDoesNotExist()
     }
 }

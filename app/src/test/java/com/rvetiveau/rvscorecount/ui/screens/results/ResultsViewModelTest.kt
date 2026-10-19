@@ -105,6 +105,10 @@ class ResultsViewModelTest {
         assertEquals(listOf("Bob", "Alice", "Chloé"), state.standings.map { it.name })
         assertEquals(listOf(1, 2, 2), state.standings.map { it.rank })
         assertEquals(listOf("Bob"), state.winners.map { it.name })
+        assertEquals(100, state.roundRecord!!.points)
+        assertEquals(listOf("Alice", "Chloé"), state.roundRecord!!.entries.map { it.participantName })
+        assertEquals(listOf(1), state.roundTable.rows.map { it.roundNumber })
+        assertEquals(listOf("Alice", "Bob", "Chloé"), state.roundTable.players.map { it.name })
 
         val tied = viewModel(
             FakePartyRepository(aParty(), listOf(alice, bob, chloe), listOf(round), scores(alice to 50, bob to 50, chloe to 150))

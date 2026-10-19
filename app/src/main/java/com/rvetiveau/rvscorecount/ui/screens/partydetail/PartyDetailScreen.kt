@@ -21,8 +21,8 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import com.rvetiveau.rvscorecount.R
-import com.rvetiveau.rvscorecount.ui.components.RoundHistoryRow
-import com.rvetiveau.rvscorecount.ui.components.SevenChampionLine
+import com.rvetiveau.rvscorecount.ui.components.RoundTable
+import com.rvetiveau.rvscorecount.ui.components.StatCards
 import com.rvetiveau.rvscorecount.ui.components.StandingRowItem
 import com.rvetiveau.rvscorecount.ui.components.WinnerBanner
 import com.rvetiveau.rvscorecount.ui.components.gamePresentation
@@ -32,8 +32,8 @@ import java.time.format.DateTimeFormatter
 import java.time.format.FormatStyle
 
 /**
- * Stateless Détail de Partie (Story 6.2): date and Jeu, final Classement with the winner banner,
- * Manches in chronological order (read-only) and « Rejouer avec ces joueurs ».
+ * Stateless Détail de Partie (Story 6.2): date and Jeu, winner banner, final Classement, statistic cards,
+ * the score sheet of the Manches (read-only) and « Rejouer avec ces joueurs ».
  */
 @Composable
 fun PartyDetailScreen(
@@ -113,17 +113,23 @@ private fun LoadedContent(state: PartyDetailUiState.Loaded, onReplay: () -> Unit
                     WinnerBanner(state.winners, modifier = Modifier.testTag("party_detail_winner"))
                 }
             }
-            state.sevenChampion?.let { champion ->
-                item(key = "seven_champion") {
-                    SevenChampionLine(champion = champion, modifier = Modifier.testTag("party_detail_seven_champion"))
-                }
-            }
             items(state.standings, key = { it.participantId }) { row ->
                 StandingRowItem(
                     row = row,
-                    highlightRank = state.rounds.isNotEmpty() && row.rank <= 3,
+                    highlightRank = state.roundTable.rows.isNotEmpty() && row.rank <= 3,
                     modifier = Modifier.testTag("party_detail_standing_row_${row.participantId}")
                 )
+            }
+            if (state.sevenChampion != null || state.roundRecord != null) {
+                item(key = "stats") {
+                    StatCards(
+                        sevenChampion = state.sevenChampion,
+                        roundRecord = state.roundRecord,
+                        modifier = Modifier
+                            .padding(top = 8.dp)
+                            .testTag("party_detail_stats")
+                    )
+                }
             }
             item(key = "rounds_title") {
                 Text(
@@ -133,7 +139,7 @@ private fun LoadedContent(state: PartyDetailUiState.Loaded, onReplay: () -> Unit
                     modifier = Modifier.padding(top = 16.dp)
                 )
             }
-            if (state.rounds.isEmpty()) {
+            if (state.roundTable.rows.isEmpty()) {
                 item(key = "no_round") {
                     Text(
                         text = stringResource(R.string.history_no_round),
@@ -142,9 +148,10 @@ private fun LoadedContent(state: PartyDetailUiState.Loaded, onReplay: () -> Unit
                         modifier = Modifier.testTag("party_detail_no_round")
                     )
                 }
-            }
-            items(state.rounds, key = { "round_${it.roundNumber}" }) { round ->
-                RoundHistoryRow(item = round, modifier = Modifier.testTag("party_detail_round_${round.roundNumber}"))
+            } else {
+                item(key = "round_table") {
+                    RoundTable(table = state.roundTable, modifier = Modifier.testTag("party_detail_round_table"))
+                }
             }
         }
         state.replayErrorRes?.let { errorRes ->
