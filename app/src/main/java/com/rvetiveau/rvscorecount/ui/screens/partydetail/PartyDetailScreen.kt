@@ -23,7 +23,6 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import com.rvetiveau.rvscorecount.R
 import com.rvetiveau.rvscorecount.ui.components.StandingRowItem
-import com.rvetiveau.rvscorecount.ui.components.WinnerBanner
 import com.rvetiveau.rvscorecount.ui.components.gamePresentation
 import java.time.Instant
 import java.time.ZoneId
@@ -31,8 +30,8 @@ import java.time.format.DateTimeFormatter
 import java.time.format.FormatStyle
 
 /**
- * Stateless Détail de Partie (Story 6.2): date and Jeu, winner banner, final Classement, the way to
- * the Statistiques (with the Manches) and « Rejouer avec ces joueurs ».
+ * Stateless Détail de Partie (Story 6.2): date and Jeu, final Classement in compact rows with the
+ * winner(s) on the accent with a trophy, « Rejouer avec ces joueurs » and the Statistiques.
  */
 @Composable
 fun PartyDetailScreen(
@@ -113,15 +112,12 @@ private fun LoadedContent(
                 .fillMaxWidth()
                 .testTag("party_detail_content")
         ) {
-            if (state.winners.isNotEmpty()) {
-                item(key = "winner") {
-                    WinnerBanner(state.winners, modifier = Modifier.testTag("party_detail_winner"))
-                }
-            }
             items(state.standings, key = { it.participantId }) { row ->
                 StandingRowItem(
                     row = row,
                     highlightRank = state.roundCount > 0 && row.rank <= 3,
+                    isWinner = row in state.winners,
+                    compact = true,
                     modifier = Modifier.testTag("party_detail_standing_row_${row.participantId}")
                 )
             }
@@ -136,18 +132,6 @@ private fun LoadedContent(
                             .testTag("party_detail_no_round")
                     )
                 }
-            }
-        }
-        if (state.roundCount > 0) {
-            OutlinedButton(
-                onClick = onShowStats,
-                modifier = Modifier
-                    .padding(top = 16.dp)
-                    .fillMaxWidth()
-                    .heightIn(min = 56.dp)
-                    .testTag("party_detail_stats_button")
-            ) {
-                Text(text = stringResource(R.string.stats_link, state.roundCount))
             }
         }
         state.replayErrorRes?.let { errorRes ->
@@ -170,6 +154,18 @@ private fun LoadedContent(
                 .testTag("party_detail_replay_button")
         ) {
             Text(text = stringResource(R.string.party_detail_replay))
+        }
+        if (state.roundCount > 0) {
+            OutlinedButton(
+                onClick = onShowStats,
+                modifier = Modifier
+                    .padding(top = 8.dp)
+                    .fillMaxWidth()
+                    .heightIn(min = 56.dp)
+                    .testTag("party_detail_stats_button")
+            ) {
+                Text(text = stringResource(R.string.stats_short_link, state.roundCount))
+            }
         }
     }
 }

@@ -27,8 +27,10 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.unit.dp
@@ -67,11 +69,19 @@ fun List<Standing>.toStandingRows(
 
 /**
  * scoreboard-row : rang (meta), nom + badge Donneur (body), Score Cumulé (title), 56dp minimum.
- * [highlightRank] accentue le rang (podium des Résultats finaux). With [StandingRow.stats], a tap
- * unfolds the Participant's statistics under the row and a chevron shows it can.
+ * [highlightRank] accentue le rang (podium des Résultats finaux). [isWinner] puts the row on the
+ * accent with a trophy, in place of a separate winner banner. [compact] lowers the row to 48dp so
+ * eight Participants fit on the end-of-party screens. With [StandingRow.stats], a tap unfolds the
+ * Participant's statistics under the row and a chevron shows it can.
  */
 @Composable
-fun StandingRowItem(row: StandingRow, modifier: Modifier = Modifier, highlightRank: Boolean = false) {
+fun StandingRowItem(
+    row: StandingRow,
+    modifier: Modifier = Modifier,
+    highlightRank: Boolean = false,
+    isWinner: Boolean = false,
+    compact: Boolean = false
+) {
     var expanded by rememberSaveable(row.participantId) { mutableStateOf(false) }
     val stats = row.stats
     val stateText = when {
@@ -80,15 +90,16 @@ fun StandingRowItem(row: StandingRow, modifier: Modifier = Modifier, highlightRa
         else -> stringResource(R.string.standing_state_collapsed)
     }
     val clickLabel = stringResource(if (expanded) R.string.standing_collapse else R.string.standing_expand)
+    val ink = if (isWinner) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurfaceVariant
     Column(
         modifier = modifier
             .fillMaxWidth()
             .clip(RoundedCornerShape(8.dp))
-            .background(MaterialTheme.colorScheme.surfaceVariant)
+            .background(if (isWinner) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surfaceVariant)
             .let { base ->
                 if (stats != null) base.clickable(onClickLabel = clickLabel) { expanded = !expanded } else base
             }
-            .padding(horizontal = 16.dp, vertical = 8.dp)
+            .padding(horizontal = 16.dp, vertical = if (compact) 4.dp else 8.dp)
             .semantics(mergeDescendants = true) { stateText?.let { stateDescription = it } }
     ) {
         Row(
@@ -98,7 +109,11 @@ fun StandingRowItem(row: StandingRow, modifier: Modifier = Modifier, highlightRa
             Text(
                 text = stringResource(R.string.party_standing_rank, row.rank),
                 style = if (highlightRank) MaterialTheme.typography.titleMedium else MaterialTheme.typography.bodySmall,
-                color = if (highlightRank) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
+                color = when {
+                    isWinner -> ink
+                    highlightRank -> MaterialTheme.colorScheme.primary
+                    else -> ink
+                },
                 modifier = Modifier.widthIn(min = 32.dp)
             )
             Row(
@@ -110,9 +125,21 @@ fun StandingRowItem(row: StandingRow, modifier: Modifier = Modifier, highlightRa
                 Text(
                     text = row.name,
                     style = MaterialTheme.typography.bodyLarge,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    fontWeight = if (isWinner) FontWeight.Bold else null,
+                    color = ink,
                     modifier = Modifier.weight(1f, fill = false)
                 )
+                if (isWinner) {
+                    val winnerLabel = stringResource(R.string.standing_winner)
+                    Text(
+                        text = stringResource(R.string.standing_winner_emoji),
+                        style = MaterialTheme.typography.titleMedium,
+                        modifier = Modifier
+                            .padding(start = 8.dp)
+                            .semantics { contentDescription = winnerLabel }
+                            .testTag("winner_trophy")
+                    )
+                }
                 if (row.isDealer) {
                     Text(
                         text = stringResource(R.string.party_dealer_badge),
@@ -128,14 +155,15 @@ fun StandingRowItem(row: StandingRow, modifier: Modifier = Modifier, highlightRa
             }
             Text(
                 text = row.cumulativeScore.toString(),
-                style = MaterialTheme.typography.headlineMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
+                style = if (compact) MaterialTheme.typography.titleLarge else MaterialTheme.typography.headlineMedium,
+                fontWeight = if (isWinner) FontWeight.Bold else null,
+                color = ink
             )
             if (stats != null) {
                 Icon(
                     painter = painterResource(R.drawable.ic_expand),
                     contentDescription = null,
-                    tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
+                    tint = ink.copy(alpha = 0.7f),
                     modifier = Modifier
                         .padding(start = 8.dp)
                         .size(24.dp)

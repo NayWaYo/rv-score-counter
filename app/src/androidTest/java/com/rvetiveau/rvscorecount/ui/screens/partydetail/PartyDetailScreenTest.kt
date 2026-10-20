@@ -1,8 +1,10 @@
 package com.rvetiveau.rvscorecount.ui.screens.partydetail
 
+import androidx.compose.ui.test.assert
 import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.assertTextContains
 import androidx.compose.ui.test.assertTextEquals
+import androidx.compose.ui.test.hasContentDescription
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.performClick
@@ -46,7 +48,7 @@ class PartyDetailScreenTest {
         setContent(loaded)
 
         composeTestRule.onNodeWithTag("party_detail_subtitle").assertTextContains("Papayoo", substring = true)
-        composeTestRule.onNodeWithTag("party_detail_winner").assertTextContains("Vainqueur").assertTextContains("Alice")
+        composeTestRule.onNodeWithTag("party_detail_standing_row_$aliceId").assert(hasContentDescription("Vainqueur"))
         composeTestRule.onNodeWithTag("party_detail_standing_row_$bobId").assertTextContains("2.").assertTextContains("300")
     }
 
@@ -56,7 +58,7 @@ class PartyDetailScreenTest {
         setContent(loaded, onShowStats = { opened = true })
 
         composeTestRule.onNodeWithTag("party_detail_stats_button")
-            .assertTextEquals("Statistiques et manches (2)")
+            .assertTextEquals("Statistiques (2)")
             .performClick()
 
         assertTrue(opened)
@@ -66,7 +68,7 @@ class PartyDetailScreenTest {
     fun aPartyWithoutRoundsSaysSoAndHasNoWinnerNorStats() {
         setContent(loaded.copy(roundCount = 0))
 
-        composeTestRule.onNodeWithTag("party_detail_winner").assertDoesNotExist()
+        composeTestRule.onNodeWithTag("party_detail_standing_row_$aliceId").assert(hasContentDescription("Vainqueur").not())
         composeTestRule.onNodeWithTag("party_detail_stats_button").assertDoesNotExist()
         composeTestRule.onNodeWithTag("party_detail_no_round").assertTextEquals("Aucune manche jouée")
     }

@@ -32,6 +32,8 @@
     <string name="party_dealer_title">Manche %1$d — Donneur : %2$s</string>
     <string name="party_standing_rank">%1$d.</string>
     <string name="party_dealer_badge">Donneur</string>
+    <string name="standing_winner_emoji" translatable="false">🏆</string>
+    <string name="standing_winner">Vainqueur</string>
     <string name="party_end_button">Fin de partie</string>
     <string name="party_add_participant_button">Ajouter un joueur</string>
     <string name="party_max_participants_reached">Maximum de %1$d joueurs atteint</string>
@@ -48,6 +50,7 @@
     <string name="party_end_dialog_confirm">Confirmer</string>
     <string name="party_end_error">Impossible de terminer la partie. Réessayez.</string>
     <string name="stats_link">Statistiques et manches (%1$d)</string>
+    <string name="stats_short_link">Statistiques (%1$d)</string>
     <string name="party_rounds_title">Manches jouées</string>
     <string name="stats_correction_hint">Touchez une manche pour la corriger.</string>
     <string name="round_table_correct_action">corriger la manche</string>
@@ -67,6 +70,7 @@
     <string name="results_replay">Rejouer</string>
     <string name="results_replay_error">Impossible de relancer la partie. Réessayez.</string>
     <string name="results_back_home">Retour à l\'accueil</string>
+    <string name="results_home_short">Accueil</string>
     <string name="results_load_error">Impossible de charger les résultats.</string>
     <string name="results_unavailable">Résultats indisponibles pour cette partie.</string>
 

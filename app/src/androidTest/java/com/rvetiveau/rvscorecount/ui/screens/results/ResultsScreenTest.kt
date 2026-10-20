@@ -1,9 +1,12 @@
 package com.rvetiveau.rvscorecount.ui.screens.results
 
+import androidx.compose.ui.test.assert
+import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsEnabled
 import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.assertTextContains
 import androidx.compose.ui.test.assertTextEquals
+import androidx.compose.ui.test.hasContentDescription
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
@@ -29,7 +32,8 @@ class ResultsScreenTest {
         listOf(
             StandingRow(bobId, rank = 1, name = "Bob", cumulativeScore = 120, isDealer = false),
             StandingRow(aliceId, rank = 2, name = "Alice", cumulativeScore = 380, isDealer = false)
-        )
+        ),
+        roundCount = 2
     )
 
     private fun setContent(state: ResultsUiState, onBackToHome: () -> Unit = {}, onRetry: () -> Unit = {}) {
@@ -45,10 +49,29 @@ class ResultsScreenTest {
         setContent(loaded)
 
         composeTestRule.onNodeWithTag("results_title").assertTextEquals("Résultats finaux")
-        composeTestRule.onNodeWithTag("results_winner")
-            .assertTextContains("Vainqueur").assertTextContains("Bob").assertTextContains("120 points")
+        composeTestRule.onNodeWithTag("results_standing_row_$bobId")
+            .assertTextContains("Bob").assertTextContains("120")
+            .assert(hasContentDescription("Vainqueur"))
         composeTestRule.onNodeWithTag("results_standing_row_$aliceId")
             .assertTextContains("2.").assertTextContains("Alice").assertTextContains("380")
+            .assert(hasContentDescription("Vainqueur").not())
+    }
+
+    @Test
+    fun eightPlayersAndTheButtonsFitWithoutScrolling() {
+        val players = List(8) { StandingRow(UUID.randomUUID(), it + 1, "Joueur $it", it * 10, isDealer = false) }
+        setContent(loaded.copy(standings = players))
+
+        players.forEach { composeTestRule.onNodeWithTag("results_standing_row_${it.participantId}").assertIsDisplayed() }
+        composeTestRule.onNodeWithTag("results_replay_button").assertIsDisplayed()
+        composeTestRule.onNodeWithTag("results_back_home_button").assertIsDisplayed()
+    }
+
+    @Test
+    fun noRowIsAWinnerBeforeTheFirstRound() {
+        setContent(loaded.copy(roundCount = 0))
+
+        composeTestRule.onNodeWithTag("results_standing_row_$bobId").assert(hasContentDescription("Vainqueur").not())
     }
 
     @Test
@@ -63,7 +86,7 @@ class ResultsScreenTest {
 
         composeTestRule.onNodeWithTag("results_replay_button").assertTextEquals("Rejouer").assertIsEnabled().performClick()
         composeTestRule.onNodeWithTag("results_back_home_button")
-            .assertTextEquals("Retour à l'accueil").assertIsEnabled().performClick()
+            .assertTextEquals("Accueil").assertIsEnabled().performClick()
 
         assertTrue(replayed)
         assertTrue(backHome)
@@ -84,11 +107,14 @@ class ResultsScreenTest {
                 listOf(
                     StandingRow(bobId, rank = 1, name = "Bob", cumulativeScore = 120, isDealer = false),
                     StandingRow(aliceId, rank = 1, name = "Alice", cumulativeScore = 120, isDealer = false)
-                )
+                ),
+                roundCount = 1
             )
         )
 
-        composeTestRule.onNodeWithTag("results_winner").assertTextContains("Vainqueurs").assertTextContains("Bob, Alice")
+        listOf(bobId, aliceId).forEach {
+            composeTestRule.onNodeWithTag("results_standing_row_$it").assert(hasContentDescription("Vainqueur"))
+        }
     }
 
     @Test
@@ -112,7 +138,7 @@ class ResultsScreenTest {
         }
 
         composeTestRule.onNodeWithTag("results_stats_button")
-            .assertTextEquals("Statistiques et manches (3)")
+            .assertTextEquals("Statistiques (3)")
             .performClick()
 
         assertTrue(opened)
@@ -120,7 +146,7 @@ class ResultsScreenTest {
 
     @Test
     fun hasNoStatsButtonWithoutRounds() {
-        setContent(loaded)
+        setContent(loaded.copy(roundCount = 0))
 
         composeTestRule.onNodeWithTag("results_stats_button").assertDoesNotExist()
     }

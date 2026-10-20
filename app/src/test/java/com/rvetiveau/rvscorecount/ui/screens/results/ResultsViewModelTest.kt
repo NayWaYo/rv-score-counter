@@ -138,7 +138,7 @@ class ResultsViewModelTest {
 
         repository.failure = null
         vm.retry(partyId)
-        assertEquals(listOf("Alice"), (vm.uiState.value as ResultsUiState.Loaded).winners.map { it.name })
+        assertEquals(listOf("Alice"), (vm.uiState.value as ResultsUiState.Loaded).standings.map { it.name })
     }
 
     // --- Story 5.2 ---

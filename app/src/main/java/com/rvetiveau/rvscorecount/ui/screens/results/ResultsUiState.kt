@@ -5,7 +5,7 @@ import com.rvetiveau.rvscorecount.ui.components.StandingRow
 
 /**
  * Résultats finaux d'une Partie FINISHED (Story 5.1). [Loaded.standings] is sorted by Score
- * Cumulé; [Loaded.winners] are all the rank-1 rows (ties included). Statistics and the Manches
+ * Cumulé; [Loaded.winners] are all the rank-1 rows (ties included), none before a Manche. Statistics and the Manches
  * are on the Statistiques screen, reached once [Loaded.roundCount] > 0.
  */
 sealed interface ResultsUiState {
@@ -16,7 +16,7 @@ sealed interface ResultsUiState {
         val isReplaying: Boolean = false,
         @StringRes val replayErrorRes: Int? = null
     ) : ResultsUiState {
-        val winners: List<StandingRow> get() = standings.filter { it.rank == 1 }
+        val winners: List<StandingRow> get() = if (roundCount == 0) emptyList() else standings.filter { it.rank == 1 }
     }
     data object LoadError : ResultsUiState
 
