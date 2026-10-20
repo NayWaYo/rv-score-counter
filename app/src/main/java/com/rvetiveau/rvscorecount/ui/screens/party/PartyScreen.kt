@@ -15,8 +15,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
@@ -40,7 +38,6 @@ import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.unit.dp
 import com.rvetiveau.rvscorecount.R
-import com.rvetiveau.rvscorecount.ui.components.RoundTable
 import com.rvetiveau.rvscorecount.ui.components.StandingRowItem
 
 /**
@@ -59,9 +56,7 @@ fun PartyScreen(
     onAdditionNameConfirmed: () -> Unit = {},
     onInsertionPositionSelected: (Int) -> Unit = {},
     onAdditionCancelled: () -> Unit = {},
-    onShowRoundHistory: () -> Unit = {},
-    onHideRoundHistory: () -> Unit = {},
-    onRoundSelected: (Int) -> Unit = {},
+    onShowStats: () -> Unit = {},
     onEndPartyClick: () -> Unit = {},
     onEndPartyConfirmed: () -> Unit = {},
     onEndPartyDismissed: () -> Unit = {}
@@ -163,14 +158,14 @@ fun PartyScreen(
                         .testTag("party_empty_state")
                 )
             }
-            if (state.roundTable.rows.isNotEmpty()) {
+            if (state.playedRoundCount > 0) {
                 TextButton(
-                    onClick = onShowRoundHistory,
+                    onClick = onShowStats,
                     modifier = Modifier
                         .heightIn(min = 48.dp)
-                        .testTag("party_rounds_link")
+                        .testTag("party_stats_link")
                 ) {
-                    Text(text = stringResource(R.string.party_rounds_link, state.roundTable.rows.size))
+                    Text(text = stringResource(R.string.stats_link, state.playedRoundCount))
                 }
             }
             if (state.closure.isConfirmationOpen) {
@@ -178,13 +173,6 @@ fun PartyScreen(
                     isClosing = state.closure.isClosing,
                     onConfirm = onEndPartyConfirmed,
                     onDismiss = onEndPartyDismissed
-                )
-            }
-            if (state.isRoundHistoryOpen) {
-                RoundHistorySheet(
-                    table = state.roundTable,
-                    onDismiss = onHideRoundHistory,
-                    onRoundClick = onRoundSelected.takeIf { state.canStartRound }
                 )
             }
             LazyColumn(
@@ -357,37 +345,6 @@ private fun EndPartyDialog(isClosing: Boolean, onConfirm: () -> Unit, onDismiss:
         },
         modifier = Modifier.testTag("party_end_dialog")
     )
-}
-
-/** Score sheet of the validated Manches (Story 4.3); with [onRoundClick], a Manche can be corrected. */
-@OptIn(ExperimentalMaterial3Api::class)
-@Composable
-private fun RoundHistorySheet(table: RoundTable, onDismiss: () -> Unit, onRoundClick: ((Int) -> Unit)?) {
-    ModalBottomSheet(onDismissRequest = onDismiss) {
-        Text(
-            text = stringResource(R.string.party_rounds_title),
-            style = MaterialTheme.typography.headlineSmall,
-            modifier = Modifier.padding(start = 16.dp, end = 16.dp, bottom = 8.dp)
-        )
-        if (onRoundClick != null) {
-            Text(
-                text = stringResource(R.string.party_rounds_correction_hint),
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier
-                    .padding(start = 16.dp, end = 16.dp, bottom = 8.dp)
-                    .testTag("party_rounds_correction_hint")
-            )
-        }
-        RoundTable(
-            table = table,
-            onRoundClick = onRoundClick,
-            modifier = Modifier
-                .verticalScroll(rememberScrollState())
-                .padding(start = 16.dp, end = 16.dp, bottom = 32.dp)
-                .testTag("party_round_history")
-        )
-    }
 }
 
 @Composable

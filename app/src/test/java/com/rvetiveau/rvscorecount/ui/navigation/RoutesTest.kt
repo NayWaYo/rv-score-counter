@@ -38,7 +38,8 @@ class RoutesTest {
             Routes.RoundEntry(partyId = "party-42"),
             Routes.RoundCorrection(partyId = "party-42", roundNumber = 3),
             Routes.Results(partyId = "party-42"),
-            Routes.PartyDetail(partyId = "party-42")
+            Routes.PartyDetail(partyId = "party-42"),
+            Routes.Stats(partyId = "party-42")
         )
 
         cases.forEach { route ->

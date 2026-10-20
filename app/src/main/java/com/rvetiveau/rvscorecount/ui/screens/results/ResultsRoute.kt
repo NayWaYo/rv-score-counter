@@ -37,6 +37,7 @@ fun ResultsRoute(
         onRetry = { viewModel.retry(partyId) },
         onBackToHome = viewModel::onBackToHome,
         onReplay = viewModel::onReplay,
+        onShowStats = viewModel::onShowStats,
         modifier = modifier
     )
 }

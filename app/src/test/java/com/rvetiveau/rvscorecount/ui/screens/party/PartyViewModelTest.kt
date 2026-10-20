@@ -13,9 +13,6 @@ import com.rvetiveau.rvscorecount.domain.usecase.AddParticipantUseCase
 import com.rvetiveau.rvscorecount.domain.usecase.ClosePartyUseCase
 import com.rvetiveau.rvscorecount.domain.usecase.GetAvailableGamesUseCase
 import com.rvetiveau.rvscorecount.game.papayoo.PapayooEngine
-import com.rvetiveau.rvscorecount.ui.components.RoundTable
-import com.rvetiveau.rvscorecount.ui.components.RoundTablePlayer
-import com.rvetiveau.rvscorecount.ui.components.RoundTableRow
 import com.rvetiveau.rvscorecount.ui.components.StandingRow
 import com.rvetiveau.rvscorecount.ui.navigation.NavigationEvent
 import com.rvetiveau.rvscorecount.ui.navigation.Routes
@@ -408,112 +405,29 @@ class PartyViewModelTest {
         assertTrue(withTimeoutOrNull(100) { vm.navigationEvents.first() } == null)
     }
 
-    // --- Story 4.3 historique des Manches ---
+    // --- Statistiques et correction d'une Manche ---
 
     @Test
-    fun `builds the score sheet in chronological order with players in table order`() = runTest {
-        val partyId = UUID.randomUUID()
-        val alice = aParticipant(partyId, "Alice", 0)
-        val bob = aParticipant(partyId, "Bob", 1)
-        val repository = FakePartyRepository(party = aParty(partyId), participants = listOf(alice, bob))
-        val vm = viewModel(repository)
-        vm.initialize(partyId)
-
-        repository.saveRound(Round(UUID.randomUUID(), partyId, 1, CardSuit.HEART), mapOf(bob.id to 50, alice.id to 200), aParty(partyId, 1))
-        repository.saveRound(Round(UUID.randomUUID(), partyId, 2, CardSuit.CLUB), mapOf(alice.id to 0, bob.id to 250), aParty(partyId, 0))
-
-        assertEquals(
-            RoundTable(
-                players = listOf(RoundTablePlayer(alice.id, "Alice"), RoundTablePlayer(bob.id, "Bob")),
-                rows = listOf(
-                    RoundTableRow(1, CardSuit.HEART, mapOf(alice.id to 200, bob.id to 50)),
-                    RoundTableRow(2, CardSuit.CLUB, mapOf(alice.id to 0, bob.id to 250))
-                )
-            ),
-            loadedState(vm).roundTable
-        )
-    }
-
-    @Test
-    fun `a participant added later is absent from rounds played before`() = runTest {
-        val partyId = UUID.randomUUID()
-        val alice = aParticipant(partyId, "Alice", 0)
-        val bob = aParticipant(partyId, "Bob", 1)
-        val repository = FakePartyRepository(party = aParty(partyId), participants = listOf(alice, bob))
-        val vm = viewModel(repository)
-        vm.initialize(partyId)
-        repository.saveRound(Round(UUID.randomUUID(), partyId, 1, CardSuit.SPADE), mapOf(alice.id to 100, bob.id to 150), aParty(partyId, 1))
-
-        vm.onAddParticipantClick()
-        vm.onAdditionNameChanged("Zoé")
-        vm.onAdditionNameConfirmed()
-        vm.onInsertionPositionSelected(1)
-
-        val table = loadedState(vm).roundTable
-        assertEquals(listOf("Alice", "Zoé", "Bob"), table.players.map { it.name })
-        assertEquals(setOf(alice.id, bob.id), table.rows.single().points.keys)
-        assertEquals(3, loadedState(vm).standings.size)
-    }
-
-    @Test
-    fun `the round history opens and closes, and never opens without rounds`() = runTest {
+    fun `the statistics open only once a round was played`() = runTest {
         val partyId = UUID.randomUUID()
         val alice = aParticipant(partyId, "Alice", 0)
         val repository = FakePartyRepository(party = aParty(partyId), participants = listOf(alice))
         val vm = viewModel(repository)
         vm.initialize(partyId)
 
-        vm.onShowRoundHistory()
-        assertTrue(!loadedState(vm).isRoundHistoryOpen)
-
-        repository.saveRound(Round(UUID.randomUUID(), partyId, 1, CardSuit.SPADE), mapOf(alice.id to 250), aParty(partyId))
-        assertTrue(!loadedState(vm).isRoundHistoryOpen)
-        vm.onShowRoundHistory()
-        assertTrue(loadedState(vm).isRoundHistoryOpen)
-        vm.onHideRoundHistory()
-        assertTrue(!loadedState(vm).isRoundHistoryOpen)
-    }
-
-    // --- Correction d'une Manche validée ---
-
-    @Test
-    fun `selecting a round closes the history and opens its correction`() = runTest {
-        val partyId = UUID.randomUUID()
-        val alice = aParticipant(partyId, "Alice", 0)
-        val repository = FakePartyRepository(party = aParty(partyId), participants = listOf(alice))
-        val vm = viewModel(repository)
-        vm.initialize(partyId)
-        repository.saveRound(Round(UUID.randomUUID(), partyId, 1, CardSuit.SPADE), mapOf(alice.id to 250), aParty(partyId))
-        vm.onShowRoundHistory()
-
-        vm.onRoundSelected(1)
-
-        assertEquals(
-            NavigationEvent.NavigateTo(Routes.RoundCorrection(partyId.toString(), 1)),
-            vm.navigationEvents.first()
-        )
-        assertTrue(!loadedState(vm).isRoundHistoryOpen)
-    }
-
-    @Test
-    fun `an unknown round or a finished party opens no correction`() = runTest {
-        val partyId = UUID.randomUUID()
-        val alice = aParticipant(partyId, "Alice", 0)
-        val repository = FakePartyRepository(party = aParty(partyId), participants = listOf(alice))
-        val vm = viewModel(repository)
-        vm.initialize(partyId)
-        repository.saveRound(Round(UUID.randomUUID(), partyId, 1, CardSuit.SPADE), mapOf(alice.id to 250), aParty(partyId))
-
-        vm.onRoundSelected(2)
+        vm.onShowStats()
+        assertEquals(0, loadedState(vm).playedRoundCount)
         assertNull(withTimeoutOrNull(100) { vm.navigationEvents.first() })
 
-        repository.updateParty(aParty(partyId, status = PartyState.FINISHED))
-        vm.onRoundSelected(1)
-        assertNull(withTimeoutOrNull(100) { vm.navigationEvents.first() })
+        repository.saveRound(Round(UUID.randomUUID(), partyId, 1, CardSuit.SPADE), mapOf(alice.id to 250), aParty(partyId))
+        vm.onShowStats()
+
+        assertEquals(1, loadedState(vm).playedRoundCount)
+        assertEquals(NavigationEvent.NavigateTo(Routes.Stats(partyId.toString())), vm.navigationEvents.first())
     }
 
     @Test
-    fun `the corrected scores show once the party screen resumes`() = runTest {
+    fun `a round corrected from the statistics shows once the party screen resumes`() = runTest {
         val partyId = UUID.randomUUID()
         val alice = aParticipant(partyId, "Alice", 0)
         val bob = aParticipant(partyId, "Bob", 1)
@@ -523,13 +437,13 @@ class PartyViewModelTest {
         val round = Round(UUID.randomUUID(), partyId, 1, CardSuit.SPADE, sevenHolderId = alice.id)
         repository.saveRound(round, mapOf(alice.id to 200, bob.id to 50), aParty(partyId, 1))
 
-        vm.onRoundSelected(1)
+        vm.onShowStats()
         vm.navigationEvents.first()
         repository.correctRound(round, mapOf(alice.id to 50, bob.id to 200))
         vm.onScreenResumed()
 
         assertEquals(listOf("Alice", "Bob"), loadedState(vm).standings.map { it.name })
-        assertEquals(mapOf(alice.id to 50, bob.id to 200), loadedState(vm).roundTable.rows.single().points)
+        assertEquals(listOf(50, 200), loadedState(vm).standings.map { it.cumulativeScore })
     }
 
     // --- Story 4.2 ajout de Participant en cours de Partie ---

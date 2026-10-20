@@ -47,9 +47,9 @@
     <string name="party_end_dialog_message">Voulez-vous vraiment mettre fin à cette partie ?</string>
     <string name="party_end_dialog_confirm">Confirmer</string>
     <string name="party_end_error">Impossible de terminer la partie. Réessayez.</string>
-    <string name="party_rounds_link">Voir les manches (%1$d)</string>
+    <string name="stats_link">Statistiques et manches (%1$d)</string>
     <string name="party_rounds_title">Manches jouées</string>
-    <string name="party_rounds_correction_hint">Touchez une manche pour la corriger.</string>
+    <string name="stats_correction_hint">Touchez une manche pour la corriger.</string>
     <string name="round_table_correct_action">corriger la manche</string>
 
     <!-- Résultats finaux -->
@@ -149,7 +149,10 @@
     <string name="round_entry_suit_label">Couleur du 7</string>
     <string name="round_entry_standings_button">Classement</string>
     <string name="round_entry_scores_button">Saisir les scores</string>
-    <string name="round_entry_stats_title">Statistiques</string>
+    <string name="stats_title">Statistiques</string>
+    <string name="stats_load_error">Impossible de charger les statistiques.</string>
+    <string name="stats_unavailable">Statistiques indisponibles pour cette partie.</string>
+    <string name="stats_standings_title">Classement</string>
     <string name="round_record">Record en une manche : %1$s — %2$d points</string>
     <string name="round_record_entry">%1$s (manche %2$d)</string>
     <string name="die_roll">Lancer</string>

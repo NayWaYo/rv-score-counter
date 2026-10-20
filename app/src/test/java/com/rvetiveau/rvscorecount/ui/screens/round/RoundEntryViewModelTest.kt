@@ -918,7 +918,7 @@ class RoundEntryViewModelTest {
         assertEquals(participants[2].id, restored.uiState.value.content!!.sevenHolderId)
     }
 
-    // --- Classement, Manches et statistiques sous le dé ---
+    // --- Classement sous le dé ---
 
     private fun aPlayedParty(): Triple<UUID, List<Participant>, FakePartyRepository> {
         val partyId = UUID.randomUUID()
@@ -941,7 +941,7 @@ class RoundEntryViewModelTest {
     }
 
     @Test
-    fun `loads the standings, the rounds and the statistics of the party`() = runTest {
+    fun `loads the standings of the party with the dealer and without statistics`() = runTest {
         val (partyId, participants, repository) = aPlayedParty()
         val (alice, bob) = participants
         val vm = viewModel(partyRepository = repository).also { it.initialize(partyId) }
@@ -950,22 +950,15 @@ class RoundEntryViewModelTest {
         assertEquals(listOf(alice.id, bob.id), summary.standings.map { it.participantId })
         assertEquals(listOf(140, 360), summary.standings.map { it.cumulativeScore })
         assertEquals(listOf(false, true), summary.standings.map { it.isDealer })
-        assertEquals(listOf(1, 2), summary.roundTable.rows.map { it.roundNumber })
-        assertEquals(listOf("Bob"), summary.sevenChampion!!.names)
-        assertEquals(2, summary.sevenChampion!!.count)
-        assertEquals(210, summary.roundRecord!!.points)
-        assertEquals(listOf("Bob" to 1), summary.roundRecord!!.entries.map { it.participantName to it.roundNumber })
+        assertTrue(summary.standings.all { it.stats == null })
     }
 
     @Test
-    fun `the first round has an empty summary`() = runTest {
+    fun `the first round has everyone at zero`() = runTest {
         val vm = initializedViewModel()
 
         val summary = vm.uiState.value.content!!.summary
-        assertEquals(1, summary.standings.size)
-        assertTrue(summary.roundTable.rows.isEmpty())
-        assertNull(summary.sevenChampion)
-        assertNull(summary.roundRecord)
+        assertEquals(listOf(0), summary.standings.map { it.cumulativeScore })
     }
 
     @Test

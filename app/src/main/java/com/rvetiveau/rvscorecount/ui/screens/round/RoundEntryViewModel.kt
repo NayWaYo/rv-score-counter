@@ -8,8 +8,6 @@ import com.rvetiveau.rvscorecount.domain.model.CardSuit
 import com.rvetiveau.rvscorecount.domain.model.Participant
 import com.rvetiveau.rvscorecount.domain.model.PartyState
 import com.rvetiveau.rvscorecount.domain.model.computeStandings
-import com.rvetiveau.rvscorecount.domain.model.playerStats
-import com.rvetiveau.rvscorecount.domain.model.roundRecord
 import com.rvetiveau.rvscorecount.domain.model.sevenChampion
 import com.rvetiveau.rvscorecount.domain.repository.PartyRepository
 import com.rvetiveau.rvscorecount.domain.usecase.CorrectRoundOutcome
@@ -18,9 +16,7 @@ import com.rvetiveau.rvscorecount.domain.usecase.GetAvailableGamesUseCase
 import com.rvetiveau.rvscorecount.domain.usecase.RollDieUseCase
 import com.rvetiveau.rvscorecount.domain.usecase.ValidateRoundOutcome
 import com.rvetiveau.rvscorecount.domain.usecase.ValidateRoundUseCase
-import com.rvetiveau.rvscorecount.ui.components.roundTable
 import com.rvetiveau.rvscorecount.ui.components.toStandingRows
-import com.rvetiveau.rvscorecount.ui.components.toUi
 import com.rvetiveau.rvscorecount.ui.navigation.NavigationEvent
 import dagger.hilt.android.lifecycle.HiltViewModel
 import java.util.UUID
@@ -285,24 +281,18 @@ class RoundEntryViewModel @Inject constructor(
         }
     }
 
-    /** Classement, Manches and statistics of the Partie so far; an inconsistent score or 7 holder
-     * throws IllegalArgumentException, which [initialize] reports as a load error. */
+    /** Classement of the Partie so far; an inconsistent score or 7 holder throws
+     * IllegalArgumentException, which [initialize] reports as a load error. */
     private suspend fun loadSummary(
         partyId: UUID,
         participants: List<Participant>,
         currentDealerIndex: Int
     ): RoundEntrySummary {
         val rounds = partyRepository.getRoundsByPartyId(partyId)
-        val scoresByRound = rounds.associateWith { partyRepository.getScoresByRoundId(it.id) }
-        val champion = sevenChampion(participants, rounds)
-        val standings = computeStandings(participants, scoresByRound.values.flatten())
+        sevenChampion(participants, rounds)
+        val standings = computeStandings(participants, rounds.flatMap { partyRepository.getScoresByRoundId(it.id) })
         val dealerId = participants.firstOrNull { it.listPosition == currentDealerIndex }?.id
-        return RoundEntrySummary(
-            standings = standings.toStandingRows(dealerId = dealerId, stats = playerStats(participants, scoresByRound)),
-            roundTable = roundTable(participants, scoresByRound),
-            sevenChampion = champion?.toUi(),
-            roundRecord = roundRecord(participants, scoresByRound)?.toUi()
-        )
+        return RoundEntrySummary(standings = standings.toStandingRows(dealerId = dealerId))
     }
 
     /** Recomputed from the drafts on every change, so it follows each digit typed in another field. */

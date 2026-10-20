@@ -10,10 +10,6 @@ import com.rvetiveau.rvscorecount.domain.model.RoundScore
 import com.rvetiveau.rvscorecount.domain.repository.PartyRepository
 import com.rvetiveau.rvscorecount.domain.usecase.CreatePartyUseCase
 import com.rvetiveau.rvscorecount.game.papayoo.PapayooEngine
-import com.rvetiveau.rvscorecount.ui.components.RoundRecordEntryUi
-import com.rvetiveau.rvscorecount.ui.components.RoundRecordUi
-import com.rvetiveau.rvscorecount.ui.components.RoundTableRow
-import com.rvetiveau.rvscorecount.ui.components.SevenChampionUi
 import com.rvetiveau.rvscorecount.ui.navigation.NavigationEvent
 import com.rvetiveau.rvscorecount.ui.navigation.Routes
 import java.util.UUID
@@ -25,6 +21,7 @@ import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import kotlinx.coroutines.test.resetMain
 import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.test.setMain
+import kotlinx.coroutines.withTimeoutOrNull
 import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
@@ -105,23 +102,16 @@ class PartyDetailViewModelTest {
     )
 
     @Test
-    fun `shows the final classement and the rounds in chronological order`() = runTest {
+    fun `shows the final classement without statistics and counts the rounds`() = runTest {
         val vm = viewModel(playedRepository()).also { it.initialize(partyId) }
 
         val state = vm.uiState.value as PartyDetailUiState.Loaded
         assertEquals(42L, state.createdAt)
         assertEquals(listOf("Alice", "Bob"), state.standings.map { it.name })
         assertEquals(listOf(200, 300), state.standings.map { it.cumulativeScore })
+        assertTrue(state.standings.all { it.stats == null })
         assertEquals(listOf("Alice"), state.winners.map { it.name })
-        assertEquals(
-            listOf(
-                RoundTableRow(1, CardSuit.HEART, mapOf(alice.id to 200, bob.id to 50)),
-                RoundTableRow(2, CardSuit.SPADE, mapOf(alice.id to 0, bob.id to 250))
-            ),
-            state.roundTable.rows
-        )
-        assertEquals(listOf("Alice", "Bob"), state.roundTable.players.map { it.name })
-        assertEquals(RoundRecordUi(listOf(RoundRecordEntryUi("Bob", 2)), 250), state.roundRecord)
+        assertEquals(2, state.roundCount)
     }
 
     @Test
@@ -129,8 +119,7 @@ class PartyDetailViewModelTest {
         val vm = viewModel(FakePartyRepository(aParty(), listOf(alice, bob))).also { it.initialize(partyId) }
 
         val state = vm.uiState.value as PartyDetailUiState.Loaded
-        assertTrue(state.roundTable.rows.isEmpty())
-        assertNull(state.roundRecord)
+        assertEquals(0, state.roundCount)
         assertTrue(state.winners.isEmpty())
     }
 
@@ -183,24 +172,14 @@ class PartyDetailViewModelTest {
     }
 
     @Test
-    fun `shows who took the 40 in each round and the 40 champion`() = runTest {
-        val r1 = round1.copy(sevenHolderId = alice.id)
-        val r2 = round2.copy(sevenHolderId = bob.id)
-        val r3 = Round(UUID.randomUUID(), partyId, 3, CardSuit.CLUB, sevenHolderId = bob.id)
-        val repository = FakePartyRepository(
-            aParty(),
-            listOf(alice, bob),
-            listOf(r1, r2, r3),
-            listOf(
-                RoundScore(r1.id, alice.id, 200), RoundScore(r1.id, bob.id, 50),
-                RoundScore(r2.id, alice.id, 0), RoundScore(r2.id, bob.id, 250),
-                RoundScore(r3.id, alice.id, 100), RoundScore(r3.id, bob.id, 150)
-            )
-        )
-        val vm = viewModel(repository).also { it.initialize(partyId) }
+    fun `the statistics open only once a round was played`() = runTest {
+        val played = viewModel(playedRepository()).also { it.initialize(partyId) }
+        val empty = viewModel(FakePartyRepository(aParty(), listOf(alice, bob))).also { it.initialize(partyId) }
 
-        val state = vm.uiState.value as PartyDetailUiState.Loaded
-        assertEquals(listOf(alice.id, bob.id, bob.id), state.roundTable.rows.map { it.sevenHolderId })
-        assertEquals(SevenChampionUi(listOf("Bob"), 2), state.sevenChampion)
+        played.onShowStats()
+        empty.onShowStats()
+
+        assertEquals(NavigationEvent.NavigateTo(Routes.Stats(partyId.toString())), played.navigationEvents.first())
+        assertNull(withTimeoutOrNull(100) { empty.navigationEvents.first() })
     }
 }

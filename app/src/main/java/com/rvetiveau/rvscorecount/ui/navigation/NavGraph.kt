@@ -14,6 +14,7 @@ import com.rvetiveau.rvscorecount.ui.screens.partydetail.PartyDetailRoute
 import com.rvetiveau.rvscorecount.ui.screens.results.ResultsRoute
 import com.rvetiveau.rvscorecount.ui.screens.round.RoundEntryRoute
 import com.rvetiveau.rvscorecount.ui.screens.setup.SetupRoute
+import com.rvetiveau.rvscorecount.ui.screens.stats.StatsRoute
 import java.util.UUID
 
 /** Single NavHost registering every destination (AD-6). */
@@ -70,6 +71,13 @@ fun RvScoreCounterNavHost(
         composable<Routes.PartyDetail> { backStackEntry ->
             val route: Routes.PartyDetail = backStackEntry.toRoute()
             PartyDetailRoute(
+                partyId = UUID.fromString(route.partyId),
+                onNavigate = { event -> navController.dispatch(event) }
+            )
+        }
+        composable<Routes.Stats> { backStackEntry ->
+            val route: Routes.Stats = backStackEntry.toRoute()
+            StatsRoute(
                 partyId = UUID.fromString(route.partyId),
                 onNavigate = { event -> navController.dispatch(event) }
             )

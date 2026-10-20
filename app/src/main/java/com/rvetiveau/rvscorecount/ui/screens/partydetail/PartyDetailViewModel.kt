@@ -5,13 +5,9 @@ import androidx.lifecycle.viewModelScope
 import com.rvetiveau.rvscorecount.R
 import com.rvetiveau.rvscorecount.domain.model.PartyState
 import com.rvetiveau.rvscorecount.domain.model.computeStandings
-import com.rvetiveau.rvscorecount.domain.model.playerStats
-import com.rvetiveau.rvscorecount.domain.model.roundRecord
 import com.rvetiveau.rvscorecount.domain.model.sevenChampion
-import com.rvetiveau.rvscorecount.ui.components.toUi
 import com.rvetiveau.rvscorecount.domain.repository.PartyRepository
 import com.rvetiveau.rvscorecount.domain.usecase.CreatePartyUseCase
-import com.rvetiveau.rvscorecount.ui.components.roundTable
 import com.rvetiveau.rvscorecount.ui.components.toStandingRows
 import com.rvetiveau.rvscorecount.ui.navigation.NavigationEvent
 import com.rvetiveau.rvscorecount.ui.navigation.Routes
@@ -74,22 +70,28 @@ class PartyDetailViewModel @Inject constructor(
             return PartyDetailUiState.Unavailable
         }
 
-        val scoresByRound = partyRepository.getRoundsByPartyId(partyId)
-            .associateWith { partyRepository.getScoresByRoundId(it.id) }
-        // computeStandings et sevenChampion vérifient scores et détenteurs du 7 avant roundTable.
+        val rounds = partyRepository.getRoundsByPartyId(partyId)
+        val scores = rounds.flatMap { partyRepository.getScoresByRoundId(it.id) }
         return try {
-            val standings = computeStandings(participants, scoresByRound.values.flatten())
-            val champion = sevenChampion(participants, scoresByRound.keys.toList())
+            sevenChampion(participants, rounds)
             PartyDetailUiState.Loaded(
                 gameId = party.gameId,
                 createdAt = party.createdAt,
-                standings = standings.toStandingRows(stats = playerStats(participants, scoresByRound)),
-                roundTable = roundTable(participants, scoresByRound),
-                sevenChampion = champion?.toUi(),
-                roundRecord = roundRecord(participants, scoresByRound)?.toUi()
+                standings = computeStandings(participants, scores).toStandingRows(),
+                roundCount = rounds.size
             )
         } catch (_: IllegalArgumentException) {
             PartyDetailUiState.Unavailable
+        }
+    }
+
+    /** Opens the Statistiques of the Partie, which hold its Manches. */
+    fun onShowStats() {
+        val partyId = initializedPartyId ?: return
+        val state = _uiState.value as? PartyDetailUiState.Loaded ?: return
+        if (state.roundCount == 0) return
+        viewModelScope.launch {
+            _navigationEvents.send(NavigationEvent.NavigateTo(Routes.Stats(partyId.toString())))
         }
     }
 

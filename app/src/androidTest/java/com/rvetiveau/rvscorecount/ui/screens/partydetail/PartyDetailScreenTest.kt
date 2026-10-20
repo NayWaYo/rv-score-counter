@@ -1,23 +1,12 @@
 package com.rvetiveau.rvscorecount.ui.screens.partydetail
 
-import androidx.compose.ui.test.assertContentDescriptionEquals
-import androidx.compose.ui.test.assertHasNoClickAction
 import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.assertTextContains
 import androidx.compose.ui.test.assertTextEquals
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.performClick
-import androidx.compose.ui.test.performScrollToNode
-import androidx.compose.ui.test.hasTestTag
 import com.rvetiveau.rvscorecount.R
-import com.rvetiveau.rvscorecount.domain.model.CardSuit
-import com.rvetiveau.rvscorecount.ui.components.RoundRecordEntryUi
-import com.rvetiveau.rvscorecount.ui.components.RoundRecordUi
-import com.rvetiveau.rvscorecount.ui.components.RoundTable
-import com.rvetiveau.rvscorecount.ui.components.RoundTablePlayer
-import com.rvetiveau.rvscorecount.ui.components.RoundTableRow
-import com.rvetiveau.rvscorecount.ui.components.SevenChampionUi
 import com.rvetiveau.rvscorecount.ui.components.StandingRow
 import com.rvetiveau.rvscorecount.ui.theme.RvScoreCounterTheme
 import java.util.UUID
@@ -41,19 +30,13 @@ class PartyDetailScreenTest {
             StandingRow(aliceId, rank = 1, name = "Alice", cumulativeScore = 200, isDealer = false),
             StandingRow(bobId, rank = 2, name = "Bob", cumulativeScore = 300, isDealer = false)
         ),
-        roundTable = RoundTable(
-            players = listOf(RoundTablePlayer(aliceId, "Alice"), RoundTablePlayer(bobId, "Bob")),
-            rows = listOf(
-                RoundTableRow(1, CardSuit.HEART, mapOf(aliceId to 200, bobId to 50)),
-                RoundTableRow(2, CardSuit.SPADE, mapOf(aliceId to 0, bobId to 250))
-            )
-        )
+        roundCount = 2
     )
 
-    private fun setContent(state: PartyDetailUiState, onReplay: () -> Unit = {}) {
+    private fun setContent(state: PartyDetailUiState, onReplay: () -> Unit = {}, onShowStats: () -> Unit = {}) {
         composeTestRule.setContent {
             RvScoreCounterTheme {
-                PartyDetailScreen(state = state, onReplay = onReplay)
+                PartyDetailScreen(state = state, onReplay = onReplay, onShowStats = onShowStats)
             }
         }
     }
@@ -68,27 +51,23 @@ class PartyDetailScreenTest {
     }
 
     @Test
-    fun showsTheRoundsAsAChronologicalScoreSheetWithTotals() {
-        setContent(loaded)
+    fun theStatsButtonShowsTheRoundCountAndEmitsItsIntent() {
+        var opened = false
+        setContent(loaded, onShowStats = { opened = true })
 
-        composeTestRule.onNodeWithTag("party_detail_content").performScrollToNode(hasTestTag("party_detail_round_table"))
-        composeTestRule.onNodeWithTag("round_table_row_1")
-            .assertContentDescriptionEquals("Manche 1, Cœur : Alice 200 · Bob 50, total 250")
-            .assertHasNoClickAction()
-        composeTestRule.onNodeWithTag("round_table_row_2")
-            .assertContentDescriptionEquals("Manche 2, Pique : Alice 0 · Bob 250, total 250")
-        val first = composeTestRule.onNodeWithTag("round_table_row_1").fetchSemanticsNode().boundsInRoot.top
-        val second = composeTestRule.onNodeWithTag("round_table_row_2").fetchSemanticsNode().boundsInRoot.top
-        assertTrue(first < second)
-        composeTestRule.onNodeWithTag("round_table_total_$aliceId", useUnmergedTree = true).assertTextEquals("200")
-        composeTestRule.onNodeWithTag("round_table_total_$bobId", useUnmergedTree = true).assertTextEquals("300")
+        composeTestRule.onNodeWithTag("party_detail_stats_button")
+            .assertTextEquals("Statistiques et manches (2)")
+            .performClick()
+
+        assertTrue(opened)
     }
 
     @Test
-    fun aPartyWithoutRoundsSaysSoAndHasNoWinner() {
-        setContent(loaded.copy(roundTable = RoundTable()))
+    fun aPartyWithoutRoundsSaysSoAndHasNoWinnerNorStats() {
+        setContent(loaded.copy(roundCount = 0))
 
         composeTestRule.onNodeWithTag("party_detail_winner").assertDoesNotExist()
+        composeTestRule.onNodeWithTag("party_detail_stats_button").assertDoesNotExist()
         composeTestRule.onNodeWithTag("party_detail_no_round").assertTextEquals("Aucune manche jouée")
     }
 
@@ -115,24 +94,5 @@ class PartyDetailScreenTest {
         setContent(PartyDetailUiState.Unavailable)
 
         composeTestRule.onNodeWithTag("party_detail_unavailable").assertTextEquals("Détail indisponible pour cette partie.")
-    }
-
-    @Test
-    fun showsTheStatisticCardsAndWhoTookThe40InEachRound() {
-        setContent(
-            loaded.copy(
-                roundTable = loaded.roundTable.copy(rows = loaded.roundTable.rows.map { it.copy(sevenHolderId = bobId) }),
-                sevenChampion = SevenChampionUi(listOf("Bob"), 2),
-                roundRecord = RoundRecordUi(listOf(RoundRecordEntryUi("Bob", 2)), 250)
-            )
-        )
-
-        composeTestRule.onNodeWithTag("party_detail_content").performScrollToNode(hasTestTag("party_detail_stats"))
-        composeTestRule.onNodeWithTag("stat_card_seven_champion").assertContentDescriptionEquals("Roi du 40 : Bob (2 fois)")
-        composeTestRule.onNodeWithTag("stat_card_round_record")
-            .assertContentDescriptionEquals("Record en une manche : Bob (manche 2) — 250 points")
-        composeTestRule.onNodeWithTag("party_detail_content").performScrollToNode(hasTestTag("party_detail_round_table"))
-        composeTestRule.onNodeWithTag("round_table_row_1")
-            .assertContentDescriptionEquals("Manche 1, Cœur : Alice 200 · Bob 50, total 250, Le 40 : Bob")
     }
 }

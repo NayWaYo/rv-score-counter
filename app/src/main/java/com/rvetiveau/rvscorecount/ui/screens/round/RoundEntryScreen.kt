@@ -33,9 +33,6 @@ import androidx.compose.ui.unit.dp
 import com.rvetiveau.rvscorecount.R
 import com.rvetiveau.rvscorecount.domain.model.CardSuit
 import com.rvetiveau.rvscorecount.ui.components.DieRoller
-import com.rvetiveau.rvscorecount.ui.components.RoundTable
-import com.rvetiveau.rvscorecount.ui.components.ScoreChart
-import com.rvetiveau.rvscorecount.ui.components.StatCards
 import com.rvetiveau.rvscorecount.ui.components.StandingRowItem
 import com.rvetiveau.rvscorecount.ui.components.ScoreField
 import com.rvetiveau.rvscorecount.ui.components.SumIndicator
@@ -46,7 +43,7 @@ import java.util.UUID
 
 /**
  * Stateless Saisie de Manche screen (AC 1-12): a large die in the middle, then « Classement » and
- * « Saisir les scores », each showing its panel (Classement, statistics and Manches, or free-order
+ * « Saisir les scores », each showing its panel (Classement, or free-order
  * score entry and running sum)
  * once the Partie/Participants aggregate is loaded. Loading/error states never render partial
  * fields and gate the die's actions until the content is ready (AC 10).
@@ -204,7 +201,7 @@ private fun PanelButton(selected: Boolean, label: String, onClick: () -> Unit, m
     }
 }
 
-/** The Partie so far: Classement, statistic cards, then the score sheet of the validated Manches. */
+/** The Partie so far: its Classement with the Donneur badge. */
 @Composable
 private fun StandingsPanel(summary: RoundEntrySummary) {
     Column(
@@ -217,40 +214,7 @@ private fun StandingsPanel(summary: RoundEntrySummary) {
         summary.standings.forEach { row ->
             StandingRowItem(row, modifier = Modifier.testTag("round_entry_standing_row_${row.participantId}"))
         }
-        if (summary.sevenChampion != null || summary.roundRecord != null) {
-            PanelHeading(text = stringResource(R.string.round_entry_stats_title))
-            StatCards(
-                sevenChampion = summary.sevenChampion,
-                roundRecord = summary.roundRecord,
-                modifier = Modifier.testTag("round_entry_stats")
-            )
-        }
-        if (summary.roundTable.rows.size >= 2) {
-            PanelHeading(text = stringResource(R.string.score_chart_title))
-            ScoreChart(table = summary.roundTable, modifier = Modifier.testTag("round_entry_score_chart"))
-        }
-        PanelHeading(text = stringResource(R.string.party_rounds_title))
-        if (summary.roundTable.rows.isEmpty()) {
-            Text(
-                text = stringResource(R.string.history_no_round),
-                style = MaterialTheme.typography.bodyLarge,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.testTag("round_entry_no_round")
-            )
-        } else {
-            RoundTable(table = summary.roundTable, modifier = Modifier.testTag("round_entry_round_table"))
-        }
     }
-}
-
-@Composable
-private fun PanelHeading(text: String) {
-    Text(
-        text = text,
-        style = MaterialTheme.typography.titleMedium,
-        color = MaterialTheme.colorScheme.onBackground,
-        modifier = Modifier.padding(top = 8.dp)
-    )
 }
 
 /** Score entry, « Qui a eu le 40 ? », running sum and « Valider la Manche » (Stories 3.2-3.4). */

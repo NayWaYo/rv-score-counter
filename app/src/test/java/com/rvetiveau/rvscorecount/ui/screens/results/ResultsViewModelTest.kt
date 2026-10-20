@@ -106,11 +106,8 @@ class ResultsViewModelTest {
         assertEquals(listOf("Bob", "Alice", "Chloé"), state.standings.map { it.name })
         assertEquals(listOf(1, 2, 2), state.standings.map { it.rank })
         assertEquals(listOf("Bob"), state.winners.map { it.name })
-        assertEquals(100, state.roundRecord!!.points)
-        assertEquals(listOf("Alice", "Chloé"), state.roundRecord!!.entries.map { it.participantName })
-        assertEquals(listOf(1), state.roundTable.rows.map { it.roundNumber })
-        assertEquals(50.0, state.standings.first().stats!!.averagePoints, 0.0)
-        assertEquals(listOf("Alice", "Bob", "Chloé"), state.roundTable.players.map { it.name })
+        assertEquals(1, state.roundCount)
+        assertTrue(state.standings.all { it.stats == null })
 
         val tied = viewModel(
             FakePartyRepository(aParty(), listOf(alice, bob, chloe), listOf(round), scores(alice to 50, bob to 50, chloe to 150))
@@ -184,5 +181,15 @@ class ResultsViewModelTest {
         vm.onBackToHome()
 
         assertEquals(NavigationEvent.ReplaceAll(Routes.Home), vm.navigationEvents.first())
+    }
+
+    @Test
+    fun `the statistics open once a round was played`() = runTest {
+        val repository = FakePartyRepository(aParty(), listOf(alice, bob, chloe), listOf(round), scores(alice to 100, bob to 50, chloe to 100))
+        val vm = viewModel(repository).also { it.initialize(partyId) }
+
+        vm.onShowStats()
+
+        assertEquals(NavigationEvent.NavigateTo(Routes.Stats(partyId.toString())), vm.navigationEvents.first())
     }
 }

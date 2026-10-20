@@ -13,7 +13,6 @@ import com.rvetiveau.rvscorecount.domain.usecase.AddParticipantUseCase
 import com.rvetiveau.rvscorecount.domain.usecase.ClosePartyUseCase
 import com.rvetiveau.rvscorecount.domain.usecase.GetAvailableGamesUseCase
 import com.rvetiveau.rvscorecount.domain.usecase.nextDealerIndexAfterInsertion
-import com.rvetiveau.rvscorecount.ui.components.roundTable
 import com.rvetiveau.rvscorecount.ui.components.toStandingRows
 import com.rvetiveau.rvscorecount.ui.navigation.NavigationEvent
 import com.rvetiveau.rvscorecount.ui.navigation.Routes
@@ -60,7 +59,6 @@ class PartyViewModel @Inject constructor(
     // Room-derived state and the late-Participant draft are merged into [_uiState] by [publish].
     private var roomState: PartyUiState = PartyUiState.Loading
     private var addition: ParticipantAdditionUiState? = null
-    private var isRoundHistoryOpen = false
     private var closure = PartyClosureUiState()
     private var seating: List<Participant> = emptyList()
     private var currentDealerIndex: Int = 0
@@ -78,7 +76,7 @@ class PartyViewModel @Inject constructor(
     private fun publish() {
         val state = roomState
         _uiState.value = if (state is PartyUiState.Loaded) {
-            state.copy(addition = addition, isRoundHistoryOpen = isRoundHistoryOpen, closure = closure)
+            state.copy(addition = addition, closure = closure)
         } else {
             state
         }
@@ -129,8 +127,6 @@ class PartyViewModel @Inject constructor(
         } catch (_: IllegalArgumentException) {
             return PartyUiState.InconsistentParticipants
         }
-        // sevenChampion et computeStandings ont vérifié détenteurs du 7 et scores.
-        val roundTable = roundTable(participants, scoresByRound)
 
         val rows = standings.toStandingRows(dealerId = dealer.id)
         seating = participants.sortedBy { it.listPosition }
@@ -140,8 +136,7 @@ class PartyViewModel @Inject constructor(
             roundNumber = (rounds.maxOfOrNull { it.roundNumber } ?: 0) + 1,
             standings = rows,
             canStartRound = party.status == PartyState.IN_PROGRESS,
-            maxPlayers = engine.maxPlayers,
-            roundTable = roundTable
+            maxPlayers = engine.maxPlayers
         )
     }
 
@@ -163,27 +158,23 @@ class PartyViewModel @Inject constructor(
 
     fun onScreenResumed() {
         navigationPending = false
-        // A correction rewrites Rounds only, which the Partie/Participants observation does not see.
+        // A correction made from Statistiques rewrites Rounds only, which the Partie/Participants
+        // observation does not see.
         if (refreshOnResume) {
             refreshOnResume = false
             initializedPartyId?.let(::observe)
         }
     }
 
-    /** Opens the correction of the validated Manche [roundNumber] while the Partie is in progress. */
-    fun onRoundSelected(roundNumber: Int) {
+    /** Opens the Statistiques of the Partie once a Manche has been validated. */
+    fun onShowStats() {
         val partyId = initializedPartyId ?: return
         val state = roomState as? PartyUiState.Loaded ?: return
-        if (!state.canStartRound || navigationPending) return
-        if (state.roundTable.rows.none { it.roundNumber == roundNumber }) return
+        if (state.playedRoundCount == 0 || navigationPending) return
         navigationPending = true
         refreshOnResume = true
-        isRoundHistoryOpen = false
-        publish()
         viewModelScope.launch {
-            _navigationEvents.send(
-                NavigationEvent.NavigateTo(Routes.RoundCorrection(partyId.toString(), roundNumber))
-            )
+            _navigationEvents.send(NavigationEvent.NavigateTo(Routes.Stats(partyId.toString())))
         }
     }
 
@@ -218,20 +209,6 @@ class PartyViewModel @Inject constructor(
                 publish()
             }
         }
-    }
-
-    // --- Story 4.3 : historique des Manches ---
-
-    fun onShowRoundHistory() {
-        val state = roomState as? PartyUiState.Loaded ?: return
-        if (state.roundTable.rows.isEmpty()) return
-        isRoundHistoryOpen = true
-        publish()
-    }
-
-    fun onHideRoundHistory() {
-        isRoundHistoryOpen = false
-        publish()
     }
 
     // --- Story 4.2 : ajout d'un Participant en cours de Partie ---

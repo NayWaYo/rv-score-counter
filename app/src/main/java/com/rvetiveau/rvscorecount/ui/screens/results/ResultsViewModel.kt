@@ -5,13 +5,9 @@ import androidx.lifecycle.viewModelScope
 import com.rvetiveau.rvscorecount.R
 import com.rvetiveau.rvscorecount.domain.model.PartyState
 import com.rvetiveau.rvscorecount.domain.model.computeStandings
-import com.rvetiveau.rvscorecount.domain.model.playerStats
-import com.rvetiveau.rvscorecount.domain.model.roundRecord
 import com.rvetiveau.rvscorecount.domain.model.sevenChampion
-import com.rvetiveau.rvscorecount.ui.components.toUi
 import com.rvetiveau.rvscorecount.domain.repository.PartyRepository
 import com.rvetiveau.rvscorecount.domain.usecase.CreatePartyUseCase
-import com.rvetiveau.rvscorecount.ui.components.roundTable
 import com.rvetiveau.rvscorecount.ui.components.toStandingRows
 import com.rvetiveau.rvscorecount.ui.navigation.NavigationEvent
 import com.rvetiveau.rvscorecount.ui.navigation.Routes
@@ -76,17 +72,25 @@ class ResultsViewModel @Inject constructor(
         }
 
         val rounds = partyRepository.getRoundsByPartyId(partyId)
-        val scoresByRound = rounds.associateWith { partyRepository.getScoresByRoundId(it.id) }
+        val scores = rounds.flatMap { partyRepository.getScoresByRoundId(it.id) }
         return try {
+            sevenChampion(participants, rounds)
             ResultsUiState.Loaded(
-                standings = computeStandings(participants, scoresByRound.values.flatten())
-                    .toStandingRows(stats = playerStats(participants, scoresByRound)),
-                sevenChampion = sevenChampion(participants, rounds)?.toUi(),
-                roundRecord = roundRecord(participants, scoresByRound)?.toUi(),
-                roundTable = roundTable(participants, scoresByRound)
+                standings = computeStandings(participants, scores).toStandingRows(),
+                roundCount = rounds.size
             )
         } catch (_: IllegalArgumentException) {
             ResultsUiState.Unavailable
+        }
+    }
+
+    /** Opens the Statistiques of the Partie, which hold its Manches. */
+    fun onShowStats() {
+        val partyId = initializedPartyId ?: return
+        val state = _uiState.value as? ResultsUiState.Loaded ?: return
+        if (state.roundCount == 0) return
+        viewModelScope.launch {
+            _navigationEvents.send(NavigationEvent.NavigateTo(Routes.Stats(partyId.toString())))
         }
     }
 

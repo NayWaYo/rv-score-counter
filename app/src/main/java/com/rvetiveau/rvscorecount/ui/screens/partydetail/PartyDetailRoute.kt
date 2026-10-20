@@ -31,6 +31,7 @@ fun PartyDetailRoute(
         state = state,
         onRetry = { viewModel.retry(partyId) },
         onReplay = viewModel::onReplay,
+        onShowStats = viewModel::onShowStats,
         modifier = modifier
     )
 }

@@ -41,4 +41,9 @@ sealed interface Routes {
     @Serializable
     @SerialName("partyDetail")
     data class PartyDetail(val partyId: String) : Routes
+
+    /** Statistiques of a Partie, in progress or finished. */
+    @Serializable
+    @SerialName("stats")
+    data class Stats(val partyId: String) : Routes
 }

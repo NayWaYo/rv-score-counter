@@ -3,10 +3,7 @@ package com.rvetiveau.rvscorecount.ui.screens.party
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.semantics.SemanticsActions
-import androidx.compose.ui.test.assertContentDescriptionEquals
 import androidx.compose.ui.test.assertCountEquals
-import androidx.compose.ui.test.assertHasClickAction
-import androidx.compose.ui.test.assertHasNoClickAction
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsEnabled
 import androidx.compose.ui.test.assertIsNotEnabled
@@ -20,10 +17,6 @@ import androidx.compose.ui.test.performClick
 import androidx.compose.ui.text.TextLayoutResult
 import androidx.compose.ui.unit.Density
 import com.rvetiveau.rvscorecount.R
-import com.rvetiveau.rvscorecount.domain.model.CardSuit
-import com.rvetiveau.rvscorecount.ui.components.RoundTable
-import com.rvetiveau.rvscorecount.ui.components.RoundTablePlayer
-import com.rvetiveau.rvscorecount.ui.components.RoundTableRow
 import com.rvetiveau.rvscorecount.ui.components.StandingRow
 import com.rvetiveau.rvscorecount.ui.theme.RvScoreCounterTheme
 import java.util.UUID
@@ -153,70 +146,32 @@ class PartyScreenTest {
         rows.forEach { composeTestRule.onNodeWithTag("party_standing_row_${it.participantId}").assertIsDisplayed() }
     }
 
-    // --- Story 4.3 ---
-
-    private val roundAliceId = UUID.randomUUID()
-    private val roundBobId = UUID.randomUUID()
-    private val heartRoundTable = RoundTable(
-        players = listOf(RoundTablePlayer(roundAliceId, "Alice"), RoundTablePlayer(roundBobId, "Bob")),
-        rows = listOf(RoundTableRow(2, CardSuit.HEART, mapOf(roundBobId to 40, roundAliceId to 210)))
-    )
+    // --- Statistiques ---
 
     @Test
-    fun hidesTheRoundsLinkBeforeTheFirstRound() {
+    fun hidesTheStatsLinkBeforeTheFirstRound() {
         setContent(PartyUiState.Loaded(dealerName = "Alice"))
 
-        composeTestRule.onNodeWithTag("party_rounds_link").assertDoesNotExist()
+        composeTestRule.onNodeWithTag("party_stats_link").assertDoesNotExist()
     }
 
     @Test
-    fun theRoundsLinkShowsTheCountAndEmitsItsIntent() {
+    fun theStatsLinkShowsTheRoundCountAndEmitsItsIntent() {
         var opened = false
         composeTestRule.setContent {
             RvScoreCounterTheme {
                 PartyScreen(
-                    state = aLoadedStateWithStandings().copy(roundTable = heartRoundTable),
-                    onShowRoundHistory = { opened = true }
+                    state = aLoadedStateWithStandings(roundNumber = 3),
+                    onShowStats = { opened = true }
                 )
             }
         }
 
-        composeTestRule.onNodeWithTag("party_rounds_link").assertTextEquals("Voir les manches (1)").performClick()
-
-        assertTrue(opened)
-    }
-
-    @Test
-    fun theRoundHistoryOfAFinishedPartyReadsEachRowAsOneReadOnlyBlock() {
-        setContent(
-            aLoadedStateWithStandings().copy(roundTable = heartRoundTable, isRoundHistoryOpen = true, canStartRound = false)
-        )
-
-        composeTestRule.onNodeWithTag("round_table_row_2")
-            .assertContentDescriptionEquals("Manche 2, Cœur : Alice 210 · Bob 40, total 250")
-            .assertHasNoClickAction()
-        composeTestRule.onNodeWithTag("party_rounds_correction_hint").assertDoesNotExist()
-    }
-
-    @Test
-    fun touchingARoundOfAPartyInProgressAsksForItsCorrection() {
-        var selected: Int? = null
-        composeTestRule.setContent {
-            RvScoreCounterTheme {
-                PartyScreen(
-                    state = aLoadedStateWithStandings().copy(roundTable = heartRoundTable, isRoundHistoryOpen = true),
-                    onRoundSelected = { selected = it }
-                )
-            }
-        }
-
-        composeTestRule.onNodeWithTag("party_rounds_correction_hint").assertIsDisplayed()
-        composeTestRule.onNodeWithTag("round_table_row_2")
-            .assertContentDescriptionEquals("Manche 2, Cœur : Alice 210 · Bob 40, total 250")
-            .assertHasClickAction()
+        composeTestRule.onNodeWithTag("party_stats_link")
+            .assertTextEquals("Statistiques et manches (2)")
             .performClick()
 
-        assertEquals(2, selected)
+        assertTrue(opened)
     }
 
     // --- Story 4.2 ---

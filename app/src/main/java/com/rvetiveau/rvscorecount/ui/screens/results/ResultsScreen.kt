@@ -21,15 +21,12 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import com.rvetiveau.rvscorecount.R
-import com.rvetiveau.rvscorecount.ui.components.RoundTable
-import com.rvetiveau.rvscorecount.ui.components.ScoreChart
-import com.rvetiveau.rvscorecount.ui.components.StatCards
 import com.rvetiveau.rvscorecount.ui.components.StandingRowItem
 import com.rvetiveau.rvscorecount.ui.components.WinnerBanner
 
 /**
  * Stateless Résultats finaux (Story 5.1, FR-13): winner banner, full final Classement with the
- * podium ranks accented, statistic cards, the score sheet of the Manches, « Rejouer » (Story 5.2,
+ * podium ranks accented, the way to the Statistiques (with the Manches), « Rejouer » (Story 5.2,
  * FR-14) and « Retour à l'accueil ».
  */
 @Composable
@@ -38,7 +35,8 @@ fun ResultsScreen(
     modifier: Modifier = Modifier,
     onRetry: () -> Unit = {},
     onBackToHome: () -> Unit = {},
-    onReplay: () -> Unit = {}
+    onReplay: () -> Unit = {},
+    onShowStats: () -> Unit = {}
 ) {
     when (state) {
         is ResultsUiState.Loading -> CenteredMessage(modifier) {
@@ -102,42 +100,17 @@ fun ResultsScreen(
                         modifier = Modifier.testTag("results_standing_row_${row.participantId}")
                     )
                 }
-                if (state.sevenChampion != null || state.roundRecord != null) {
-                    item(key = "stats") {
-                        StatCards(
-                            sevenChampion = state.sevenChampion,
-                            roundRecord = state.roundRecord,
-                            modifier = Modifier
-                                .padding(top = 8.dp)
-                                .testTag("results_stats")
-                        )
-                    }
-                }
-                if (state.roundTable.rows.size >= 2) {
-                    item(key = "score_chart") {
-                        Column {
-                            Text(
-                                text = stringResource(R.string.score_chart_title),
-                                style = MaterialTheme.typography.titleMedium,
-                                color = MaterialTheme.colorScheme.onBackground,
-                                modifier = Modifier.padding(top = 16.dp, bottom = 8.dp)
-                            )
-                            ScoreChart(table = state.roundTable, modifier = Modifier.testTag("results_score_chart"))
-                        }
-                    }
-                }
-                if (state.roundTable.rows.isNotEmpty()) {
-                    item(key = "rounds_title") {
-                        Text(
-                            text = stringResource(R.string.party_rounds_title),
-                            style = MaterialTheme.typography.titleMedium,
-                            color = MaterialTheme.colorScheme.onBackground,
-                            modifier = Modifier.padding(top = 16.dp)
-                        )
-                    }
-                    item(key = "round_table") {
-                        RoundTable(table = state.roundTable, modifier = Modifier.testTag("results_round_table"))
-                    }
+            }
+            if (state.roundCount > 0) {
+                OutlinedButton(
+                    onClick = onShowStats,
+                    modifier = Modifier
+                        .padding(top = 16.dp)
+                        .fillMaxWidth()
+                        .heightIn(min = 56.dp)
+                        .testTag("results_stats_button")
+                ) {
+                    Text(text = stringResource(R.string.stats_link, state.roundCount))
                 }
             }
             state.replayErrorRes?.let { errorRes ->

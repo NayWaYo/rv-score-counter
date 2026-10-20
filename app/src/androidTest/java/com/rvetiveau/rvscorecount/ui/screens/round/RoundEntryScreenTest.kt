@@ -1,6 +1,5 @@
 package com.rvetiveau.rvscorecount.ui.screens.round
 
-import androidx.compose.ui.test.assertContentDescriptionEquals
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsEnabled
 import androidx.compose.ui.test.assertIsFocused
@@ -23,12 +22,6 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.ui.semantics.SemanticsProperties
 import androidx.compose.ui.test.SemanticsMatcher
 import com.rvetiveau.rvscorecount.domain.model.CardSuit
-import com.rvetiveau.rvscorecount.ui.components.RoundTable
-import com.rvetiveau.rvscorecount.ui.components.RoundTablePlayer
-import com.rvetiveau.rvscorecount.ui.components.RoundTableRow
-import com.rvetiveau.rvscorecount.ui.components.RoundRecordEntryUi
-import com.rvetiveau.rvscorecount.ui.components.RoundRecordUi
-import com.rvetiveau.rvscorecount.ui.components.SevenChampionUi
 import com.rvetiveau.rvscorecount.ui.components.StandingRow
 import com.rvetiveau.rvscorecount.ui.theme.RvScoreCounterTheme
 import java.util.UUID
@@ -331,16 +324,7 @@ class RoundEntryScreenTest {
         standings = listOf(
             StandingRow(aliceId, rank = 1, name = "Alice", cumulativeScore = 140, isDealer = false),
             StandingRow(bobId, rank = 2, name = "Bob", cumulativeScore = 360, isDealer = true)
-        ),
-        roundTable = RoundTable(
-            players = listOf(RoundTablePlayer(aliceId, "Alice"), RoundTablePlayer(bobId, "Bob")),
-            rows = listOf(
-                RoundTableRow(1, CardSuit.HEART, mapOf(aliceId to 40, bobId to 210), sevenHolderId = aliceId),
-                RoundTableRow(2, CardSuit.CLUB, mapOf(aliceId to 100, bobId to 150))
-            )
-        ),
-        sevenChampion = SevenChampionUi(names = listOf("Bob"), count = 2),
-        roundRecord = RoundRecordUi(entries = listOf(RoundRecordEntryUi("Bob", 1)), points = 210)
+        )
     )
 
     @Test
@@ -378,33 +362,16 @@ class RoundEntryScreenTest {
     }
 
     @Test
-    fun theStandingsPanelShowsTheStandingsStatisticsAndRounds() {
+    fun theStandingsPanelShowsOnlyTheStandings() {
         val state = aLoadedState(panel = RoundEntryPanel.STANDINGS)
         setContent(state.copy(content = state.content!!.copy(summary = aSummary)))
 
         composeTestRule.onNodeWithTag("score_field_$aliceId").assertDoesNotExist()
         composeTestRule.onNodeWithTag("round_entry_standing_row_$aliceId").performScrollTo().assertIsDisplayed()
         composeTestRule.onNodeWithTag("round_entry_standing_row_$bobId").performScrollTo().assertIsDisplayed()
-        composeTestRule.onNodeWithTag("stat_card_seven_champion").performScrollTo()
-            .assertContentDescriptionEquals("Roi du 40 : Bob (2 fois)")
-        composeTestRule.onNodeWithTag("stat_card_round_record").performScrollTo()
-            .assertContentDescriptionEquals("Record en une manche : Bob (manche 1) — 210 points")
-        composeTestRule.onNodeWithTag("round_entry_round_table").performScrollTo()
-        composeTestRule.onNodeWithTag("round_table_row_1").assertIsDisplayed()
-        composeTestRule.onNodeWithTag("round_table_row_2").assertExists()
-        composeTestRule.onNodeWithTag("round_table_total_$bobId", useUnmergedTree = true).assertTextEquals("360")
-        composeTestRule.onNodeWithTag("round_entry_score_chart").performScrollTo().assertIsDisplayed()
-        composeTestRule.onNodeWithTag("round_entry_no_round").assertDoesNotExist()
-    }
-
-    @Test
-    fun theStandingsPanelOfTheFirstRoundHasNoStatisticsAndNoRound() {
-        setContent(aLoadedState(panel = RoundEntryPanel.STANDINGS))
-
-        composeTestRule.onNodeWithTag("round_entry_no_round").performScrollTo().assertIsDisplayed()
-        composeTestRule.onNodeWithTag("round_entry_stats").assertDoesNotExist()
-        composeTestRule.onNodeWithTag("round_entry_round_table").assertDoesNotExist()
-        composeTestRule.onNodeWithTag("round_entry_score_chart").assertDoesNotExist()
+        composeTestRule.onNodeWithTag("stat_card_seven_champion").assertDoesNotExist()
+        composeTestRule.onNodeWithTag("round_table_row_1").assertDoesNotExist()
+        composeTestRule.onNodeWithTag("score_chart_plot").assertDoesNotExist()
     }
 
     @Test
