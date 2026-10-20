@@ -36,6 +36,7 @@ import androidx.compose.ui.semantics.customActions
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import com.rvetiveau.rvscorecount.R
+import com.rvetiveau.rvscorecount.ui.components.ScreenHeader
 import com.rvetiveau.rvscorecount.domain.model.PartySummary
 import com.rvetiveau.rvscorecount.ui.components.PartySummaryRow
 import java.time.Instant
@@ -64,13 +65,10 @@ fun HistoryScreen(
             .fillMaxSize()
             .padding(16.dp)
     ) {
-        Text(
-            text = stringResource(R.string.history_title),
-            style = MaterialTheme.typography.headlineSmall,
-            color = MaterialTheme.colorScheme.onBackground,
-            modifier = Modifier
-                .padding(top = 16.dp, bottom = 16.dp)
-                .testTag("history_title")
+        ScreenHeader(
+            title = stringResource(R.string.history_title),
+            titleTag = "history_title",
+            modifier = Modifier.padding(vertical = 8.dp)
         )
         when (state) {
             is HistoryUiState.Loading -> CenteredContent {

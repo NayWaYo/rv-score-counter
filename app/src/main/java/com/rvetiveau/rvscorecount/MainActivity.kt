@@ -1,9 +1,12 @@
 package com.rvetiveau.rvscorecount
 
+import android.graphics.Color
 import android.os.Bundle
 import androidx.activity.ComponentActivity
+import androidx.activity.SystemBarStyle
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
@@ -16,6 +19,8 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -23,6 +28,9 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.rvetiveau.rvscorecount.ui.components.LocalThemeSwitch
+import com.rvetiveau.rvscorecount.ui.components.ThemeSwitch
+import com.rvetiveau.rvscorecount.ui.navigation.AppearanceViewModel
 import com.rvetiveau.rvscorecount.ui.navigation.RootUiState
 import com.rvetiveau.rvscorecount.ui.navigation.RootViewModel
 import com.rvetiveau.rvscorecount.ui.navigation.RvScoreCounterNavHost
@@ -35,14 +43,26 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
         setContent {
-            RvScoreCounterTheme {
-                // safeDrawing includes the IME: edge-to-edge ignores adjustResize, so the content
-                // is padded above the keyboard here and focused fields can scroll into view.
-                Scaffold(
-                    modifier = Modifier.fillMaxSize(),
-                    contentWindowInsets = WindowInsets.safeDrawing
-                ) { innerPadding ->
-                    RvScoreCounterRoot(modifier = Modifier.padding(innerPadding))
+            val appearanceViewModel: AppearanceViewModel = hiltViewModel()
+            val pickedDarkTheme by appearanceViewModel.darkTheme.collectAsStateWithLifecycle()
+            val darkTheme = pickedDarkTheme ?: isSystemInDarkTheme()
+            // Status and navigation bar icons follow the theme shown, not only the phone's setting.
+            LaunchedEffect(darkTheme) {
+                val barStyle = SystemBarStyle.auto(Color.TRANSPARENT, Color.TRANSPARENT) { darkTheme }
+                enableEdgeToEdge(statusBarStyle = barStyle, navigationBarStyle = barStyle)
+            }
+            RvScoreCounterTheme(darkTheme = darkTheme) {
+                CompositionLocalProvider(
+                    LocalThemeSwitch provides ThemeSwitch(darkTheme) { appearanceViewModel.onToggle(darkTheme) }
+                ) {
+                    // safeDrawing includes the IME: edge-to-edge ignores adjustResize, so the content
+                    // is padded above the keyboard here and focused fields can scroll into view.
+                    Scaffold(
+                        modifier = Modifier.fillMaxSize(),
+                        contentWindowInsets = WindowInsets.safeDrawing
+                    ) { innerPadding ->
+                        RvScoreCounterRoot(modifier = Modifier.padding(innerPadding))
+                    }
                 }
             }
         }

@@ -28,10 +28,7 @@ import androidx.compose.ui.unit.dp
 import com.rvetiveau.rvscorecount.R
 import com.rvetiveau.rvscorecount.domain.model.RoundRecord
 import com.rvetiveau.rvscorecount.domain.model.SevenChampion
-import com.rvetiveau.rvscorecount.ui.theme.ChampionInk
-import com.rvetiveau.rvscorecount.ui.theme.ChampionTint
-import com.rvetiveau.rvscorecount.ui.theme.RecordInk
-import com.rvetiveau.rvscorecount.ui.theme.RecordTint
+import com.rvetiveau.rvscorecount.ui.theme.RvTheme
 
 /** Display model of the « Poissard ou Nul ? » statistic (ties included). */
 data class SevenChampionUi(
@@ -83,8 +80,8 @@ fun StatCards(
                 names = names,
                 value = stringResource(R.string.stat_seven_champion_value, champion.count),
                 description = stringResource(R.string.seven_champion, names, champion.count),
-                tint = ChampionTint,
-                ink = ChampionInk,
+                tint = RvTheme.colors.championTint,
+                ink = RvTheme.colors.championInk,
                 modifier = Modifier
                     .weight(1f)
                     .testTag("stat_card_seven_champion")
@@ -105,8 +102,8 @@ fun StatCards(
                     pluralStringResource(R.plurals.stat_round_record_rounds, roundNumbers.size, roundNumbers.joinToString(", "))
                 ),
                 description = stringResource(R.string.round_record, holders, record.points),
-                tint = RecordTint,
-                ink = RecordInk,
+                tint = RvTheme.colors.recordTint,
+                ink = RvTheme.colors.recordInk,
                 modifier = Modifier
                     .weight(1f)
                     .testTag("stat_card_round_record")

@@ -22,6 +22,7 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import com.rvetiveau.rvscorecount.R
+import com.rvetiveau.rvscorecount.ui.components.ScreenHeader
 import com.rvetiveau.rvscorecount.ui.components.StandingRowItem
 import com.rvetiveau.rvscorecount.ui.components.gamePresentation
 import java.time.Instant
@@ -85,13 +86,10 @@ private fun LoadedContent(
             .fillMaxSize()
             .padding(16.dp)
     ) {
-        Text(
-            text = stringResource(R.string.party_detail_title),
-            style = MaterialTheme.typography.headlineSmall,
-            color = MaterialTheme.colorScheme.onBackground,
-            modifier = Modifier
-                .padding(top = 16.dp)
-                .testTag("party_detail_title")
+        ScreenHeader(
+            title = stringResource(R.string.party_detail_title),
+            titleTag = "party_detail_title",
+            modifier = Modifier.padding(top = 8.dp)
         )
         Text(
             text = stringResource(

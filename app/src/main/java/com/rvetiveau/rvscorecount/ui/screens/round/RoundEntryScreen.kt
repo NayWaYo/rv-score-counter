@@ -31,6 +31,7 @@ import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.rvetiveau.rvscorecount.R
+import com.rvetiveau.rvscorecount.ui.components.ScreenHeader
 import com.rvetiveau.rvscorecount.domain.model.CardSuit
 import com.rvetiveau.rvscorecount.ui.components.DieRoller
 import com.rvetiveau.rvscorecount.ui.components.StandingRowItem
@@ -105,15 +106,12 @@ private fun ScrollingContent(
             .verticalScroll(rememberScrollState())
             .padding(horizontal = 16.dp)
     ) {
-        Text(
-            text = state.correctedRoundNumber
+        ScreenHeader(
+            title = state.correctedRoundNumber
                 ?.let { stringResource(R.string.round_correction_title, it) }
                 ?: stringResource(R.string.round_entry_title),
-            style = MaterialTheme.typography.headlineSmall,
-            color = MaterialTheme.colorScheme.onBackground,
-            modifier = Modifier
-                .padding(vertical = 16.dp)
-                .testTag("round_entry_title")
+            titleTag = "round_entry_title",
+            modifier = Modifier.padding(vertical = 8.dp)
         )
 
         val content = state.content

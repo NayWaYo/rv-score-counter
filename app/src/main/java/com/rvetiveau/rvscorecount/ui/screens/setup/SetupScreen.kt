@@ -45,6 +45,7 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.zIndex
 import com.rvetiveau.rvscorecount.R
+import com.rvetiveau.rvscorecount.ui.components.ScreenHeader
 import com.rvetiveau.rvscorecount.domain.model.PartySummary
 import com.rvetiveau.rvscorecount.ui.components.PartySummaryRow
 import java.util.UUID
@@ -71,11 +72,10 @@ fun SetupScreen(
             .background(MaterialTheme.colorScheme.background)
             .padding(horizontal = 16.dp)
     ) {
-        Text(
-            text = stringResource(R.string.setup_title),
-            style = MaterialTheme.typography.headlineSmall,
-            color = MaterialTheme.colorScheme.onBackground,
-            modifier = Modifier.padding(vertical = 16.dp)
+        ScreenHeader(
+            title = stringResource(R.string.setup_title),
+            titleTag = "setup_title",
+            modifier = Modifier.padding(vertical = 8.dp)
         )
 
         NameInputRow(

@@ -37,6 +37,7 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.rvetiveau.rvscorecount.R
+import com.rvetiveau.rvscorecount.ui.components.ScreenHeader
 
 /**
  * Stateless Accueil screen (AC 1-3, 6, 7): fixed 2-column grid of Game tiles plus the
@@ -73,19 +74,13 @@ fun HomeScreen(
 
 @Composable
 private fun HomeTopBar(onHistorySelected: () -> Unit, modifier: Modifier = Modifier) {
-    Row(
+    ScreenHeader(
+        title = stringResource(R.string.home_title),
+        titleTag = "home_title",
         modifier = modifier
-            .fillMaxWidth()
             .heightIn(min = 56.dp)
-            .padding(horizontal = 16.dp),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.SpaceBetween
+            .padding(horizontal = 16.dp)
     ) {
-        Text(
-            text = stringResource(R.string.home_title),
-            style = MaterialTheme.typography.headlineSmall,
-            color = MaterialTheme.colorScheme.onBackground
-        )
         IconButton(
             onClick = onHistorySelected,
             modifier = Modifier.testTag("home_history_action")

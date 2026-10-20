@@ -1,25 +1,37 @@
 package com.rvetiveau.rvscorecount.ui.theme
 
 import androidx.annotation.StringRes
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.ReadOnlyComposable
 import androidx.compose.ui.graphics.Color
 import com.rvetiveau.rvscorecount.R
 import com.rvetiveau.rvscorecount.domain.model.CardSuit
 
-val CardSuit.color: Color
-    get() = when (this) {
-        CardSuit.SPADE -> Spade
-        CardSuit.HEART -> Heart
-        CardSuit.CLUB -> Club
-        CardSuit.DIAMOND -> Diamond
-    }
+fun RvColors.suitColor(suit: CardSuit): Color = when (suit) {
+    CardSuit.SPADE -> spade
+    CardSuit.HEART -> heart
+    CardSuit.CLUB -> club
+    CardSuit.DIAMOND -> diamond
+}
 
+fun RvColors.suitTint(suit: CardSuit): Color = when (suit) {
+    CardSuit.SPADE -> spadeTint
+    CardSuit.HEART -> heartTint
+    CardSuit.CLUB -> clubTint
+    CardSuit.DIAMOND -> diamondTint
+}
+
+/** The suit's colour in the current theme. */
+val CardSuit.color: Color
+    @Composable
+    @ReadOnlyComposable
+    get() = RvTheme.colors.suitColor(this)
+
+/** The suit's background tint in the current theme. */
 val CardSuit.tint: Color
-    get() = when (this) {
-        CardSuit.SPADE -> SpadeTint
-        CardSuit.HEART -> HeartTint
-        CardSuit.CLUB -> ClubTint
-        CardSuit.DIAMOND -> DiamondTint
-    }
+    @Composable
+    @ReadOnlyComposable
+    get() = RvTheme.colors.suitTint(this)
 
 @get:StringRes
 val CardSuit.pictogramRes: Int

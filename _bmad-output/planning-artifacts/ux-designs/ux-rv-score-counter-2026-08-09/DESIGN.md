@@ -98,6 +98,17 @@ L'identité visuelle de chaque jeu est portée par sa tuile sur l'accueil (logo 
 
 À éviter : gradients, surfaces colorées derrière du texte, rouge pour les erreurs dans un contexte de scores (un score négatif n'est pas une erreur).
 
+### Mode clair (ajouté le 2026-10-20)
+
+Le sombre reste l'identité de l'app ; le mode clair reprend les mêmes rôles sur du papier chaud. Un bouton lune/soleil en haut à droite de chaque écran bascule instantanément ; le choix est mémorisé, et tant qu'il n'y en a pas, l'app suit le réglage du téléphone.
+
+- **Fond (`#FAF7F2`)**, **surface (`#FFFFFF`)**, **surface container (`#ECE6DC`)**, **ink (`#2B2620`)**, **ink atténué (`#6B6359`)**.
+- **Accent (`#9C5700`)** avec texte blanc : l'ambre est assombri pour rester lisible comme texte (≥ 4,5:1).
+- **Enseignes** plus soutenues (Pique `#37474F`, Cœur `#C62828`, Trèfle `#2E7D32`, Carreau `#1565C0`) et teintes nettement distinctes.
+- **Courbes** : mêmes teintes et même ordre qu'en sombre, en pas clairs ; un joueur garde sa couleur d'un mode à l'autre.
+
+Les valeurs font foi dans `ui/theme/Color.kt` (`DarkRvColors`, `LightRvColors`).
+
 ## Typography
 
 Conventions Material3 natives. Pas de police personnalisée en V1.

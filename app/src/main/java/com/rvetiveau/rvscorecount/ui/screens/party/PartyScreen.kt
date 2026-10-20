@@ -40,6 +40,7 @@ import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.unit.dp
 import com.rvetiveau.rvscorecount.R
+import com.rvetiveau.rvscorecount.ui.components.ScreenHeader
 import com.rvetiveau.rvscorecount.domain.engine.DealingRules
 import com.rvetiveau.rvscorecount.ui.components.StandingRowItem
 
@@ -103,20 +104,11 @@ fun PartyScreen(
                 .fillMaxSize()
                 .padding(16.dp)
         ) {
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(top = 8.dp)
+            ScreenHeader(
+                title = stringResource(R.string.party_screen_title),
+                titleTag = "party_screen_title",
+                modifier = Modifier.padding(top = 8.dp)
             ) {
-                Text(
-                    text = stringResource(R.string.party_screen_title),
-                    style = MaterialTheme.typography.headlineSmall,
-                    color = MaterialTheme.colorScheme.onBackground,
-                    modifier = Modifier
-                        .weight(1f)
-                        .testTag("party_screen_title")
-                )
                 if (state.playedRoundCount > 0) {
                     TextButton(
                         onClick = onShowStats,

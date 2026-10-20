@@ -49,7 +49,7 @@ import androidx.compose.ui.text.drawText
 import androidx.compose.ui.text.rememberTextMeasurer
 import androidx.compose.ui.unit.dp
 import com.rvetiveau.rvscorecount.R
-import com.rvetiveau.rvscorecount.ui.theme.ChartSeries
+import com.rvetiveau.rvscorecount.ui.theme.RvTheme
 import kotlin.math.ceil
 import kotlin.math.floor
 import kotlin.math.log10
@@ -117,6 +117,7 @@ fun ScoreChart(table: RoundTable, modifier: Modifier = Modifier) {
     val roundLabels = (1..roundCount).map { stringResource(R.string.score_chart_round, it) }
     val surface = MaterialTheme.colorScheme.surface
     val ink = MaterialTheme.colorScheme.onSurface
+    val chartSeries = RvTheme.colors.chartSeries
     val mutedInk = ink.copy(alpha = 0.7f)
     val grid = ink.copy(alpha = 0.12f)
     val axisStyle = MaterialTheme.typography.labelSmall.copy(color = mutedInk)
@@ -209,7 +210,7 @@ fun ScoreChart(table: RoundTable, modifier: Modifier = Modifier) {
                 }
 
                 series.forEachIndexed { index, s ->
-                    val color = ChartSeries.getOrElse(index) { ink }
+                    val color = chartSeries.getOrElse(index) { ink }
                     val path = Path()
                     s.points.forEachIndexed { position, value ->
                         if (value == null) return@forEachIndexed
@@ -219,11 +220,11 @@ fun ScoreChart(table: RoundTable, modifier: Modifier = Modifier) {
                     drawPath(path, color, style = Stroke(2.dp.toPx(), cap = StrokeCap.Round, join = StrokeJoin.Round))
                 }
                 series.forEachIndexed { index, s ->
-                    drawDot(ChartSeries.getOrElse(index) { ink }, Offset(g.x(roundCount), g.y(s.total)), surface)
+                    drawDot(chartSeries.getOrElse(index) { ink }, Offset(g.x(roundCount), g.y(s.total)), surface)
                 }
                 drawEndLabels(series, endLabels, g)
 
-                selected?.let { round -> drawSelection(round, series, g, textMeasurer, roundLabels[round - 1], surface, ink, valueStyle) }
+                selected?.let { round -> drawSelection(round, series, chartSeries, g, textMeasurer, roundLabels[round - 1], surface, ink, valueStyle) }
             }
         }
         ChartLegend(series)
@@ -266,6 +267,7 @@ private fun DrawScope.drawEndLabels(series: List<ScoreSeries>, labels: List<Text
 private fun DrawScope.drawSelection(
     round: Int,
     series: List<ScoreSeries>,
+    chartSeries: List<Color>,
     g: ChartGeometry,
     textMeasurer: TextMeasurer,
     roundLabel: String,
@@ -276,7 +278,7 @@ private fun DrawScope.drawSelection(
     val x = g.x(round)
     drawLine(ink.copy(alpha = 0.5f), Offset(x, g.top), Offset(x, g.bottom), strokeWidth = 1.dp.toPx())
     val visible = series.mapIndexedNotNull { index, s ->
-        s.points[round]?.let { value -> Triple(ChartSeries.getOrElse(index) { ink }, s.player.name, value) }
+        s.points[round]?.let { value -> Triple(chartSeries.getOrElse(index) { ink }, s.player.name, value) }
     }
     visible.forEach { (color, _, value) -> drawDot(color, Offset(x, g.y(value)), surface) }
 
@@ -330,7 +332,7 @@ private fun ChartLegend(series: List<ScoreSeries>) {
                     modifier = Modifier
                         .size(8.dp)
                         .clip(CircleShape)
-                        .background(ChartSeries.getOrElse(index) { MaterialTheme.colorScheme.onSurface })
+                        .background(RvTheme.colors.chartSeries.getOrElse(index) { MaterialTheme.colorScheme.onSurface })
                 )
                 Text(
                     text = stringResource(R.string.round_history_score, s.player.name, s.total),

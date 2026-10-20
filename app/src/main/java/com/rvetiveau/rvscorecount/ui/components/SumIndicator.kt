@@ -8,7 +8,7 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
 import com.rvetiveau.rvscorecount.R
 import com.rvetiveau.rvscorecount.ui.screens.round.SumIndicatorState
-import com.rvetiveau.rvscorecount.ui.theme.Success
+import com.rvetiveau.rvscorecount.ui.theme.RvTheme
 
 /**
  * Stateless running total whose text and color are fully derived by the ViewModel state.
@@ -27,7 +27,7 @@ fun SumIndicator(
     }
     val color = when (state) {
         SumIndicatorState.NEUTRAL -> MaterialTheme.colorScheme.onBackground
-        SumIndicatorState.SUCCESS -> Success
+        SumIndicatorState.SUCCESS -> RvTheme.colors.success
         SumIndicatorState.ERROR -> MaterialTheme.colorScheme.error
     }
     Text(

@@ -19,6 +19,7 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import com.rvetiveau.rvscorecount.R
+import com.rvetiveau.rvscorecount.ui.components.ScreenHeader
 import com.rvetiveau.rvscorecount.ui.components.RoundTable
 import com.rvetiveau.rvscorecount.ui.components.ScoreChart
 import com.rvetiveau.rvscorecount.ui.components.StandingRowItem
@@ -77,13 +78,10 @@ private fun LoadedContent(state: StatsUiState.Loaded, onRoundSelected: (Int) -> 
             .testTag("stats_content")
     ) {
         item(key = "title") {
-            Text(
-                text = stringResource(R.string.stats_title),
-                style = MaterialTheme.typography.headlineSmall,
-                color = MaterialTheme.colorScheme.onBackground,
-                modifier = Modifier
-                    .padding(vertical = 16.dp)
-                    .testTag("stats_title")
+            ScreenHeader(
+                title = stringResource(R.string.stats_title),
+                titleTag = "stats_title",
+                modifier = Modifier.padding(vertical = 8.dp)
             )
         }
         item(key = "standings_title") { Heading(stringResource(R.string.stats_standings_title)) }

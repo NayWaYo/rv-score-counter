@@ -4,6 +4,8 @@
 
     <!-- Démarrage : reprise automatique d'une Partie en cours -->
     <string name="root_error_message">Impossible de vérifier si une partie est en cours.</string>
+    <string name="theme_switch_to_light">Passer en mode clair</string>
+    <string name="theme_switch_to_dark">Passer en mode sombre</string>
     <string name="root_error_retry">Réessayer</string>
 
     <!-- Accueil : grille de tuiles Jeux -->
