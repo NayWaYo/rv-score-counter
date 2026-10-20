@@ -44,7 +44,7 @@ import java.util.UUID
 /**
  * Stateless Saisie de Manche screen (AC 1-12): a large die in the middle, then « Classement » and
  * « Saisir les scores », each showing its panel (Classement, or free-order
- * score entry and running sum)
+ * score entry); while the form is shown, the running sum and « Valider » stay pinned at the bottom
  * once the Partie/Participants aggregate is loaded. Loading/error states never render partial
  * fields and gate the die's actions until the content is ready (AC 10).
  */
@@ -59,10 +59,49 @@ fun RoundEntryScreen(
     onSevenHolderSelected: (UUID) -> Unit = {},
     onPanelSelected: (RoundEntryPanel) -> Unit = {}
 ) {
+    val content = state.content
     Column(
         modifier = modifier
             .fillMaxSize()
             .background(MaterialTheme.colorScheme.background)
+    ) {
+        ScrollingContent(
+            state = state,
+            onRoll = onRoll,
+            onScoreChanged = onScoreChanged,
+            onRetry = onRetry,
+            onSevenHolderSelected = onSevenHolderSelected,
+            onPanelSelected = onPanelSelected,
+            modifier = Modifier.weight(1f)
+        )
+        if (content != null && (state.isCorrection || state.panel == RoundEntryPanel.SCORES)) {
+            ValidationBar(
+                content = content,
+                canValidate = state.canValidate,
+                saveError = state.saveError,
+                validateLabel = stringResource(
+                    if (state.isCorrection) R.string.round_correction_save_button else R.string.round_entry_validate_button
+                ),
+                onValidate = onValidate
+            )
+        }
+    }
+}
+
+/** Everything above the validation bar; scrolls on its own so the bar stays above the keyboard. */
+@Composable
+private fun ScrollingContent(
+    state: RoundEntryUiState,
+    onRoll: () -> Unit,
+    onScoreChanged: (UUID, String) -> Unit,
+    onRetry: () -> Unit,
+    onSevenHolderSelected: (UUID) -> Unit,
+    onPanelSelected: (RoundEntryPanel) -> Unit,
+    modifier: Modifier
+) {
+    Column(
+        modifier = modifier
+            .fillMaxWidth()
             .verticalScroll(rememberScrollState())
             .padding(horizontal = 16.dp)
     ) {
@@ -105,11 +144,7 @@ fun RoundEntryScreen(
                 ScoreForm(
                     suit = state.suit,
                     content = content,
-                    canValidate = state.canValidate,
-                    saveError = state.saveError,
-                    validateLabel = stringResource(R.string.round_correction_save_button),
                     onScoreChanged = onScoreChanged,
-                    onValidate = onValidate,
                     onSevenHolderSelected = onSevenHolderSelected
                 )
             }
@@ -144,11 +179,7 @@ fun RoundEntryScreen(
                     RoundEntryPanel.SCORES -> ScoreForm(
                         suit = state.suit,
                         content = content,
-                        canValidate = state.canValidate,
-                        saveError = state.saveError,
-                        validateLabel = stringResource(R.string.round_entry_validate_button),
                         onScoreChanged = onScoreChanged,
-                        onValidate = onValidate,
                         onSevenHolderSelected = onSevenHolderSelected
                     )
                 }
@@ -217,16 +248,15 @@ private fun StandingsPanel(summary: RoundEntrySummary) {
     }
 }
 
-/** Score entry, « Qui a eu le 40 ? », running sum and « Valider la Manche » (Stories 3.2-3.4). */
+/**
+ * « Qui a eu le 40 ? » first, since it sets a floor on its holder's score, then the score fields
+ * (Stories 3.2-3.4). The running sum and « Valider » live in [ValidationBar].
+ */
 @Composable
 private fun ScoreForm(
     suit: CardSuit?,
     content: RoundEntryContent,
-    canValidate: Boolean,
-    saveError: Boolean,
-    validateLabel: String,
     onScoreChanged: (UUID, String) -> Unit,
-    onValidate: () -> Unit,
     onSevenHolderSelected: (UUID) -> Unit
 ) {
     val focusManager = LocalFocusManager.current
@@ -239,6 +269,15 @@ private fun ScoreForm(
     LaunchedEffect(Unit) {
         val firstEmpty = content.participants.firstOrNull { content.scores[it.id].isNullOrEmpty() }
         firstEmpty?.let { focusRequesters.getValue(it.id).requestFocus() }
+    }
+
+    content.sevenPoints?.let { sevenPoints ->
+        SevenHolderSelector(
+            suit = suit,
+            sevenPoints = sevenPoints,
+            content = content,
+            onSevenHolderSelected = onSevenHolderSelected
+        )
     }
 
     content.participants.forEachIndexed { index, participant ->
@@ -263,41 +302,50 @@ private fun ScoreForm(
             modifier = Modifier.padding(bottom = 8.dp)
         )
     }
+}
 
-    content.sevenPoints?.let { sevenPoints ->
-        SevenHolderSelector(
-            suit = suit,
-            sevenPoints = sevenPoints,
-            content = content,
-            onSevenHolderSelected = onSevenHolderSelected
-        )
-    }
-
-    SumIndicator(
-        currentSum = content.currentSum,
-        state = content.sumIndicatorState,
-        totalPointsPerRound = content.totalPointsPerRound,
-        modifier = Modifier.padding(top = 16.dp)
-    )
-    if (saveError) {
-        Text(
-            text = stringResource(R.string.round_entry_save_error),
-            style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.error,
-            modifier = Modifier
-                .padding(top = 16.dp)
-                .testTag("round_entry_save_error")
-        )
-    }
-    Button(
-        onClick = onValidate,
-        enabled = canValidate,
+/** Running sum, save error and « Valider », pinned under the form so they stay in reach with 6 to 8 players. */
+@Composable
+private fun ValidationBar(
+    content: RoundEntryContent,
+    canValidate: Boolean,
+    saveError: Boolean,
+    validateLabel: String,
+    onValidate: () -> Unit
+) {
+    Column(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(vertical = 16.dp)
-            .testTag("round_entry_validate_button")
+            .background(MaterialTheme.colorScheme.surface)
+            .padding(horizontal = 16.dp, vertical = 8.dp)
+            .testTag("round_entry_validation_bar")
     ) {
-        Text(text = validateLabel)
+        SumIndicator(
+            currentSum = content.currentSum,
+            state = content.sumIndicatorState,
+            totalPointsPerRound = content.totalPointsPerRound
+        )
+        if (saveError) {
+            Text(
+                text = stringResource(R.string.round_entry_save_error),
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.error,
+                modifier = Modifier
+                    .padding(top = 8.dp)
+                    .testTag("round_entry_save_error")
+            )
+        }
+        Button(
+            onClick = onValidate,
+            enabled = canValidate,
+            modifier = Modifier
+                .fillMaxWidth()
+                .heightIn(min = 56.dp)
+                .padding(top = 8.dp)
+                .testTag("round_entry_validate_button")
+        ) {
+            Text(text = validateLabel)
+        }
     }
 }
 
@@ -326,7 +374,7 @@ private fun SevenHolderSelector(
     content: RoundEntryContent,
     onSevenHolderSelected: (UUID) -> Unit
 ) {
-    Column(modifier = Modifier.padding(top = 16.dp)) {
+    Column(modifier = Modifier.padding(bottom = 16.dp)) {
         Text(
             text = if (suit != null) {
                 stringResource(R.string.round_entry_seven_question_suit, stringResource(suit.nameRes), sevenPoints)

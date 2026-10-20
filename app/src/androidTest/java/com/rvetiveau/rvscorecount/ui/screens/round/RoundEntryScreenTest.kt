@@ -408,11 +408,38 @@ class RoundEntryScreenTest {
         composeTestRule.onNodeWithTag("round_entry_die_roller").assertDoesNotExist()
         composeTestRule.onNodeWithTag("round_entry_standings_button").assertDoesNotExist()
         composeTestRule.onNodeWithTag("round_entry_validate_button")
-            .performScrollTo()
             .assertTextEquals("Enregistrer la correction")
             .assertIsEnabled()
             .performClick()
 
         assertTrue(validated)
+    }
+
+    // --- « Qui a eu le 40 ? » d'abord, validation fixée en bas ---
+
+    @Test
+    fun theSevenQuestionComesBeforeTheScoreFields() {
+        setContent(aLoadedState(suit = CardSuit.HEART).let { it.copy(content = it.content!!.copy(sevenPoints = 40)) })
+
+        val question = composeTestRule.onNodeWithTag("round_entry_seven_question").getUnclippedBoundsInRoot().top
+        val firstField = composeTestRule.onNodeWithTag("score_field_$aliceId").getUnclippedBoundsInRoot().top
+        assertTrue(question < firstField)
+    }
+
+    @Test
+    fun theValidationBarStaysVisibleWithEightPlayers() {
+        val players = List(8) { RoundEntryParticipant(UUID.randomUUID(), "Joueur $it") }
+        val state = aLoadedState(suit = CardSuit.SPADE)
+        setContent(state.copy(content = state.content!!.copy(participants = players, scores = emptyMap())))
+
+        composeTestRule.onNodeWithTag("round_entry_validate_button").assertIsDisplayed()
+        composeTestRule.onNodeWithTag("round_entry_sum_indicator").assertIsDisplayed()
+    }
+
+    @Test
+    fun theValidationBarIsHiddenUntilTheScorePanelIsShown() {
+        setContent(aLoadedState(panel = RoundEntryPanel.NONE))
+
+        composeTestRule.onNodeWithTag("round_entry_validation_bar").assertDoesNotExist()
     }
 }
