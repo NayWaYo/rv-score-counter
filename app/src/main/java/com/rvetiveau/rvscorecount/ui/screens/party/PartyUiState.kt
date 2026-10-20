@@ -1,6 +1,7 @@
 package com.rvetiveau.rvscorecount.ui.screens.party
 
 import androidx.annotation.StringRes
+import com.rvetiveau.rvscorecount.domain.engine.DealingRules
 import com.rvetiveau.rvscorecount.ui.components.StandingRow
 
 /**
@@ -13,11 +14,12 @@ import com.rvetiveau.rvscorecount.ui.components.StandingRow
 sealed interface PartyUiState {
     data object Loading : PartyUiState
     data class Loaded(
-        val dealerName: String,
         val roundNumber: Int = 1,
         val standings: List<StandingRow> = emptyList(),
         val canStartRound: Boolean = true,
         val maxPlayers: Int = 0,
+        /** Dealing reminder for the current number of Participants, null when the game has none. */
+        val dealingRules: DealingRules? = null,
         val addition: ParticipantAdditionUiState? = null,
         val closure: PartyClosureUiState = PartyClosureUiState()
     ) : PartyUiState {
@@ -25,7 +27,6 @@ sealed interface PartyUiState {
         val playedRoundCount: Int get() = roundNumber - 1
 
         val canAddParticipant: Boolean get() = canStartRound && standings.size < maxPlayers
-        val isMaxPlayersReached: Boolean get() = canStartRound && maxPlayers > 0 && standings.size >= maxPlayers
     }
     data object LoadError : PartyUiState
     data object PartyNotFound : PartyUiState

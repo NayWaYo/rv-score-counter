@@ -1,8 +1,5 @@
 package com.rvetiveau.rvscorecount.ui.screens.party
 
-import androidx.compose.runtime.CompositionLocalProvider
-import androidx.compose.ui.platform.LocalDensity
-import androidx.compose.ui.semantics.SemanticsActions
 import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsEnabled
@@ -14,9 +11,8 @@ import androidx.compose.ui.test.onAllNodesWithTag
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
-import androidx.compose.ui.text.TextLayoutResult
-import androidx.compose.ui.unit.Density
 import com.rvetiveau.rvscorecount.R
+import com.rvetiveau.rvscorecount.domain.engine.DealingRules
 import com.rvetiveau.rvscorecount.ui.components.StandingRow
 import com.rvetiveau.rvscorecount.ui.theme.RvScoreCounterTheme
 import java.util.UUID
@@ -40,21 +36,12 @@ class PartyScreenTest {
         }
     }
 
-    @Test
-    fun showsTheDealerTitleAndEmptyStateWhenLoaded() {
-        setContent(PartyUiState.Loaded(dealerName = "Alice"))
-
-        composeTestRule.onNodeWithTag("party_dealer_title").assertTextEquals("Manche 1 — Donneur : Alice")
-        composeTestRule.onNodeWithTag("party_empty_state").assertTextEquals("Lancez la première manche pour commencer.")
-    }
-
     // --- Story 4.1 ---
 
     private val aliceId = UUID.randomUUID()
     private val bobId = UUID.randomUUID()
 
     private fun aLoadedStateWithStandings(roundNumber: Int = 3) = PartyUiState.Loaded(
-        dealerName = "Bob",
         roundNumber = roundNumber,
         standings = listOf(
             StandingRow(bobId, rank = 1, name = "Bob", cumulativeScore = 40, isDealer = true),
@@ -81,14 +68,6 @@ class PartyScreenTest {
 
         composeTestRule.onAllNodesWithTag("dealer_badge", useUnmergedTree = true).assertCountEquals(1)
         composeTestRule.onNodeWithTag("party_standing_row_$bobId").assertTextContains("Donneur")
-    }
-
-    @Test
-    fun showsTheRoundSubtitleAndHidesTheEmptyStateAfterTheFirstRound() {
-        setContent(aLoadedStateWithStandings(roundNumber = 3))
-
-        composeTestRule.onNodeWithTag("party_dealer_title").assertTextEquals("Manche 3 — Donneur : Bob")
-        composeTestRule.onNodeWithTag("party_empty_state").assertDoesNotExist()
     }
 
     @Test
@@ -141,16 +120,27 @@ class PartyScreenTest {
     @Test
     fun eightStandingRowsFitWithoutScrolling() {
         val rows = List(8) { StandingRow(UUID.randomUUID(), it + 1, "Joueur $it", it * 10, it == 0) }
-        setContent(PartyUiState.Loaded(dealerName = "Joueur 0", roundNumber = 2, standings = rows))
+        setContent(
+            PartyUiState.Loaded(
+                roundNumber = 2,
+                standings = rows,
+                maxPlayers = 8,
+                dealingRules = DealingRules(cardsPerPlayer = 7, cardsPassed = 3, removedSuitRank = 1)
+            )
+        )
 
+        composeTestRule.onNodeWithTag("party_dealing_reminder").assertIsDisplayed()
+        composeTestRule.onNodeWithTag("party_stats_link").assertIsDisplayed()
         rows.forEach { composeTestRule.onNodeWithTag("party_standing_row_${it.participantId}").assertIsDisplayed() }
+        composeTestRule.onNodeWithTag("party_start_round_button").assertIsDisplayed()
+        composeTestRule.onNodeWithTag("party_end_button").assertIsDisplayed()
     }
 
     // --- Statistiques ---
 
     @Test
     fun hidesTheStatsLinkBeforeTheFirstRound() {
-        setContent(PartyUiState.Loaded(dealerName = "Alice"))
+        setContent(PartyUiState.Loaded())
 
         composeTestRule.onNodeWithTag("party_stats_link").assertDoesNotExist()
     }
@@ -168,7 +158,7 @@ class PartyScreenTest {
         }
 
         composeTestRule.onNodeWithTag("party_stats_link")
-            .assertTextEquals("Statistiques et manches (2)")
+            .assertTextEquals("Statistiques (2)")
             .performClick()
 
         assertTrue(opened)
@@ -194,12 +184,12 @@ class PartyScreenTest {
     }
 
     @Test
-    fun replacesTheAddButtonWithTheMaximumMessageAtCapacity() {
+    fun hidesTheAddButtonAtCapacityWithoutAMessage() {
         val rows = List(8) { StandingRow(UUID.randomUUID(), it + 1, "Joueur $it", it, it == 0) }
-        setContent(PartyUiState.Loaded(dealerName = "Joueur 0", standings = rows, maxPlayers = 8))
+        setContent(PartyUiState.Loaded(standings = rows, maxPlayers = 8))
 
         composeTestRule.onNodeWithTag("party_add_participant_button").assertDoesNotExist()
-        composeTestRule.onNodeWithTag("party_max_participants_reached").assertTextEquals("Maximum de 8 joueurs atteint")
+        composeTestRule.onNodeWithText("Maximum", substring = true).assertDoesNotExist()
     }
 
     @Test
@@ -247,7 +237,7 @@ class PartyScreenTest {
     @Test
     fun startRoundButtonTriggersItsCallbackWhenLoaded() {
         var started = false
-        setContent(PartyUiState.Loaded(dealerName = "Alice"), onStartRound = { started = true })
+        setContent(PartyUiState.Loaded(), onStartRound = { started = true })
 
         composeTestRule.onNodeWithTag("party_start_round_button").performClick()
 
@@ -256,7 +246,7 @@ class PartyScreenTest {
 
     @Test
     fun startRoundButtonIsHiddenWhenThePartyIsFinished() {
-        setContent(PartyUiState.Loaded(dealerName = "Alice", canStartRound = false))
+        setContent(PartyUiState.Loaded(canStartRound = false))
 
         composeTestRule.onNodeWithTag("party_start_round_button").assertDoesNotExist()
     }
@@ -294,24 +284,35 @@ class PartyScreenTest {
     }
 
     @Test
-    fun dealerNameIsNotTruncatedAtALargeFontScale() {
-        val longName = "Bartholomew-Alexandre-Christophe"
-        composeTestRule.setContent {
-            val largeFontDensity = Density(density = LocalDensity.current.density, fontScale = 2f)
-            CompositionLocalProvider(LocalDensity provides largeFontDensity) {
-                RvScoreCounterTheme {
-                    PartyScreen(state = PartyUiState.Loaded(dealerName = longName))
-                }
-            }
-        }
+    fun theDealingReminderFollowsTheTableSize() {
+        val rows = List(7) { StandingRow(UUID.randomUUID(), it + 1, "Joueur $it", it, it == 0) }
+        setContent(
+            PartyUiState.Loaded(
+                standings = rows,
+                dealingRules = DealingRules(cardsPerPlayer = 8, cardsPassed = 3, removedSuitRank = 1)
+            )
+        )
 
-        val textLayoutResults = mutableListOf<TextLayoutResult>()
-        val getTextLayoutResult = composeTestRule
-            .onNodeWithTag("party_dealer_title", useUnmergedTree = true)
-            .fetchSemanticsNode()
-            .config[SemanticsActions.GetTextLayoutResult]
+        composeTestRule.onNodeWithTag("party_dealing_reminder")
+            .assertTextContains("Rappel pour 7 joueurs")
+            .assertTextContains("• Retirer les 1 de Pique, Cœur, Carreau et Trèfle")
+            .assertTextContains("• 8 cartes chacun : 2 tours de 3, puis 2")
+            .assertTextContains("• Écart : 3 cartes au voisin de gauche")
+    }
 
-        assertTrue(getTextLayoutResult.action?.invoke(textLayoutResults) == true)
-        assertTrue(textLayoutResults.none { it.hasVisualOverflow })
+    @Test
+    fun aHandOfFullPacketsHasNoLastPacket() {
+        setContent(PartyUiState.Loaded(dealingRules = DealingRules(cardsPerPlayer = 12, cardsPassed = 4)))
+
+        composeTestRule.onNodeWithTag("party_dealing_reminder")
+            .assertTextContains("• 12 cartes chacun : 4 tours de 3")
+        composeTestRule.onNodeWithText("Retirer", substring = true).assertDoesNotExist()
+    }
+
+    @Test
+    fun noReminderWithoutDealingRules() {
+        setContent(PartyUiState.Loaded())
+
+        composeTestRule.onNodeWithTag("party_dealing_reminder").assertDoesNotExist()
     }
 }

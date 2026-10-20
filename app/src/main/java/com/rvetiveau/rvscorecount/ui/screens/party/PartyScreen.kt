@@ -1,6 +1,6 @@
 package com.rvetiveau.rvscorecount.ui.screens.party
 
-import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
@@ -8,8 +8,10 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.widthIn
@@ -30,19 +32,20 @@ import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.unit.dp
 import com.rvetiveau.rvscorecount.R
+import com.rvetiveau.rvscorecount.domain.engine.DealingRules
 import com.rvetiveau.rvscorecount.ui.components.StandingRowItem
 
 /**
  * Stateless Partie en cours screen (Story 4.1): Classement sorted by Score Cumulé with the
- * Donneur badge, « Manche N — Donneur » subtitle, « Nouvelle manche » and « Fin de partie ».
+ * Donneur badge, a dealing reminder for the table size, « Nouvelle manche » and « Fin de partie ».
  * Error and loading states never render a partial Classement.
  */
 @Composable
@@ -100,22 +103,38 @@ fun PartyScreen(
                 .fillMaxSize()
                 .padding(16.dp)
         ) {
-            Text(
-                text = stringResource(R.string.party_screen_title),
-                style = MaterialTheme.typography.headlineSmall,
-                color = MaterialTheme.colorScheme.onBackground,
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
                 modifier = Modifier
-                    .padding(top = 16.dp)
-                    .testTag("party_screen_title")
-            )
-            Text(
-                text = stringResource(R.string.party_dealer_title, state.roundNumber, state.dealerName),
-                style = MaterialTheme.typography.bodyLarge,
-                color = MaterialTheme.colorScheme.onBackground,
-                modifier = Modifier
-                    .padding(top = 4.dp, bottom = 16.dp)
-                    .testTag("party_dealer_title")
-            )
+                    .fillMaxWidth()
+                    .padding(top = 8.dp)
+            ) {
+                Text(
+                    text = stringResource(R.string.party_screen_title),
+                    style = MaterialTheme.typography.headlineSmall,
+                    color = MaterialTheme.colorScheme.onBackground,
+                    modifier = Modifier
+                        .weight(1f)
+                        .testTag("party_screen_title")
+                )
+                if (state.playedRoundCount > 0) {
+                    TextButton(
+                        onClick = onShowStats,
+                        modifier = Modifier
+                            .heightIn(min = 48.dp)
+                            .testTag("party_stats_link")
+                    ) {
+                        Text(text = stringResource(R.string.stats_short_link, state.playedRoundCount))
+                    }
+                }
+            }
+            state.dealingRules?.let { rules ->
+                DealingReminder(
+                    playerCount = state.standings.size,
+                    rules = rules,
+                    modifier = Modifier.padding(top = 12.dp, bottom = 8.dp)
+                )
+            } ?: Spacer(modifier = Modifier.height(16.dp))
             val addition = state.addition
             when {
                 addition != null -> AdditionNameRow(
@@ -132,14 +151,6 @@ fun PartyScreen(
                 ) {
                     Text(text = stringResource(R.string.party_add_participant_button))
                 }
-                state.isMaxPlayersReached -> Text(
-                    text = stringResource(R.string.party_max_participants_reached, state.maxPlayers),
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier
-                        .padding(bottom = 8.dp)
-                        .testTag("party_max_participants_reached")
-                )
             }
             if (addition != null && addition.isChoosingPosition) {
                 InsertionPositionSheet(
@@ -147,26 +158,6 @@ fun PartyScreen(
                     onPositionSelected = onInsertionPositionSelected,
                     onDismiss = onAdditionCancelled
                 )
-            }
-            if (state.roundNumber == 1) {
-                Text(
-                    text = stringResource(R.string.party_empty_state),
-                    style = MaterialTheme.typography.bodyLarge,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier
-                        .padding(bottom = 16.dp)
-                        .testTag("party_empty_state")
-                )
-            }
-            if (state.playedRoundCount > 0) {
-                TextButton(
-                    onClick = onShowStats,
-                    modifier = Modifier
-                        .heightIn(min = 48.dp)
-                        .testTag("party_stats_link")
-                ) {
-                    Text(text = stringResource(R.string.stats_link, state.playedRoundCount))
-                }
             }
             if (state.closure.isConfirmationOpen) {
                 EndPartyDialog(
@@ -183,7 +174,11 @@ fun PartyScreen(
                     .testTag("party_standings")
             ) {
                 items(state.standings, key = { it.participantId }) { row ->
-                    StandingRowItem(row, modifier = Modifier.testTag("party_standing_row_${row.participantId}"))
+                    StandingRowItem(
+                        row = row,
+                        compact = true,
+                        modifier = Modifier.testTag("party_standing_row_${row.participantId}")
+                    )
                 }
             }
             if (state.canStartRound) {
@@ -345,6 +340,54 @@ private fun EndPartyDialog(isClosing: Boolean, onConfirm: () -> Unit, onDismiss:
         },
         modifier = Modifier.testTag("party_end_dialog")
     )
+}
+
+/** Rule reminder for the table size: cards per player and how to deal them, the pass, removed cards.
+ * Outlined rather than filled, so it reads as a side note and not as one more standing row. */
+@Composable
+private fun DealingReminder(playerCount: Int, rules: DealingRules, modifier: Modifier = Modifier) {
+    val lines = buildList {
+        rules.removedSuitRank?.let { add(stringResource(R.string.party_rules_removed, it)) }
+        add(
+            if (rules.lastPacket == 0) {
+                stringResource(R.string.party_rules_deal, rules.cardsPerPlayer, rules.fullPackets)
+            } else {
+                stringResource(R.string.party_rules_deal_with_rest, rules.cardsPerPlayer, rules.fullPackets, rules.lastPacket)
+            }
+        )
+        add(stringResource(R.string.party_rules_pass, rules.cardsPassed))
+    }
+    Column(
+        verticalArrangement = Arrangement.spacedBy(2.dp),
+        modifier = modifier
+            .fillMaxWidth()
+            .border(1.dp, MaterialTheme.colorScheme.outline, RoundedCornerShape(8.dp))
+            .padding(horizontal = 16.dp, vertical = 10.dp)
+            .semantics(mergeDescendants = true) {}
+            .testTag("party_dealing_reminder")
+    ) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Text(
+                text = stringResource(R.string.party_rules_emoji),
+                style = MaterialTheme.typography.labelLarge,
+                modifier = Modifier
+                    .padding(end = 6.dp)
+                    .clearAndSetSemantics {}
+            )
+            Text(
+                text = stringResource(R.string.party_rules_title, playerCount),
+                style = MaterialTheme.typography.labelLarge,
+                color = MaterialTheme.colorScheme.outline
+            )
+        }
+        lines.forEach { line ->
+            Text(
+                text = "• $line",
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+        }
+    }
 }
 
 @Composable

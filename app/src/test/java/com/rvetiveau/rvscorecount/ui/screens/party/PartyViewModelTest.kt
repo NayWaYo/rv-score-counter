@@ -7,6 +7,7 @@ import com.rvetiveau.rvscorecount.domain.model.PartyState
 import com.rvetiveau.rvscorecount.domain.model.Round
 import com.rvetiveau.rvscorecount.domain.model.RoundScore
 import com.rvetiveau.rvscorecount.R
+import com.rvetiveau.rvscorecount.domain.engine.DealingRules
 import com.rvetiveau.rvscorecount.domain.engine.GameEngine
 import com.rvetiveau.rvscorecount.domain.repository.PartyRepository
 import com.rvetiveau.rvscorecount.domain.usecase.AddParticipantUseCase
@@ -143,7 +144,7 @@ class PartyViewModelTest {
 
         val state = vm.uiState.value
         check(state is PartyUiState.Loaded)
-        assertEquals("Alice", state.dealerName)
+        assertEquals("Alice", state.standings.single { it.isDealer }.name)
     }
 
     @Test
@@ -156,7 +157,7 @@ class PartyViewModelTest {
 
         val state = vm.uiState.value
         check(state is PartyUiState.Loaded)
-        assertEquals("Bob", state.dealerName)
+        assertEquals("Bob", state.standings.single { it.isDealer }.name)
     }
 
     // --- Story 4.1 classement temps réel ---
@@ -198,7 +199,7 @@ class PartyViewModelTest {
         )
 
         val state = vm.uiState.value as PartyUiState.Loaded
-        assertEquals("Bob", state.dealerName)
+        assertEquals("Bob", state.standings.single { it.isDealer }.name)
         assertEquals(2, state.roundNumber)
         assertEquals(listOf("Bob", "Charlie", "Alice"), state.standings.map { it.name })
         assertEquals(listOf(20, 80, 150), state.standings.map { it.cumulativeScore })
@@ -337,7 +338,7 @@ class PartyViewModelTest {
 
         val state = vm.uiState.value
         check(state is PartyUiState.Loaded)
-        assertEquals("Alice", state.dealerName)
+        assertEquals("Alice", state.standings.single { it.isDealer }.name)
     }
 
     @Test
@@ -486,7 +487,7 @@ class PartyViewModelTest {
 
         val state = loadedState(vm)
         assertNull(state.addition)
-        assertEquals("Zoé", state.dealerName)
+        assertEquals("Zoé", state.standings.single { it.isDealer }.name)
         val zoe = state.standings.single { it.name == "Zoé" }
         assertEquals(0, zoe.cumulativeScore)
         assertTrue(zoe.isDealer)
@@ -554,7 +555,7 @@ class PartyViewModelTest {
 
         val state = loadedState(vm)
         assertTrue(!state.canAddParticipant)
-        assertTrue(state.isMaxPlayersReached)
+        assertEquals(DealingRules(cardsPerPlayer = 7, cardsPassed = 3, removedSuitRank = 1), state.dealingRules)
         assertNull(state.addition)
     }
 

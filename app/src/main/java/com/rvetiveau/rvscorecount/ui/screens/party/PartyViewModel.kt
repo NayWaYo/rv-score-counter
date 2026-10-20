@@ -132,11 +132,11 @@ class PartyViewModel @Inject constructor(
         seating = participants.sortedBy { it.listPosition }
         currentDealerIndex = party.currentDealerIndex
         return PartyUiState.Loaded(
-            dealerName = dealer.name,
             roundNumber = (rounds.maxOfOrNull { it.roundNumber } ?: 0) + 1,
             standings = rows,
             canStartRound = party.status == PartyState.IN_PROGRESS,
-            maxPlayers = engine.maxPlayers
+            maxPlayers = engine.maxPlayers,
+            dealingRules = engine.dealingRules(participants.size)
         )
     }
 

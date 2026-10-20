@@ -29,14 +29,18 @@
 
     <!-- Partie en cours : classement, Manche N / Donneur -->
     <string name="party_screen_title">Partie en cours</string>
-    <string name="party_dealer_title">Manche %1$d — Donneur : %2$s</string>
+    <string name="party_rules_emoji" translatable="false">📖</string>
+    <string name="party_rules_title">Rappel pour %1$d joueurs</string>
+    <string name="party_rules_deal">%1$d cartes chacun : %2$d tours de 3</string>
+    <string name="party_rules_deal_with_rest">%1$d cartes chacun : %2$d tours de 3, puis %3$d</string>
+    <string name="party_rules_pass">Écart : %1$d cartes au voisin de gauche</string>
+    <string name="party_rules_removed">Retirer les %1$d de Pique, Cœur, Carreau et Trèfle</string>
     <string name="party_standing_rank">%1$d.</string>
     <string name="party_dealer_badge">Donneur</string>
     <string name="standing_winner_emoji" translatable="false">🏆</string>
     <string name="standing_winner">Vainqueur</string>
     <string name="party_end_button">Fin de partie</string>
     <string name="party_add_participant_button">Ajouter un joueur</string>
-    <string name="party_max_participants_reached">Maximum de %1$d joueurs atteint</string>
     <string name="party_add_name_label">Prénom du joueur</string>
     <string name="party_add_choose_position">Choisir la place</string>
     <string name="party_add_cancel">Annuler</string>
@@ -49,7 +53,6 @@
     <string name="party_end_dialog_message">Voulez-vous vraiment mettre fin à cette partie ?</string>
     <string name="party_end_dialog_confirm">Confirmer</string>
     <string name="party_end_error">Impossible de terminer la partie. Réessayez.</string>
-    <string name="stats_link">Statistiques et manches (%1$d)</string>
     <string name="stats_short_link">Statistiques (%1$d)</string>
     <string name="party_rounds_title">Manches jouées</string>
     <string name="stats_correction_hint">Touchez une manche pour la corriger.</string>
@@ -142,7 +145,6 @@
         <item quantity="many">manches %1$s</item>
         <item quantity="other">manches %1$s</item>
     </plurals>
-    <string name="party_empty_state">Lancez la première manche pour commencer.</string>
     <string name="party_load_error">Impossible de charger la partie.</string>
     <string name="party_not_found">Partie introuvable.</string>
     <string name="party_inconsistent_participants">Les données de la partie sont incohérentes.</string>

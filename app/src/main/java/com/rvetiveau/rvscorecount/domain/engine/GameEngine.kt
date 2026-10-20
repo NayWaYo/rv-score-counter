@@ -18,6 +18,9 @@ interface GameEngine {
      */
     val suitSevenPoints: Int? get() = null
 
+    /** Dealing reminder for [playerCount] players, null when the game has none or the count is out of range. */
+    fun dealingRules(playerCount: Int): DealingRules? = null
+
     fun precomputeLastScore(entered: Map<ParticipantId, Int>): Int
 
     fun validateRound(scores: Map<ParticipantId, Int>): RoundValidation
