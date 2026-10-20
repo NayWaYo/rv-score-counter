@@ -9,8 +9,8 @@ class CardSuitColorsTest {
 
     @Test
     fun `spade maps to expected color and tint`() {
-        assertEquals(Color(0xFF90A4AE), CardSuit.SPADE.color)
-        assertEquals(Color(0xFF1A2328), CardSuit.SPADE.tint)
+        assertEquals(Color(0xFFD5DCE2), CardSuit.SPADE.color)
+        assertEquals(Color(0xFF1C2024), CardSuit.SPADE.tint)
     }
 
     @Test
@@ -28,6 +28,6 @@ class CardSuitColorsTest {
     @Test
     fun `diamond maps to expected color and tint`() {
         assertEquals(Color(0xFF42A5F5), CardSuit.DIAMOND.color)
-        assertEquals(Color(0xFF16222E), CardSuit.DIAMOND.tint)
+        assertEquals(Color(0xFF0E2440), CardSuit.DIAMOND.tint)
     }
 }

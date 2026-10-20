@@ -33,7 +33,7 @@ import com.rvetiveau.rvscorecount.ui.theme.ChampionTint
 import com.rvetiveau.rvscorecount.ui.theme.RecordInk
 import com.rvetiveau.rvscorecount.ui.theme.RecordTint
 
-/** Display model of the « Roi du 40 » statistic (ties included). */
+/** Display model of the « Poissard ou Nul ? » statistic (ties included). */
 data class SevenChampionUi(
     val names: List<String>,
     val count: Int
@@ -41,7 +41,7 @@ data class SevenChampionUi(
 
 fun SevenChampion.toUi() = SevenChampionUi(names = participants.map { it.name }, count = count)
 
-/** Display model of the « Record en une manche » statistic (ties included). */
+/** Display model of the « La fusée » statistic (ties included). */
 data class RoundRecordUi(
     val entries: List<RoundRecordEntryUi>,
     val points: Int

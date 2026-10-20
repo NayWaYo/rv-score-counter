@@ -2,6 +2,7 @@ package com.rvetiveau.rvscorecount.ui.components
 
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -116,11 +117,10 @@ fun StandingRowItem(row: StandingRow, modifier: Modifier = Modifier, highlightRa
                     Text(
                         text = stringResource(R.string.party_dealer_badge),
                         style = MaterialTheme.typography.labelLarge,
-                        color = MaterialTheme.colorScheme.onPrimary,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
                         modifier = Modifier
                             .padding(start = 8.dp)
-                            .clip(RoundedCornerShape(8.dp))
-                            .background(MaterialTheme.colorScheme.primary)
+                            .border(1.dp, MaterialTheme.colorScheme.outline, RoundedCornerShape(8.dp))
                             .padding(horizontal = 8.dp, vertical = 2.dp)
                             .testTag("dealer_badge")
                     )

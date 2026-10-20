@@ -104,7 +104,7 @@
     <string name="round_history_content_description">Manche %1$d, %2$s : %3$s, total %4$d</string>
     <string name="round_table_total">Total</string>
     <string name="round_table_absent" translatable="false">—</string>
-    <string name="round_table_legend">Case colorée : a pris le 40 · en gras : meilleur score de la manche · en rouge : pire</string>
+    <string name="round_table_legend">Case colorée : a pris le 40 · en gras orange : meilleur score de la manche · en gris : pire</string>
 
     <!-- Statistiques par joueur, sous sa ligne du classement -->
     <string name="standing_expand">Voir les statistiques</string>
@@ -126,12 +126,12 @@
     <string name="score_chart_content_description">Évolution des scores sur %1$d manches. Scores cumulés : %2$s</string>
 
     <!-- Cartes de statistiques -->
-    <string name="seven_champion">Roi du 40 : %1$s (%2$d fois)</string>
-    <string name="stat_seven_champion_emoji" translatable="false">👑</string>
-    <string name="stat_seven_champion_label">Roi du 40</string>
+    <string name="seven_champion">Poissard ou Nul&#160;? %1$s (%2$d fois)</string>
+    <string name="stat_seven_champion_emoji" translatable="false">💩</string>
+    <string name="stat_seven_champion_label">Poissard ou Nul&#160;?</string>
     <string name="stat_seven_champion_value">%1$d fois</string>
     <string name="stat_round_record_emoji" translatable="false">🚀</string>
-    <string name="stat_round_record_label">Record en une manche</string>
+    <string name="stat_round_record_label">La fusée</string>
     <string name="stat_round_record_value">%1$d pts · %2$s</string>
     <plurals name="stat_round_record_rounds">
         <item quantity="one">manche %1$s</item>
@@ -153,7 +153,7 @@
     <string name="stats_load_error">Impossible de charger les statistiques.</string>
     <string name="stats_unavailable">Statistiques indisponibles pour cette partie.</string>
     <string name="stats_standings_title">Classement</string>
-    <string name="round_record">Record en une manche : %1$s — %2$d points</string>
+    <string name="round_record">La fusée : %1$s — %2$d points</string>
     <string name="round_record_entry">%1$s (manche %2$d)</string>
     <string name="die_roll">Lancer</string>
     <string name="die_reroll">Relancer</string>

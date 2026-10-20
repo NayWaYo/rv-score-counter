@@ -14,6 +14,7 @@ private val DarkColorScheme = darkColorScheme(
     onBackground = InkPrimary,
     onSurface = InkPrimary,
     onSurfaceVariant = InkPrimary,
+    outline = InkMuted,
 )
 
 @Composable

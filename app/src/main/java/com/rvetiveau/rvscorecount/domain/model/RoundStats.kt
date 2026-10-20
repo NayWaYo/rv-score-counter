@@ -13,7 +13,7 @@ data class RoundRecord(
 )
 
 /**
- * « Record en une manche » : the highest score a Participant took in a single Manche, ties
+ * « La fusée » : the highest score a Participant took in a single Manche, ties
  * included, by Manche then table order; null before any Manche. A score outside [participants]
  * is an aggregate inconsistency, never ignored.
  */

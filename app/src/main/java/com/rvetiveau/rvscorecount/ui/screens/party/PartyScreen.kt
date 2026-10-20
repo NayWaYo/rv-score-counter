@@ -298,7 +298,7 @@ private fun InsertionPositionSheet(
                         Text(
                             text = stringResource(R.string.party_add_position_becomes_dealer),
                             style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.primary
+                            color = MaterialTheme.colorScheme.outline
                         )
                     }
                 }

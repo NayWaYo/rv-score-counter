@@ -1,6 +1,7 @@
 package com.rvetiveau.rvscorecount.ui.screens.setup
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.gestures.detectDragGesturesAfterLongPress
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -384,8 +385,7 @@ private fun DealerBadge(modifier: Modifier = Modifier) {
     val description = stringResource(R.string.setup_dealer_badge_content_description)
     Box(
         modifier = modifier
-            .clip(RoundedCornerShape(8.dp))
-            .background(MaterialTheme.colorScheme.primary)
+            .border(1.dp, MaterialTheme.colorScheme.outline, RoundedCornerShape(8.dp))
             .padding(horizontal = 8.dp, vertical = 4.dp)
             .testTag("setup_dealer_badge")
             .semantics { contentDescription = description },
@@ -394,7 +394,7 @@ private fun DealerBadge(modifier: Modifier = Modifier) {
         Text(
             text = stringResource(R.string.setup_dealer_badge),
             style = MaterialTheme.typography.labelLarge,
-            color = MaterialTheme.colorScheme.onPrimary
+            color = MaterialTheme.colorScheme.onSurfaceVariant
         )
     }
 }

@@ -64,7 +64,7 @@ UX-DR2: Accueil = grille 2 colonnes de tuiles Jeu ; chaque tuile contient un log
 UX-DR3: Accent unique ambre #FFB74D pour toutes les actions primaires (FilledButton) ; OutlinedButton pour les secondaires.
 UX-DR4: Indicateur de somme en temps réel sur l'écran de Saisie : neutre si < 250, success (#4CAF82) si = 250, error (#CF6679) si > 250.
 UX-DR5: Champ pré-rempli du dernier Participant avec teinte accent distincte et icône de calcul discrète.
-UX-DR6: Lignes d'historique de manche colorées par fond suit-*-tint (spade #1A2328, heart #2D1517, club #182A1A, diamond #16222E) + pictogramme enseigne aligné à droite.
+UX-DR6: Lignes d'historique de manche colorées par fond suit-*-tint (spade #1C2024, heart #2D1517, club #182A1A, diamond #0E2440 ; révisé le 2026-10-20) + pictogramme enseigne aligné à droite.
 UX-DR7: Badge Donneur (en accent) visible sur la ligne du joueur courant dans le Classement.
 UX-DR8: Bottom sheet pour sélection de la position d'insertion d'un Participant en cours de Partie.
 UX-DR9: Dialog de confirmation obligatoire pour actions destructives (Fin de partie, suppression Historique).
@@ -179,8 +179,8 @@ Afin que l'app soit lisible en soirée depuis la distance d'une table.
 **Then** le thème Material3 dark est appliqué globalement (surface-base #121212)
 **And** les tokens de couleur sont définis : surface-raised #1E1E1E, surface-container #2C2C2C, ink-primary #E8E0D5, accent #FFB74D, error #CF6679, success #4CAF82
 **And** CardSuit enum existe dans domain/model/ avec SPADE, HEART, CLUB, DIAMOND
-**And** CardSuitColors.kt dans ui/theme/ mappe chaque CardSuit vers : SPADE #90A4AE, HEART #EF5350, CLUB #66BB6A, DIAMOND #42A5F5
-**And** les teintes de fond suit-*-tint sont définies (SPADE #1A2328, HEART #2D1517, CLUB #182A1A, DIAMOND #16222E)
+**And** CardSuitColors.kt dans ui/theme/ mappe chaque CardSuit vers : SPADE #D5DCE2, HEART #EF5350, CLUB #66BB6A, DIAMOND #42A5F5
+**And** les teintes de fond suit-*-tint sont définies (SPADE #1C2024, HEART #2D1517, CLUB #182A1A, DIAMOND #0E2440)
 **And** toutes les strings UI sont dans res/values/strings.xml (aucune string littérale dans le code)
 
 ---

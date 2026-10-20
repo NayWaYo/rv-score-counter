@@ -12,7 +12,9 @@ colors:
   ink-primary: '#E8E0D5'
   ink-secondary: '#9E9890'
   ink-disabled: '#5E5B55'
-  # Accent principal (actions primaires)
+  # Texte atténué : pire score, indications, badges neutres (jamais une erreur)
+  ink-muted: '#A8A097'
+  # Accent principal (actions primaires et podium uniquement)
   accent: '#FFB74D'
   accent-on: '#1A1200'
   # États
@@ -20,15 +22,15 @@ colors:
   on-error: '#1A000D'
   success: '#4CAF82'
   # Enseignes (CardSuit) — usage strict : historique manches + résultat dé
-  suit-spade: '#90A4AE'
+  suit-spade: '#D5DCE2'
   suit-heart: '#EF5350'
   suit-club: '#66BB6A'
   suit-diamond: '#42A5F5'
   # Teintes de fond pour lignes d'historique (suit couleur à faible opacité)
-  suit-spade-tint: '#1A2328'
+  suit-spade-tint: '#1C2024'
   suit-heart-tint: '#2D1517'
   suit-club-tint: '#182A1A'
-  suit-diamond-tint: '#16222E'
+  suit-diamond-tint: '#0E2440'
 typography:
   display:
     note: 'Material3 DisplaySmall — scores cumulés mis en valeur'

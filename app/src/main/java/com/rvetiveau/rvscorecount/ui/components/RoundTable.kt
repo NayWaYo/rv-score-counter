@@ -109,9 +109,9 @@ private val CellHeight = 40.dp
 
 /**
  * Score sheet: header of names, one row per Manche led by its number and suit, then the totals.
- * The 7 holder's cell takes the suit's tint, the Manche's best score is bold in the primary colour
- * and its worst in the error colour. Scrolls sideways when the columns do not fit; each row is read
- * as one by TalkBack. With [onRoundClick], touching a Manche's row reports its number.
+ * The 7 holder's cell takes the suit's tint, the Manche's best score is bold in the primary colour and
+ * its worst muted.
+ * Scrolls sideways when the columns do not fit; each row is read as one by TalkBack. With [onRoundClick], touching a Manche's row reports its number.
  */
 @Composable
 fun RoundTable(table: RoundTable, modifier: Modifier = Modifier, onRoundClick: ((Int) -> Unit)? = null) {
@@ -242,7 +242,7 @@ private fun RoundRow(
                 color = when (points) {
                     null -> MaterialTheme.colorScheme.outline
                     row.bestPoints -> MaterialTheme.colorScheme.primary
-                    row.worstPoints -> MaterialTheme.colorScheme.error
+                    row.worstPoints -> MaterialTheme.colorScheme.outline
                     else -> MaterialTheme.colorScheme.onSurfaceVariant
                 },
                 fontWeight = if (points != null && points == row.bestPoints) FontWeight.Bold else null,

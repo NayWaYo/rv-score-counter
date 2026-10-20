@@ -7,7 +7,7 @@ data class SevenChampion(
 )
 
 /**
- * « Roi du 40 » : the Participant(s) who took the 7 of the die's suit the most often, ties
+ * « Poissard ou Nul ? » : the Participant(s) who took the 7 of the die's suit the most often, ties
  * included, in table order. Rounds without a recorded holder are ignored; null when none has one.
  * A holder outside [participants] is an aggregate inconsistency, never ignored.
  */
