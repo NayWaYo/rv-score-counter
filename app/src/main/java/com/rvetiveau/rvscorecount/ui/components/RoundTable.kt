@@ -1,6 +1,7 @@
 package com.rvetiveau.rvscorecount.ui.components
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -25,6 +26,7 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.onClick
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -109,12 +111,12 @@ private val CellHeight = 40.dp
  * Score sheet: header of names, one row per Manche led by its number and suit, then the totals.
  * The 7 holder's cell takes the suit's tint, the Manche's best score is bold in the primary colour
  * and its worst in the error colour. Scrolls sideways when the columns do not fit; each row is read
- * as one by TalkBack.
+ * as one by TalkBack. With [onRoundClick], touching a Manche's row reports its number.
  */
 @Composable
-fun RoundTable(table: RoundTable, modifier: Modifier = Modifier) {
+fun RoundTable(table: RoundTable, modifier: Modifier = Modifier, onRoundClick: ((Int) -> Unit)? = null) {
     Column(modifier = modifier.fillMaxWidth()) {
-        RoundTableGrid(table)
+        RoundTableGrid(table, onRoundClick)
         Text(
             text = stringResource(R.string.round_table_legend),
             style = MaterialTheme.typography.bodySmall,
@@ -125,7 +127,7 @@ fun RoundTable(table: RoundTable, modifier: Modifier = Modifier) {
 }
 
 @Composable
-private fun RoundTableGrid(table: RoundTable) {
+private fun RoundTableGrid(table: RoundTable, onRoundClick: ((Int) -> Unit)?) {
     BoxWithConstraints(modifier = Modifier.fillMaxWidth()) {
         val playerCount = table.players.size.coerceAtLeast(1)
         val columnWidth = max(MinPlayerColumnWidth, (maxWidth - RoundColumnWidth) / playerCount)
@@ -141,7 +143,7 @@ private fun RoundTableGrid(table: RoundTable) {
                     color = MaterialTheme.colorScheme.outlineVariant,
                     modifier = Modifier.width(RoundColumnWidth + columnWidth * playerCount)
                 )
-                RoundRow(row, table.players, columnWidth)
+                RoundRow(row, table.players, columnWidth, onRoundClick)
             }
             HorizontalDivider(
                 thickness = 2.dp,
@@ -171,7 +173,12 @@ private fun HeaderRow(players: List<RoundTablePlayer>, columnWidth: Dp) {
 }
 
 @Composable
-private fun RoundRow(row: RoundTableRow, players: List<RoundTablePlayer>, columnWidth: Dp) {
+private fun RoundRow(
+    row: RoundTableRow,
+    players: List<RoundTablePlayer>,
+    columnWidth: Dp,
+    onRoundClick: ((Int) -> Unit)?
+) {
     val separator = stringResource(R.string.round_history_score_separator)
     val scoresText = players
         .mapNotNull { player -> row.points[player.participantId]?.let { player.name to it } }
@@ -190,11 +197,24 @@ private fun RoundRow(row: RoundTableRow, players: List<RoundTablePlayer>, column
     } else {
         baseDescription
     }
+    val correctLabel = stringResource(R.string.round_table_correct_action)
     Row(
         verticalAlignment = Alignment.CenterVertically,
         modifier = Modifier
             .testTag("round_table_row_${row.roundNumber}")
-            .clearAndSetSemantics { contentDescription = description }
+            .let { base ->
+                if (onRoundClick != null) {
+                    base.clickable(onClickLabel = correctLabel) { onRoundClick(row.roundNumber) }
+                } else {
+                    base
+                }
+            }
+            .clearAndSetSemantics {
+                contentDescription = description
+                if (onRoundClick != null) {
+                    onClick(label = correctLabel) { onRoundClick(row.roundNumber); true }
+                }
+            }
     ) {
         Row(
             verticalAlignment = Alignment.CenterVertically,

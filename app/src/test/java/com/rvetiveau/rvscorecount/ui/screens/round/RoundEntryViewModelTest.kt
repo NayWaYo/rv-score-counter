@@ -10,6 +10,7 @@ import com.rvetiveau.rvscorecount.domain.model.PartyState
 import com.rvetiveau.rvscorecount.domain.model.Round
 import com.rvetiveau.rvscorecount.domain.model.RoundScore
 import com.rvetiveau.rvscorecount.domain.repository.PartyRepository
+import com.rvetiveau.rvscorecount.domain.usecase.CorrectRoundUseCase
 import com.rvetiveau.rvscorecount.domain.usecase.GetAvailableGamesUseCase
 import com.rvetiveau.rvscorecount.domain.usecase.RollDieUseCase
 import com.rvetiveau.rvscorecount.domain.usecase.ValidateRoundUseCase
@@ -67,6 +68,10 @@ class RoundEntryViewModelTest {
         var savedScores: Map<UUID, Int>? = null
             private set
         var saveFailure: Throwable? = null
+        var correctedRound: Round? = null
+            private set
+        var correctedScores: Map<UUID, Int>? = null
+            private set
 
         override suspend fun createParty(party: Party) = error("not used in this test")
         override suspend fun updateParty(party: Party) = error("not used in this test")
@@ -87,6 +92,10 @@ class RoundEntryViewModelTest {
             saveFailure?.let { throw it }
             savedRound = round
             savedScores = scores
+        }
+        override suspend fun correctRound(round: Round, scores: Map<UUID, Int>) {
+            correctedRound = round
+            correctedScores = scores
         }
         override suspend fun getRoundsByPartyId(partyId: UUID): List<Round> = rounds
         override suspend fun getScoresByRoundId(roundId: UUID): List<RoundScore> =
@@ -134,7 +143,8 @@ class RoundEntryViewModelTest {
         rollDieUseCase,
         savedStateHandle,
         getAvailableGamesUseCase,
-        validateRoundUseCase
+        validateRoundUseCase,
+        CorrectRoundUseCase(partyRepository, mapOf(PapayooEngine.GAME_ID to PapayooEngine()))
     )
 
     private fun initializedViewModel(
@@ -1023,5 +1033,89 @@ class RoundEntryViewModelTest {
         ).also { it.initialize(partyId) }
 
         assertEquals(RoundEntryPanel.SCORES, vm.uiState.value.panel)
+    }
+
+    // --- Correction d'une Manche validée ---
+
+    private inner class CorrectionFixture {
+        val partyId: UUID = UUID.randomUUID()
+        val alice = aParticipant(partyId, "Alice", 0)
+        val bob = aParticipant(partyId, "Bob", 1)
+        /** Joined after round 1: never part of its correction. */
+        val charlie = aParticipant(partyId, "Charlie", 2)
+        val round = Round(UUID.randomUUID(), partyId, 1, CardSuit.HEART, sevenHolderId = alice.id)
+        val repository = FakePartyRepository(
+            aParty(partyId),
+            listOf(alice, bob, charlie),
+            rounds = listOf(round),
+            roundScores = listOf(RoundScore(round.id, alice.id, 150), RoundScore(round.id, bob.id, 100))
+        )
+
+        fun viewModel(
+            roundNumber: Int = 1,
+            savedStateHandle: SavedStateHandle = SavedStateHandle()
+        ) = viewModel(savedStateHandle = savedStateHandle, partyRepository = repository)
+            .also { it.initialize(partyId, roundNumber) }
+    }
+
+    @Test
+    fun `a correction reopens the round with its suit, scores and 7 holder, for its players only`() = runTest {
+        val fixture = CorrectionFixture()
+
+        val state = fixture.viewModel().uiState.value
+
+        assertEquals(1, state.correctedRoundNumber)
+        assertEquals(CardSuit.HEART, state.suit)
+        assertEquals(RoundEntryPanel.SCORES, state.panel)
+        assertEquals(listOf("Alice", "Bob"), state.content!!.participants.map { it.name })
+        assertEquals(mapOf(fixture.alice.id to "150", fixture.bob.id to "100"), state.content.scores)
+        assertEquals(fixture.alice.id, state.content.sevenHolderId)
+        assertTrue(state.canValidate)
+    }
+
+    @Test
+    fun `the die stays locked during a correction`() = runTest {
+        val vm = CorrectionFixture().viewModel()
+
+        vm.onRoll()
+
+        assertEquals(CardSuit.HEART, vm.uiState.value.suit)
+        assertEquals(false, vm.uiState.value.rollEnabled)
+    }
+
+    @Test
+    fun `saving a correction rewrites the round and returns to the party`() = runTest {
+        val fixture = CorrectionFixture()
+        val vm = fixture.viewModel()
+
+        vm.onScoreChanged(fixture.alice.id, "")
+        vm.onScoreChanged(fixture.bob.id, "90")
+        vm.onSevenHolderSelected(fixture.bob.id)
+        vm.onValidate()
+
+        assertEquals(NavigationEvent.NavigateBack, vm.navigationEvents.first())
+        assertEquals(mapOf(fixture.alice.id to 160, fixture.bob.id to 90), fixture.repository.correctedScores)
+        assertEquals(fixture.round.copy(sevenHolderId = fixture.bob.id), fixture.repository.correctedRound)
+        assertEquals(0, fixture.repository.saveRoundInvocationCount)
+    }
+
+    @Test
+    fun `a saved draft wins over the stored score after process death`() = runTest {
+        val fixture = CorrectionFixture()
+
+        val state = fixture.viewModel(
+            savedStateHandle = SavedStateHandle(mapOf("score_${fixture.bob.id}" to "90", "suit" to "SPADE"))
+        ).uiState.value
+
+        assertEquals("90", state.content!!.scores[fixture.bob.id])
+        assertEquals(CardSuit.HEART, state.suit)
+    }
+
+    @Test
+    fun `an unknown round is a load error`() = runTest {
+        val state = CorrectionFixture().viewModel(roundNumber = 2).uiState.value
+
+        assertTrue(state.loadError)
+        assertNull(state.content)
     }
 }

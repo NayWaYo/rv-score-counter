@@ -39,7 +39,9 @@ import com.rvetiveau.rvscorecount.ui.components.StatCards
 import com.rvetiveau.rvscorecount.ui.components.StandingRowItem
 import com.rvetiveau.rvscorecount.ui.components.ScoreField
 import com.rvetiveau.rvscorecount.ui.components.SumIndicator
+import com.rvetiveau.rvscorecount.ui.theme.color
 import com.rvetiveau.rvscorecount.ui.theme.nameRes
+import com.rvetiveau.rvscorecount.ui.theme.pictogramRes
 import java.util.UUID
 
 /**
@@ -68,7 +70,9 @@ fun RoundEntryScreen(
             .padding(horizontal = 16.dp)
     ) {
         Text(
-            text = stringResource(R.string.round_entry_title),
+            text = state.correctedRoundNumber
+                ?.let { stringResource(R.string.round_correction_title, it) }
+                ?: stringResource(R.string.round_entry_title),
             style = MaterialTheme.typography.headlineSmall,
             color = MaterialTheme.colorScheme.onBackground,
             modifier = Modifier
@@ -97,6 +101,20 @@ fun RoundEntryScreen(
                 ) {
                     Text(text = stringResource(R.string.root_error_retry))
                 }
+            }
+
+            content != null && state.isCorrection -> {
+                state.suit?.let { suit -> CorrectedSuit(suit) }
+                ScoreForm(
+                    suit = state.suit,
+                    content = content,
+                    canValidate = state.canValidate,
+                    saveError = state.saveError,
+                    validateLabel = stringResource(R.string.round_correction_save_button),
+                    onScoreChanged = onScoreChanged,
+                    onValidate = onValidate,
+                    onSevenHolderSelected = onSevenHolderSelected
+                )
             }
 
             content != null -> {
@@ -131,6 +149,7 @@ fun RoundEntryScreen(
                         content = content,
                         canValidate = state.canValidate,
                         saveError = state.saveError,
+                        validateLabel = stringResource(R.string.round_entry_validate_button),
                         onScoreChanged = onScoreChanged,
                         onValidate = onValidate,
                         onSevenHolderSelected = onSevenHolderSelected
@@ -241,6 +260,7 @@ private fun ScoreForm(
     content: RoundEntryContent,
     canValidate: Boolean,
     saveError: Boolean,
+    validateLabel: String,
     onScoreChanged: (UUID, String) -> Unit,
     onValidate: () -> Unit,
     onSevenHolderSelected: (UUID) -> Unit
@@ -313,8 +333,25 @@ private fun ScoreForm(
             .padding(vertical = 16.dp)
             .testTag("round_entry_validate_button")
     ) {
-        Text(text = stringResource(R.string.round_entry_validate_button))
+        Text(text = validateLabel)
     }
+}
+
+/** The corrected Manche keeps the suit drawn when it was played: shown, never rolled again. */
+@Composable
+private fun CorrectedSuit(suit: CardSuit) {
+    Text(
+        text = stringResource(
+            R.string.round_correction_suit,
+            stringResource(suit.pictogramRes),
+            stringResource(suit.nameRes)
+        ),
+        style = MaterialTheme.typography.titleMedium,
+        color = suit.color,
+        modifier = Modifier
+            .padding(bottom = 16.dp)
+            .testTag("round_correction_suit")
+    )
 }
 
 /** « Qui a eu le 40 ? » : one chip per Participant; the holder must have scored at least the 7's points. */

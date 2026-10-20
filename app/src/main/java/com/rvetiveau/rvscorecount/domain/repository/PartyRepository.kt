@@ -28,6 +28,10 @@ interface PartyRepository {
     /** Atomic write (FR-8, FR-9): the Round, its RoundScores and [updatedParty] (next Donneur)
      * commit in a single Room transaction, or none of them persist. */
     suspend fun saveRound(round: Round, scores: Map<UUID, Int>, updatedParty: Party)
+    /** Atomic correction of a validated Round: its 7 holder and the points of the Participants
+     * who played it are replaced together, or nothing changes. Number, suit, the set of scored
+     * Participants and the Donneur stay as they were. */
+    suspend fun correctRound(round: Round, scores: Map<UUID, Int>)
     suspend fun getRoundsByPartyId(partyId: UUID): List<Round>
     suspend fun getScoresByRoundId(roundId: UUID): List<RoundScore>
 }

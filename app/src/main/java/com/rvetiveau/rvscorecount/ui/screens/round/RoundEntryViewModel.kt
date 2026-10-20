@@ -12,6 +12,8 @@ import com.rvetiveau.rvscorecount.domain.model.playerStats
 import com.rvetiveau.rvscorecount.domain.model.roundRecord
 import com.rvetiveau.rvscorecount.domain.model.sevenChampion
 import com.rvetiveau.rvscorecount.domain.repository.PartyRepository
+import com.rvetiveau.rvscorecount.domain.usecase.CorrectRoundOutcome
+import com.rvetiveau.rvscorecount.domain.usecase.CorrectRoundUseCase
 import com.rvetiveau.rvscorecount.domain.usecase.GetAvailableGamesUseCase
 import com.rvetiveau.rvscorecount.domain.usecase.RollDieUseCase
 import com.rvetiveau.rvscorecount.domain.usecase.ValidateRoundOutcome
@@ -49,7 +51,8 @@ class RoundEntryViewModel @Inject constructor(
     private val rollDieUseCase: RollDieUseCase,
     private val savedStateHandle: SavedStateHandle,
     private val getAvailableGamesUseCase: GetAvailableGamesUseCase,
-    private val validateRoundUseCase: ValidateRoundUseCase
+    private val validateRoundUseCase: ValidateRoundUseCase,
+    private val correctRoundUseCase: CorrectRoundUseCase
 ) : ViewModel() {
 
     private val restoredSuit: CardSuit? = savedStateHandle.get<String>(SUIT_KEY)?.let { name ->
@@ -63,20 +66,28 @@ class RoundEntryViewModel @Inject constructor(
     val navigationEvents: Flow<NavigationEvent> = _navigationEvents.receiveAsFlow()
 
     private var initializedPartyId: UUID? = null
+    private var initializedRoundNumber: Int? = null
     private var gameEngine: GameEngine? = null
 
-    /** Idempotent: a recomposition never re-triggers the Room read for the same partyId. */
-    fun initialize(partyId: UUID) {
-        if (initializedPartyId == partyId) return
+    /** Idempotent: a recomposition never re-triggers the Room read for the same partyId and Manche.
+     * With [correctedRoundNumber], the form reopens that validated Manche with its stored scores,
+     * 7 holder and suit, for the Participants who played it only. */
+    fun initialize(partyId: UUID, correctedRoundNumber: Int? = null) {
+        if (initializedPartyId == partyId && initializedRoundNumber == correctedRoundNumber) return
         initializedPartyId = partyId
-        _uiState.value = _uiState.value.copy(isLoading = true, loadError = false, content = null)
+        initializedRoundNumber = correctedRoundNumber
+        _uiState.value = _uiState.value.copy(
+            isLoading = true,
+            loadError = false,
+            content = null,
+            correctedRoundNumber = correctedRoundNumber
+        )
 
         viewModelScope.launch {
             try {
                 val party = partyRepository.getPartyById(partyId)
                 if (party == null || party.id != partyId || party.status != PartyState.IN_PROGRESS) {
-                    initializedPartyId = null
-                    _uiState.value = _uiState.value.copy(isLoading = false, loadError = true)
+                    failLoading()
                     return@launch
                 }
 
@@ -89,41 +100,36 @@ class RoundEntryViewModel @Inject constructor(
                     participants.map { it.id }.distinct().size == participants.size
 
                 if (!aggregateIsConsistent) {
-                    initializedPartyId = null
-                    _uiState.value = _uiState.value.copy(isLoading = false, loadError = true)
+                    failLoading()
                     return@launch
                 }
 
                 val engine = getAvailableGamesUseCase().firstOrNull { it.gameId == party.gameId }
                 if (engine == null) {
-                    initializedPartyId = null
                     gameEngine = null
-                    _uiState.value = _uiState.value.copy(isLoading = false, loadError = true)
+                    failLoading()
                     return@launch
                 }
                 gameEngine = engine
 
                 val ordered = participants.sortedBy { it.listPosition }
+                if (correctedRoundNumber != null) {
+                    loadCorrection(partyId, correctedRoundNumber, ordered, engine)
+                    return@launch
+                }
+
                 var hasRestoredScore = false
                 val restoredScores = ordered.associate { participant ->
-                    val restored = savedStateHandle.get<String>("$SCORE_KEY_PREFIX${participant.id}")
-                    val validated = when {
-                        restored == null || restored.isEmpty() -> ""
-                        restored.all(Char::isDigit) && restored.toIntOrNull() != null -> restored.also {
-                            hasRestoredScore = true
-                        }
-                        else -> ""
-                    }
-                    participant.id to validated
+                    val restored = restoredScore(participant.id)
+                    if (restored != null) hasRestoredScore = true
+                    participant.id to restored.orEmpty()
                 }
-                val restoredSevenHolderId = savedStateHandle.get<String>(SEVEN_HOLDER_KEY)
-                    ?.let { saved -> ordered.firstOrNull { it.id.toString() == saved }?.id }
                 val restoredContent = RoundEntryContent(
                     participants = ordered.map { RoundEntryParticipant(it.id, it.name) },
                     scores = restoredScores,
                     totalPointsPerRound = engine.totalPointsPerRound,
                     sevenPoints = engine.suitSevenPoints,
-                    sevenHolderId = restoredSevenHolderId.takeIf { engine.suitSevenPoints != null },
+                    sevenHolderId = restoredSevenHolderId(ordered).takeIf { engine.suitSevenPoints != null },
                     summary = loadSummary(partyId, participants, party.currentDealerIndex)
                 )
                 val content = withSuggestion(restoredContent, engine)
@@ -143,14 +149,67 @@ class RoundEntryViewModel @Inject constructor(
                 initializedPartyId = null
                 throw cancellation
             } catch (_: Exception) {
-                initializedPartyId = null
-                _uiState.value = _uiState.value.copy(isLoading = false, loadError = true, content = null)
+                failLoading()
             }
         }
     }
 
-    fun retry(partyId: UUID) {
-        if (_uiState.value.loadError) initialize(partyId)
+    /** The validated Manche [roundNumber] in the score form, its suit in place of the die. A draft
+     * kept across process death wins over the stored value; a stored score or 7 holder that no
+     * Participant of the Partie owns is a load error. */
+    private suspend fun loadCorrection(
+        partyId: UUID,
+        roundNumber: Int,
+        ordered: List<Participant>,
+        engine: GameEngine
+    ) {
+        val round = partyRepository.getRoundsByPartyId(partyId).firstOrNull { it.roundNumber == roundNumber }
+        val storedPoints = round?.let { partyRepository.getScoresByRoundId(it.id) }
+            ?.associate { it.participantId to it.points }
+        val players = ordered.filter { storedPoints?.containsKey(it.id) == true }
+        if (round == null || storedPoints.isNullOrEmpty() || players.size != storedPoints.size ||
+            (round.sevenHolderId != null && round.sevenHolderId !in storedPoints)
+        ) {
+            failLoading()
+            return
+        }
+
+        val scores = players.associate { player ->
+            player.id to (restoredScore(player.id) ?: storedPoints.getValue(player.id).toString())
+        }
+        val content = RoundEntryContent(
+            participants = players.map { RoundEntryParticipant(it.id, it.name) },
+            scores = scores,
+            totalPointsPerRound = engine.totalPointsPerRound,
+            sevenPoints = engine.suitSevenPoints,
+            sevenHolderId = (restoredSevenHolderId(players) ?: round.sevenHolderId)
+                .takeIf { engine.suitSevenPoints != null }
+        )
+        _uiState.value = _uiState.value.copy(
+            suit = round.suit,
+            isLoading = false,
+            loadError = false,
+            content = withSuggestion(content, engine),
+            panel = RoundEntryPanel.SCORES
+        )
+    }
+
+    private fun failLoading() {
+        initializedPartyId = null
+        _uiState.value = _uiState.value.copy(isLoading = false, loadError = true, content = null)
+    }
+
+    /** The saved draft of [participantId], or null when absent or corrupt (never coerced). */
+    private fun restoredScore(participantId: UUID): String? =
+        savedStateHandle.get<String>("$SCORE_KEY_PREFIX$participantId")
+            ?.takeIf { it.isNotEmpty() && it.all(Char::isDigit) && it.toIntOrNull() != null }
+
+    private fun restoredSevenHolderId(players: List<Participant>): UUID? =
+        savedStateHandle.get<String>(SEVEN_HOLDER_KEY)
+            ?.let { saved -> players.firstOrNull { it.id.toString() == saved }?.id }
+
+    fun retry(partyId: UUID, correctedRoundNumber: Int? = null) {
+        if (_uiState.value.loadError) initialize(partyId, correctedRoundNumber)
     }
 
     /** Same intent for « Lancer » and « Relancer » (Story 3.1): always draws exactly once per
@@ -196,9 +255,10 @@ class RoundEntryViewModel @Inject constructor(
         if (rawValue.isEmpty()) savedStateHandle.remove<String>(key) else savedStateHandle[key] = rawValue
     }
 
-    /** Persists the Manche through [ValidateRoundUseCase] (Story 3.4, AC 1-7), then returns to
-     * PartyScreen. Ignored unless [RoundEntryUiState.canValidate]; any failure, including a sum
-     * mismatch reported by the engine, keeps the drafts and shows [RoundEntryUiState.saveError]. */
+    /** Persists the Manche through [ValidateRoundUseCase] (Story 3.4, AC 1-7), or the correction
+     * through [CorrectRoundUseCase], then returns to PartyScreen. Ignored unless
+     * [RoundEntryUiState.canValidate]; any failure, including a sum mismatch reported by the
+     * engine, keeps the drafts and shows [RoundEntryUiState.saveError]. */
     fun onValidate() {
         val state = _uiState.value
         val partyId = initializedPartyId ?: return
@@ -206,11 +266,18 @@ class RoundEntryViewModel @Inject constructor(
         val scores = state.content?.toScores() ?: return
         if (!state.canValidate) return
         val sevenHolderId = state.content.sevenHolderId
+        val correctedRoundNumber = state.correctedRoundNumber
         _uiState.value = state.copy(isSaving = true, saveError = false)
 
         viewModelScope.launch {
-            val outcome = validateRoundUseCase(partyId, suit, scores, sevenHolderId).getOrNull()
-            if (outcome is ValidateRoundOutcome.Validated) {
+            val saved = if (correctedRoundNumber != null) {
+                correctRoundUseCase(partyId, correctedRoundNumber, scores, sevenHolderId)
+                    .getOrNull() is CorrectRoundOutcome.Corrected
+            } else {
+                validateRoundUseCase(partyId, suit, scores, sevenHolderId)
+                    .getOrNull() is ValidateRoundOutcome.Validated
+            }
+            if (saved) {
                 _navigationEvents.send(NavigationEvent.NavigateBack)
             } else {
                 _uiState.value = _uiState.value.copy(isSaving = false, saveError = true)

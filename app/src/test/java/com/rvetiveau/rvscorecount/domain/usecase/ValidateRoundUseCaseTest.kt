@@ -48,6 +48,7 @@ class ValidateRoundUseCaseTest {
             roundScores += scores.map { (id, points) -> RoundScore(round.id, id, points) }
             party = updatedParty
         }
+        override suspend fun correctRound(round: Round, scores: Map<UUID, Int>) = error("not used in this test")
         override suspend fun getRoundsByPartyId(partyId: UUID): List<Round> =
             rounds.filter { it.partyId == partyId }.sortedBy { it.roundNumber }
         override suspend fun getScoresByRoundId(roundId: UUID): List<RoundScore> =

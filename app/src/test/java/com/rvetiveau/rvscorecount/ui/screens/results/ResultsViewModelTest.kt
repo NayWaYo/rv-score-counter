@@ -72,6 +72,7 @@ class ResultsViewModelTest {
         override suspend fun getParticipantsByPartyId(partyId: UUID): List<Participant> = participants
         override fun observeParticipants(partyId: UUID): Flow<List<Participant>> = error("not used in this test")
         override suspend fun saveRound(round: Round, scores: Map<UUID, Int>, updatedParty: Party) = error("not used in this test")
+        override suspend fun correctRound(round: Round, scores: Map<UUID, Int>) = error("not used in this test")
         override suspend fun getRoundsByPartyId(partyId: UUID): List<Round> = rounds
         override suspend fun getScoresByRoundId(roundId: UUID): List<RoundScore> = roundScores.filter { it.roundId == roundId }
     }

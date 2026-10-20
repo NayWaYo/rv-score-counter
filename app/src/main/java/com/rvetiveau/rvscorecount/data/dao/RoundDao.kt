@@ -8,10 +8,18 @@ import com.rvetiveau.rvscorecount.data.entity.RoundEntity
 
 @Dao
 interface RoundDao {
-    // ABORT — immuabilité FR-9 : aucune manche validée ne peut être écrasée
+    // ABORT : une manche validée n'est jamais écrasée par une insertion ; seule la correction
+    // explicite (updateSevenHolder) la modifie
     @Insert(onConflict = OnConflictStrategy.ABORT)
     suspend fun insert(round: RoundEntity)
 
     @Query("SELECT * FROM rounds WHERE partyId = :partyId ORDER BY roundNumber ASC")
     suspend fun getByPartyId(partyId: String): List<RoundEntity>
+
+    @Query("SELECT * FROM rounds WHERE id = :id")
+    suspend fun getById(id: String): RoundEntity?
+
+    /** Returns the number of rows changed: 0 when the round does not exist. */
+    @Query("UPDATE rounds SET sevenHolderId = :sevenHolderId WHERE id = :id")
+    suspend fun updateSevenHolder(id: String, sevenHolderId: String?): Int
 }

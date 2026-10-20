@@ -424,4 +424,28 @@ class RoundEntryScreenTest {
         composeTestRule.onNodeWithTag("die_result").assertIsDisplayed()
         composeTestRule.onNodeWithTag("die_reroll_button").assertIsDisplayed()
     }
+
+    // --- Correction d'une Manche validée ---
+
+    @Test
+    fun aCorrectionShowsItsRoundAndSuitInsteadOfTheDieAndSavesWithItsOwnButton() {
+        var validated = false
+        setContent(
+            aLoadedState(suit = CardSuit.CLUB, scores = mapOf(aliceId to "200", bobId to "50"))
+                .copy(correctedRoundNumber = 3),
+            onValidate = { validated = true }
+        )
+
+        composeTestRule.onNodeWithTag("round_entry_title").assertTextEquals("Correction de la manche 3")
+        composeTestRule.onNodeWithTag("round_correction_suit").assertTextEquals("Couleur du 7 : ♣ Trèfle")
+        composeTestRule.onNodeWithTag("round_entry_die_roller").assertDoesNotExist()
+        composeTestRule.onNodeWithTag("round_entry_standings_button").assertDoesNotExist()
+        composeTestRule.onNodeWithTag("round_entry_validate_button")
+            .performScrollTo()
+            .assertTextEquals("Enregistrer la correction")
+            .assertIsEnabled()
+            .performClick()
+
+        assertTrue(validated)
+    }
 }

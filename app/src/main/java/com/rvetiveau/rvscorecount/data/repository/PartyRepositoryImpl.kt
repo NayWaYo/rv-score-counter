@@ -103,6 +103,30 @@ class PartyRepositoryImpl @Inject constructor(
         }
     }
 
+    // Transaction requise (AD-3) : une correction à moitié écrite fausserait la somme de la manche
+    override suspend fun correctRound(round: Round, scores: Map<UUID, Int>) {
+        require(scores.isNotEmpty()) { "A round must contain at least one score" }
+
+        appDatabase.withTransaction {
+            val stored = requireNotNull(roundDao.getById(round.id.toString())) { "Round ${round.id} does not exist" }
+            require(stored.copy(sevenHolderId = round.sevenHolderId?.toString()) == round.toEntity()) {
+                "Only the 7 holder of a round can be corrected"
+            }
+            val playedBy = roundScoreDao.getByRoundId(stored.id).mapTo(mutableSetOf()) { it.participantId }
+            require(scores.keys.mapTo(mutableSetOf()) { it.toString() } == playedBy) {
+                "A correction must cover exactly the participants who played the round"
+            }
+            require(round.sevenHolderId == null || round.sevenHolderId.toString() in playedBy) {
+                "The 7 holder must have played the round"
+            }
+
+            roundDao.updateSevenHolder(stored.id, round.sevenHolderId?.toString())
+            scores.forEach { (participantId, points) ->
+                roundScoreDao.updatePoints(stored.id, participantId.toString(), points)
+            }
+        }
+    }
+
     override suspend fun getRoundsByPartyId(partyId: UUID): List<Round> =
         roundDao.getByPartyId(partyId.toString()).map { it.toDomain() }
 

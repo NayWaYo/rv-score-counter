@@ -61,6 +61,7 @@ fun PartyScreen(
     onAdditionCancelled: () -> Unit = {},
     onShowRoundHistory: () -> Unit = {},
     onHideRoundHistory: () -> Unit = {},
+    onRoundSelected: (Int) -> Unit = {},
     onEndPartyClick: () -> Unit = {},
     onEndPartyConfirmed: () -> Unit = {},
     onEndPartyDismissed: () -> Unit = {}
@@ -180,7 +181,11 @@ fun PartyScreen(
                 )
             }
             if (state.isRoundHistoryOpen) {
-                RoundHistorySheet(table = state.roundTable, onDismiss = onHideRoundHistory)
+                RoundHistorySheet(
+                    table = state.roundTable,
+                    onDismiss = onHideRoundHistory,
+                    onRoundClick = onRoundSelected.takeIf { state.canStartRound }
+                )
             }
             LazyColumn(
                 verticalArrangement = Arrangement.spacedBy(8.dp),
@@ -354,18 +359,29 @@ private fun EndPartyDialog(isClosing: Boolean, onConfirm: () -> Unit, onDismiss:
     )
 }
 
-/** Read-only score sheet of the validated Manches (Story 4.3). */
+/** Score sheet of the validated Manches (Story 4.3); with [onRoundClick], a Manche can be corrected. */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun RoundHistorySheet(table: RoundTable, onDismiss: () -> Unit) {
+private fun RoundHistorySheet(table: RoundTable, onDismiss: () -> Unit, onRoundClick: ((Int) -> Unit)?) {
     ModalBottomSheet(onDismissRequest = onDismiss) {
         Text(
             text = stringResource(R.string.party_rounds_title),
             style = MaterialTheme.typography.headlineSmall,
             modifier = Modifier.padding(start = 16.dp, end = 16.dp, bottom = 8.dp)
         )
+        if (onRoundClick != null) {
+            Text(
+                text = stringResource(R.string.party_rounds_correction_hint),
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier
+                    .padding(start = 16.dp, end = 16.dp, bottom = 8.dp)
+                    .testTag("party_rounds_correction_hint")
+            )
+        }
         RoundTable(
             table = table,
+            onRoundClick = onRoundClick,
             modifier = Modifier
                 .verticalScroll(rememberScrollState())
                 .padding(start = 16.dp, end = 16.dp, bottom = 32.dp)

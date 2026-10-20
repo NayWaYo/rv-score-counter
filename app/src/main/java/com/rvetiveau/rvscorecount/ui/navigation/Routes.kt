@@ -25,6 +25,11 @@ sealed interface Routes {
     @SerialName("roundEntry")
     data class RoundEntry(val partyId: String) : Routes
 
+    /** Saisie de Manche reopened to correct the validated Manche [roundNumber] of a Partie en cours. */
+    @Serializable
+    @SerialName("roundCorrection")
+    data class RoundCorrection(val partyId: String, val roundNumber: Int) : Routes
+
     @Serializable
     @SerialName("results")
     data class Results(val partyId: String) : Routes

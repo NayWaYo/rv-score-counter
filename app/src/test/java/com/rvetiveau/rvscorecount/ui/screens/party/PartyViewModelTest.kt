@@ -97,6 +97,11 @@ class PartyViewModelTest {
             roundScores += scores.map { (id, points) -> RoundScore(round.id, id, points) }
             partyFlow.emit(updatedParty)
         }
+        /** Like Room, rewrites rounds only: the party and participants flows do not re-emit. */
+        override suspend fun correctRound(round: Round, scores: Map<UUID, Int>) {
+            rounds.replaceAll { if (it.id == round.id) round else it }
+            roundScores.replaceAll { score -> scores[score.participantId]?.takeIf { score.roundId == round.id }?.let { score.copy(points = it) } ?: score }
+        }
         override suspend fun getRoundsByPartyId(partyId: UUID): List<Round> = rounds.toList()
         override suspend fun getScoresByRoundId(roundId: UUID): List<RoundScore> =
             roundScores.filter { it.roundId == roundId }
@@ -467,6 +472,64 @@ class PartyViewModelTest {
         assertTrue(loadedState(vm).isRoundHistoryOpen)
         vm.onHideRoundHistory()
         assertTrue(!loadedState(vm).isRoundHistoryOpen)
+    }
+
+    // --- Correction d'une Manche validée ---
+
+    @Test
+    fun `selecting a round closes the history and opens its correction`() = runTest {
+        val partyId = UUID.randomUUID()
+        val alice = aParticipant(partyId, "Alice", 0)
+        val repository = FakePartyRepository(party = aParty(partyId), participants = listOf(alice))
+        val vm = viewModel(repository)
+        vm.initialize(partyId)
+        repository.saveRound(Round(UUID.randomUUID(), partyId, 1, CardSuit.SPADE), mapOf(alice.id to 250), aParty(partyId))
+        vm.onShowRoundHistory()
+
+        vm.onRoundSelected(1)
+
+        assertEquals(
+            NavigationEvent.NavigateTo(Routes.RoundCorrection(partyId.toString(), 1)),
+            vm.navigationEvents.first()
+        )
+        assertTrue(!loadedState(vm).isRoundHistoryOpen)
+    }
+
+    @Test
+    fun `an unknown round or a finished party opens no correction`() = runTest {
+        val partyId = UUID.randomUUID()
+        val alice = aParticipant(partyId, "Alice", 0)
+        val repository = FakePartyRepository(party = aParty(partyId), participants = listOf(alice))
+        val vm = viewModel(repository)
+        vm.initialize(partyId)
+        repository.saveRound(Round(UUID.randomUUID(), partyId, 1, CardSuit.SPADE), mapOf(alice.id to 250), aParty(partyId))
+
+        vm.onRoundSelected(2)
+        assertNull(withTimeoutOrNull(100) { vm.navigationEvents.first() })
+
+        repository.updateParty(aParty(partyId, status = PartyState.FINISHED))
+        vm.onRoundSelected(1)
+        assertNull(withTimeoutOrNull(100) { vm.navigationEvents.first() })
+    }
+
+    @Test
+    fun `the corrected scores show once the party screen resumes`() = runTest {
+        val partyId = UUID.randomUUID()
+        val alice = aParticipant(partyId, "Alice", 0)
+        val bob = aParticipant(partyId, "Bob", 1)
+        val repository = FakePartyRepository(party = aParty(partyId), participants = listOf(alice, bob))
+        val vm = viewModel(repository)
+        vm.initialize(partyId)
+        val round = Round(UUID.randomUUID(), partyId, 1, CardSuit.SPADE, sevenHolderId = alice.id)
+        repository.saveRound(round, mapOf(alice.id to 200, bob.id to 50), aParty(partyId, 1))
+
+        vm.onRoundSelected(1)
+        vm.navigationEvents.first()
+        repository.correctRound(round, mapOf(alice.id to 50, bob.id to 200))
+        vm.onScreenResumed()
+
+        assertEquals(listOf("Alice", "Bob"), loadedState(vm).standings.map { it.name })
+        assertEquals(mapOf(alice.id to 50, bob.id to 200), loadedState(vm).roundTable.rows.single().points)
     }
 
     // --- Story 4.2 ajout de Participant en cours de Partie ---

@@ -36,6 +36,7 @@ class RoutesTest {
         val cases: List<Routes> = listOf(
             Routes.Setup(gameId = "papayoo"),
             Routes.RoundEntry(partyId = "party-42"),
+            Routes.RoundCorrection(partyId = "party-42", roundNumber = 3),
             Routes.Results(partyId = "party-42"),
             Routes.PartyDetail(partyId = "party-42")
         )

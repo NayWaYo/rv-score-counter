@@ -38,6 +38,7 @@ class ClosePartyUseCaseTest {
         override suspend fun getParticipantsByPartyId(partyId: UUID): List<Participant> = error("not used in this test")
         override fun observeParticipants(partyId: UUID): Flow<List<Participant>> = error("not used in this test")
         override suspend fun saveRound(round: Round, scores: Map<UUID, Int>, updatedParty: Party) = error("not used in this test")
+        override suspend fun correctRound(round: Round, scores: Map<UUID, Int>) = error("not used in this test")
         override suspend fun getRoundsByPartyId(partyId: UUID): List<Round> = error("not used in this test")
         override suspend fun getScoresByRoundId(roundId: UUID): List<RoundScore> = error("not used in this test")
     }

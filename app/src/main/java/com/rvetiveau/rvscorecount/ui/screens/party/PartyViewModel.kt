@@ -54,6 +54,7 @@ class PartyViewModel @Inject constructor(
 
     private var initializedPartyId: UUID? = null
     private var navigationPending = false
+    private var refreshOnResume = false
     private var observation: Job? = null
 
     // Room-derived state and the late-Participant draft are merged into [_uiState] by [publish].
@@ -162,6 +163,28 @@ class PartyViewModel @Inject constructor(
 
     fun onScreenResumed() {
         navigationPending = false
+        // A correction rewrites Rounds only, which the Partie/Participants observation does not see.
+        if (refreshOnResume) {
+            refreshOnResume = false
+            initializedPartyId?.let(::observe)
+        }
+    }
+
+    /** Opens the correction of the validated Manche [roundNumber] while the Partie is in progress. */
+    fun onRoundSelected(roundNumber: Int) {
+        val partyId = initializedPartyId ?: return
+        val state = roomState as? PartyUiState.Loaded ?: return
+        if (!state.canStartRound || navigationPending) return
+        if (state.roundTable.rows.none { it.roundNumber == roundNumber }) return
+        navigationPending = true
+        refreshOnResume = true
+        isRoundHistoryOpen = false
+        publish()
+        viewModelScope.launch {
+            _navigationEvents.send(
+                NavigationEvent.NavigateTo(Routes.RoundCorrection(partyId.toString(), roundNumber))
+            )
+        }
     }
 
     // --- Story 5.1 : clôture de Partie ---

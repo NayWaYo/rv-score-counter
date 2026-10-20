@@ -49,6 +49,8 @@
     <string name="party_end_error">Impossible de terminer la partie. Réessayez.</string>
     <string name="party_rounds_link">Voir les manches (%1$d)</string>
     <string name="party_rounds_title">Manches jouées</string>
+    <string name="party_rounds_correction_hint">Touchez une manche pour la corriger.</string>
+    <string name="round_table_correct_action">corriger la manche</string>
 
     <!-- Résultats finaux -->
     <string name="results_title">Résultats finaux</string>
@@ -173,6 +175,9 @@
     <string name="round_entry_seven_question_suit">Qui a eu le 7 de %1$s (%2$d points) ?</string>
     <string name="round_entry_seven_score_too_low">%1$s a moins de %2$d points sur cette manche : vérifiez le score ou le joueur.</string>
     <string name="round_entry_save_error">Impossible d\'enregistrer la manche. Réessayez.</string>
+    <string name="round_correction_title">Correction de la manche %1$d</string>
+    <string name="round_correction_suit">Couleur du 7 : %1$s %2$s</string>
+    <string name="round_correction_save_button">Enregistrer la correction</string>
     <string name="score_field_suggested_content_description">Score de %1$s, %2$d suggéré</string>
     <string name="score_field_use_suggestion">Utiliser %1$d pour %2$s</string>
 </resources>

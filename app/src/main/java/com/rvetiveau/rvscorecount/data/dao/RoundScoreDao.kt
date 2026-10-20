@@ -8,7 +8,8 @@ import com.rvetiveau.rvscorecount.data.entity.RoundScoreEntity
 
 @Dao
 interface RoundScoreDao {
-    // ABORT — immuabilité FR-9 : aucun score de manche validée ne peut être écrasé
+    // ABORT : un score validé n'est jamais écrasé par une insertion ; seule la correction
+    // explicite (updatePoints) le modifie
     @Insert(onConflict = OnConflictStrategy.ABORT)
     suspend fun insert(score: RoundScoreEntity)
 
@@ -17,4 +18,8 @@ interface RoundScoreDao {
 
     @Query("SELECT * FROM round_scores WHERE roundId = :roundId")
     suspend fun getByRoundId(roundId: String): List<RoundScoreEntity>
+
+    /** Returns the number of rows changed: 0 when the participant has no score in this round. */
+    @Query("UPDATE round_scores SET points = :points WHERE roundId = :roundId AND participantId = :participantId")
+    suspend fun updatePoints(roundId: String, participantId: String, points: Int): Int
 }

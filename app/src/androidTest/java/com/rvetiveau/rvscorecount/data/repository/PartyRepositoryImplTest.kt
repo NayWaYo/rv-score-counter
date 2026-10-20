@@ -237,4 +237,64 @@ class PartyRepositoryImplTest {
         assertTrue(repository.getScoresByRoundId(duplicate.id).isEmpty())
         assertEquals(1, repository.getPartyById(party.id)?.currentDealerIndex)
     }
+
+    // --- Correction d'une Manche validée ---
+
+    @Test
+    fun correctRoundRewritesOnlyThatRoundsScoresAndSevenHolder() = runTest {
+        val party = aParty()
+        val alice = aParticipant(party.id, "Alice", 0)
+        val bob = aParticipant(party.id, "Bob", 1)
+        repository.createPartyWithParticipants(party, listOf(alice, bob))
+        val first = Round(UUID.randomUUID(), party.id, 1, CardSuit.HEART, sevenHolderId = alice.id)
+        val second = Round(UUID.randomUUID(), party.id, 2, CardSuit.CLUB, sevenHolderId = bob.id)
+        repository.saveRound(first, mapOf(alice.id to 200, bob.id to 50), party.copy(currentDealerIndex = 1))
+        repository.saveRound(second, mapOf(alice.id to 100, bob.id to 150), party.copy(currentDealerIndex = 0))
+
+        repository.correctRound(first.copy(sevenHolderId = bob.id), mapOf(alice.id to 20, bob.id to 230))
+
+        assertEquals(listOf(first.copy(sevenHolderId = bob.id), second), repository.getRoundsByPartyId(party.id))
+        assertEquals(
+            mapOf(alice.id to 20, bob.id to 230),
+            repository.getScoresByRoundId(first.id).associate { it.participantId to it.points }
+        )
+        assertEquals(
+            mapOf(alice.id to 100, bob.id to 150),
+            repository.getScoresByRoundId(second.id).associate { it.participantId to it.points }
+        )
+        assertEquals(0, repository.getPartyById(party.id)?.currentDealerIndex)
+    }
+
+    @Test
+    fun correctRoundChangesNothingWhenItTargetsAPlayerWhoDidNotPlayTheRound() = runTest {
+        val party = aParty()
+        val alice = aParticipant(party.id, "Alice", 0)
+        val bob = aParticipant(party.id, "Bob", 1)
+        repository.createPartyWithParticipants(party, listOf(alice, bob))
+        val round = Round(UUID.randomUUID(), party.id, 1, CardSuit.HEART, sevenHolderId = alice.id)
+        repository.saveRound(round, mapOf(alice.id to 200, bob.id to 50), party.copy(currentDealerIndex = 1))
+        val lateComer = aParticipant(party.id, "Zoé", 2)
+        repository.addParticipant(lateComer, party.copy(currentDealerIndex = 1))
+
+        val attempts = listOf<suspend () -> Unit>(
+            { repository.correctRound(round.copy(sevenHolderId = lateComer.id), mapOf(alice.id to 200, bob.id to 50)) },
+            { repository.correctRound(round, mapOf(alice.id to 150, bob.id to 50, lateComer.id to 50)) },
+            { repository.correctRound(round.copy(suit = CardSuit.SPADE), mapOf(alice.id to 150, bob.id to 100)) }
+        )
+        attempts.forEach { attempt ->
+            var thrown: Throwable? = null
+            try {
+                attempt()
+            } catch (t: Throwable) {
+                thrown = t
+            }
+            assertTrue(thrown is IllegalArgumentException)
+        }
+
+        assertEquals(listOf(round), repository.getRoundsByPartyId(party.id))
+        assertEquals(
+            mapOf(alice.id to 200, bob.id to 50),
+            repository.getScoresByRoundId(round.id).associate { it.participantId to it.points }
+        )
+    }
 }

@@ -60,7 +60,7 @@ Règles de version :
 - Centraliser couleurs, typographie et dimensions dans `ui/theme/`; ne pas introduire de valeurs visuelles dans `domain/`.
 - Consommer les insets edge-to-edge et le padding fourni par `Scaffold`.
 - Room est la source unique de vérité pour l'état d'une partie; aucun cache mutable ne fait autorité.
-- Effectuer toute écriture multi-table dans `AppDatabase.withTransaction`; conserver les manches et scores en insertion `ABORT`, sans mise à jour.
+- Effectuer toute écriture multi-table dans `AppDatabase.withTransaction`; conserver les manches et scores en insertion `ABORT` ; seule la correction d'une manche (`PartyRepository.correctRound`) les met à jour.
 - Après une modification Room, contrôler le schéma JSON exporté, augmenter la version et fournir une migration avant livraison; ne pas utiliser de fallback destructif.
 - Installer les modules Hilt dans `SingletonComponent`; définir explicitement les scopes et ne pas ajouter `@Singleton` aux moteurs stateless.
 - Enregistrer chaque `GameEngine` via `@IntoMap` et `@StringKey`, sans registre central ni dépendance directe à une implémentation.
@@ -114,7 +114,7 @@ Règles de version :
 - Ne jamais importer Android, Compose, Room ou Hilt dans `domain/`.
 - Ne jamais renommer une valeur d'enum persistée sans migration Room explicite.
 - Ne jamais convertir une valeur Room inconnue ou invalide vers une valeur métier par défaut.
-- Ne jamais modifier une manche validée : manches et scores sont immuables après insertion.
+- Une manche validée ne se modifie que par sa correction (scores et détenteur du 7, Partie en cours), jamais par une nouvelle insertion ; elle ne se supprime pas.
 - Toute création ou validation impliquant plusieurs tables doit être atomique dans une transaction Room.
 - Échouer explicitement pendant la reconstruction du domaine face à une ligne orpheline, un identifiant de partie incohérent ou une agrégation incomplète.
 - Les scores restent des `Int`; les appelants d'un `GameEngine` doivent garantir que les entrées et le résultat total restent dans les bornes métier et dans l'intervalle de `Int`.

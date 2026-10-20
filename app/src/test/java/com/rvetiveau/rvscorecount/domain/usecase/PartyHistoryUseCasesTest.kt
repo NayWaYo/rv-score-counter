@@ -54,6 +54,7 @@ class PartyHistoryUseCasesTest {
         override suspend fun getParticipantsByPartyId(partyId: UUID): List<Participant> = participants.filter { it.partyId == partyId }
         override fun observeParticipants(partyId: UUID): Flow<List<Participant>> = error("not used in this test")
         override suspend fun saveRound(round: Round, scores: Map<UUID, Int>, updatedParty: Party) = error("not used in this test")
+        override suspend fun correctRound(round: Round, scores: Map<UUID, Int>) = error("not used in this test")
         override suspend fun getRoundsByPartyId(partyId: UUID): List<Round> = rounds.filter { it.partyId == partyId }
         override suspend fun getScoresByRoundId(roundId: UUID): List<RoundScore> = roundScores.filter { it.roundId == roundId }
     }

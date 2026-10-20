@@ -21,15 +21,20 @@ data class RoundEntryUiState(
     val isSaving: Boolean = false,
     val saveError: Boolean = false,
     /** Section shown under the die: none, the Partie's Classement or the score form. */
-    val panel: RoundEntryPanel = RoundEntryPanel.NONE
+    val panel: RoundEntryPanel = RoundEntryPanel.NONE,
+    /** Number of the validated Manche being corrected; null for a new Manche. Its suit is fixed. */
+    val correctedRoundNumber: Int? = null
 ) {
+    val isCorrection: Boolean get() = correctedRoundNumber != null
+
     val currentSum: Long get() = content?.currentSum ?: 0L
 
     /** Locked out as soon as any field holds a value, including "0" (AC 8). */
-    val rerollEnabled: Boolean get() = content != null && !content.hasAnyScoreEntered
+    val rerollEnabled: Boolean get() = content != null && !isCorrection && !content.hasAnyScoreEntered
 
     /** The first roll stays available after score entry (Story 3.4, AC 8); only « Relancer » locks. */
-    val rollEnabled: Boolean get() = content != null && !isSaving && (suit == null || rerollEnabled)
+    val rollEnabled: Boolean
+        get() = content != null && !isCorrection && !isSaving && (suit == null || rerollEnabled)
 
     val canValidate: Boolean get() = suit != null && !isSaving && content?.canValidate == true
 }

@@ -5,6 +5,7 @@ import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.semantics.SemanticsActions
 import androidx.compose.ui.test.assertContentDescriptionEquals
 import androidx.compose.ui.test.assertCountEquals
+import androidx.compose.ui.test.assertHasClickAction
 import androidx.compose.ui.test.assertHasNoClickAction
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsEnabled
@@ -186,12 +187,36 @@ class PartyScreenTest {
     }
 
     @Test
-    fun theOpenRoundHistoryReadsEachRowAsOneReadOnlyBlock() {
-        setContent(aLoadedStateWithStandings().copy(roundTable = heartRoundTable, isRoundHistoryOpen = true))
+    fun theRoundHistoryOfAFinishedPartyReadsEachRowAsOneReadOnlyBlock() {
+        setContent(
+            aLoadedStateWithStandings().copy(roundTable = heartRoundTable, isRoundHistoryOpen = true, canStartRound = false)
+        )
 
         composeTestRule.onNodeWithTag("round_table_row_2")
             .assertContentDescriptionEquals("Manche 2, Cœur : Alice 210 · Bob 40, total 250")
             .assertHasNoClickAction()
+        composeTestRule.onNodeWithTag("party_rounds_correction_hint").assertDoesNotExist()
+    }
+
+    @Test
+    fun touchingARoundOfAPartyInProgressAsksForItsCorrection() {
+        var selected: Int? = null
+        composeTestRule.setContent {
+            RvScoreCounterTheme {
+                PartyScreen(
+                    state = aLoadedStateWithStandings().copy(roundTable = heartRoundTable, isRoundHistoryOpen = true),
+                    onRoundSelected = { selected = it }
+                )
+            }
+        }
+
+        composeTestRule.onNodeWithTag("party_rounds_correction_hint").assertIsDisplayed()
+        composeTestRule.onNodeWithTag("round_table_row_2")
+            .assertContentDescriptionEquals("Manche 2, Cœur : Alice 210 · Bob 40, total 250")
+            .assertHasClickAction()
+            .performClick()
+
+        assertEquals(2, selected)
     }
 
     // --- Story 4.2 ---

@@ -105,18 +105,18 @@ class ValidateRoundUseCase @Inject constructor(
             Result.failure(t)
         }
     }
+}
 
-    /** A game with a suit seven requires its holder, who scored at least its points this round. */
-    private fun checkSevenHolder(engine: GameEngine, scores: Map<UUID, Int>, sevenHolderId: UUID?) {
-        val sevenPoints = engine.suitSevenPoints
-        if (sevenPoints == null) {
-            if (sevenHolderId != null) throw InvalidRoundException("Game '${engine.gameId}' has no suit seven to record")
-            return
-        }
-        val holderScore = sevenHolderId?.let { scores[it] }
-            ?: throw InvalidRoundException("The 7 holder must be one of the round's participants")
-        if (holderScore < sevenPoints) {
-            throw InvalidRoundException("The 7 holder scored $holderScore, less than the 7's $sevenPoints points")
-        }
+/** A game with a suit seven requires its holder, who scored at least its points this round. */
+internal fun checkSevenHolder(engine: GameEngine, scores: Map<UUID, Int>, sevenHolderId: UUID?) {
+    val sevenPoints = engine.suitSevenPoints
+    if (sevenPoints == null) {
+        if (sevenHolderId != null) throw InvalidRoundException("Game '${engine.gameId}' has no suit seven to record")
+        return
+    }
+    val holderScore = sevenHolderId?.let { scores[it] }
+        ?: throw InvalidRoundException("The 7 holder must be one of the round's participants")
+    if (holderScore < sevenPoints) {
+        throw InvalidRoundException("The 7 holder scored $holderScore, less than the 7's $sevenPoints points")
     }
 }

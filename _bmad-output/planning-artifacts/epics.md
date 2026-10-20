@@ -25,7 +25,7 @@ FR-5: L'utilisateur peut lancer un Dé Virtuel pour obtenir aléatoirement une d
 FR-6: L'utilisateur peut saisir le Score de Manche de chaque Participant dans n'importe quel ordre ; les champs acceptent des entiers ≥ 0.
 FR-7: Lorsque N-1 champs sont remplis, le N-ième est pré-rempli par complément à 250 ; l'utilisateur peut le modifier.
 FR-8: La validation de Manche est bloquée si la somme ≠ 250, avec message précisant l'écart ; un score de 0 est valide.
-FR-9: Une Manche validée est immuable — aucune modification possible après validation.
+FR-9: Une Manche validée ne peut pas être supprimée. Tant que la Partie est en cours, ses scores et le détenteur du 7 peuvent être corrigés, avec les mêmes contrôles qu'à la validation ; son numéro, sa couleur et le Donneur ne changent pas (révisé le 2026-10-20 après la revue ergonomie).
 FR-10: L'écran principal affiche le Classement (Score Cumulé croissant) mis à jour après chaque Manche, avec le Donneur identifié visuellement.
 FR-11: L'utilisateur peut consulter le détail des scores de chaque Manche passée.
 FR-12: L'utilisateur peut clore la Partie à tout moment via "Fin de partie" (distinct de "Nouvelle manche"), après confirmation.
