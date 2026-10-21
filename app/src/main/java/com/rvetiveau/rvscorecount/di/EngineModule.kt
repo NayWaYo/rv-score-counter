@@ -1,6 +1,8 @@
 package com.rvetiveau.rvscorecount.di
 
+import com.rvetiveau.rvscorecount.domain.engine.BeloteRules
 import com.rvetiveau.rvscorecount.domain.engine.GameEngine
+import com.rvetiveau.rvscorecount.game.belote.BeloteEngine
 import com.rvetiveau.rvscorecount.game.papayoo.PapayooEngine
 import dagger.Binds
 import dagger.Module
@@ -16,4 +18,8 @@ abstract class EngineModule {
     @IntoMap
     @StringKey(PapayooEngine.GAME_ID)
     abstract fun bindPapayooEngine(engine: PapayooEngine): GameEngine
+
+    /** Not in the Jeux catalogue until its creation screen exists (AD-8, Story 7.3). */
+    @Binds
+    abstract fun bindBeloteRules(engine: BeloteEngine): BeloteRules
 }
