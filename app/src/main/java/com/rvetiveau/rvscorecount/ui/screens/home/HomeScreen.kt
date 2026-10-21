@@ -8,11 +8,9 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -34,14 +32,18 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.rvetiveau.rvscorecount.R
 import com.rvetiveau.rvscorecount.ui.components.ScreenHeader
+import com.rvetiveau.rvscorecount.ui.theme.OnAccent
 
 /**
  * Stateless Accueil screen (AC 1-3, 6, 7): fixed 2-column grid of Game tiles plus the
  * Historique action. No NavController, Hilt access or business logic is allowed here.
+ * Each tile is the game's logo itself, a full-bleed square on an amber ground whose bottom band
+ * is left free for the game's name.
  */
 @Composable
 fun HomeScreen(
@@ -103,32 +105,32 @@ private fun GameTile(tile: GameTileUiModel, onClick: () -> Unit, modifier: Modif
         modifier = modifier
             .fillMaxWidth()
             .aspectRatio(1f)
-            .clip(RoundedCornerShape(20.dp))
-            .background(MaterialTheme.colorScheme.surface)
+            .clip(LogoShape)
             .clickable(onClick = onClick, role = Role.Button)
             .semantics { contentDescription = tileContentDescription }
-            .testTag("game_tile_${tile.gameId}"),
-        contentAlignment = Alignment.Center
+            .testTag("game_tile_${tile.gameId}")
     ) {
-        Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.Center) {
-            Image(
-                painter = painterResource(tile.logoRes),
-                contentDescription = null,
-                modifier = Modifier
-                    .size(72.dp)
-                    .testTag("game_tile_logo_${tile.gameId}")
-            )
-            Spacer(modifier = Modifier.height(8.dp))
-            Text(
-                text = name,
-                style = MaterialTheme.typography.bodyLarge,
-                color = MaterialTheme.colorScheme.onSurface,
-                textAlign = TextAlign.Center,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 4.dp)
-                    .testTag("game_tile_name_${tile.gameId}")
-            )
-        }
+        Image(
+            painter = painterResource(tile.logoRes),
+            contentDescription = null,
+            modifier = Modifier
+                .fillMaxSize()
+                .testTag("game_tile_logo_${tile.gameId}")
+        )
+        Text(
+            text = name,
+            style = MaterialTheme.typography.titleMedium,
+            fontWeight = FontWeight.SemiBold,
+            color = OnAccent,
+            textAlign = TextAlign.Center,
+            modifier = Modifier
+                .align(Alignment.BottomCenter)
+                .fillMaxWidth()
+                .padding(start = 8.dp, end = 8.dp, bottom = 16.dp)
+                .testTag("game_tile_name_${tile.gameId}")
+        )
     }
 }
+
+/** Corners of the game logos (24 on a 108 viewport), so the ripple follows the logo's edge. */
+private val LogoShape = RoundedCornerShape(percent = 22)

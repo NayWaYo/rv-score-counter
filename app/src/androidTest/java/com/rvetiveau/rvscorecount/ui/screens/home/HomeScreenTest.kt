@@ -7,8 +7,6 @@ import androidx.compose.ui.test.assertContentDescriptionEquals
 import androidx.compose.ui.test.assertHasClickAction
 import androidx.compose.ui.test.assertHeightIsAtLeast
 import androidx.compose.ui.test.assertWidthIsAtLeast
-import androidx.compose.ui.test.assertWidthIsEqualTo
-import androidx.compose.ui.test.assertHeightIsEqualTo
 import androidx.compose.ui.test.getUnclippedBoundsInRoot
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithContentDescription
@@ -51,12 +49,18 @@ class HomeScreenTest {
     }
 
     @Test
-    fun logoIsSeventyTwoDpCentredInAnAtLeastFortyEightDpTile() {
+    fun logoFillsTheWholeTileWithTheNameInItsBottomHalf() {
         setContent(threeTiles)
 
-        composeTestRule.onNodeWithTag("game_tile_logo_papayoo", useUnmergedTree = true)
-            .assertWidthIsEqualTo(72.dp)
-            .assertHeightIsEqualTo(72.dp)
+        val tileBounds = composeTestRule.onNodeWithTag("game_tile_papayoo").getUnclippedBoundsInRoot()
+        val logoBounds = composeTestRule.onNodeWithTag("game_tile_logo_papayoo", useUnmergedTree = true)
+            .getUnclippedBoundsInRoot()
+        val nameBounds = composeTestRule.onNodeWithTag("game_tile_name_papayoo", useUnmergedTree = true)
+            .getUnclippedBoundsInRoot()
+
+        assertEquals(tileBounds, logoBounds)
+        assertTrue(nameBounds.top > tileBounds.top + (tileBounds.bottom - tileBounds.top) / 2)
+        assertTrue(nameBounds.bottom <= tileBounds.bottom)
         composeTestRule.onNodeWithTag("game_tile_papayoo")
             .assertWidthIsAtLeast(48.dp)
             .assertHeightIsAtLeast(48.dp)
