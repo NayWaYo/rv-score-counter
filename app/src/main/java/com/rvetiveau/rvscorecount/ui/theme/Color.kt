@@ -49,6 +49,9 @@ data class RvColors(
     /** « La fusée » card: violet. */
     val recordTint: Color,
     val recordInk: Color,
+    /** « 🗿 Chad de la game » card (Belote): lagoon. */
+    val chadTint: Color,
+    val chadInk: Color,
     val chartSeries: List<Color>
 )
 
@@ -66,6 +69,8 @@ val DarkRvColors = RvColors(
     championInk = Color(0xFFC69C6D),
     recordTint = Color(0xFF261C38),
     recordInk = Color(0xFFB39DDB),
+    chadTint = Color(0xFF10302B),
+    chadInk = Color(0xFF7FCBB8),
     chartSeries = listOf(
         Color(0xFFC98500),
         Color(0xFFD55181),
@@ -92,6 +97,8 @@ val LightRvColors = RvColors(
     championInk = Color(0xFF7A4A1E),
     recordTint = Color(0xFFECE5F7),
     recordInk = Color(0xFF5B4596),
+    chadTint = Color(0xFFD9F0EA),
+    chadInk = Color(0xFF1E6B5D),
     // Light steps of the same hues; the three lightest sit under 3:1 on white, relieved by the
     // legend and end labels. Slots 7 and 8 only reach the CVD floor, also covered by the labels.
     chartSeries = listOf(

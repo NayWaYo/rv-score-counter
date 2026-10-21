@@ -30,16 +30,17 @@ import androidx.compose.ui.unit.dp
 import com.rvetiveau.rvscorecount.R
 import com.rvetiveau.rvscorecount.domain.model.TeamSide
 import com.rvetiveau.rvscorecount.ui.components.ScreenHeader
+import java.util.UUID
 
 /**
- * Stateless saisie of a Manche of Belote (Story 7.3, AC 4, 5): the taker, the trick points of one
+ * Stateless saisie of a Manche of Belote (Story 7.3, AC 4, 5): the player who took, the trick points of one
  * Équipe (the other's are deduced), the belote-rebelote and the capot, then the engine's preview.
  */
 @Composable
 fun BeloteRoundScreen(
     state: BeloteRoundUiState,
     modifier: Modifier = Modifier,
-    onTakerSelected: (TeamSide) -> Unit = {},
+    onTakerPlayerSelected: (UUID) -> Unit = {},
     onPointsChanged: (TeamSide, String) -> Unit = { _, _ -> },
     onBeloteChanged: (TeamSide?) -> Unit = {},
     onCapotChanged: (TeamSide?) -> Unit = {},
@@ -67,13 +68,7 @@ fun BeloteRoundScreen(
                 modifier = Modifier.padding(top = 8.dp)
             )
             Section(R.string.belote_round_taker) {
-                TeamChoice(
-                    teamNames = state.teamNames,
-                    selected = state.taker,
-                    allowNobody = false,
-                    tag = "belote_round_taker",
-                    onSelected = { side -> side?.let(onTakerSelected) }
-                )
+                TakerChoice(state, onTakerPlayerSelected)
             }
             Section(R.string.belote_round_trick_points) {
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -135,6 +130,44 @@ private fun Section(titleRes: Int, content: @Composable () -> Unit) {
     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
         Text(text = stringResource(titleRes), style = MaterialTheme.typography.titleMedium)
         content()
+    }
+}
+
+/**
+ * The 4 players, one row per Équipe under its name (Story 8.3). A correction of a Manche recorded
+ * before knows only its Équipe: it asks which of its players took.
+ */
+@Composable
+private fun TakerChoice(state: BeloteRoundUiState.Loaded, onTakerPlayerSelected: (UUID) -> Unit) {
+    TeamSide.entries.forEach { side ->
+        val seats = state.players.filter { it.side == side }
+        Text(
+            text = state.teamNames[side.ordinal],
+            style = MaterialTheme.typography.labelMedium,
+            color = MaterialTheme.colorScheme.outline
+        )
+        SingleChoiceSegmentedButtonRow(modifier = Modifier.fillMaxWidth()) {
+            seats.forEachIndexed { index, seat ->
+                SegmentedButton(
+                    selected = state.takerPlayerId == seat.id,
+                    onClick = { onTakerPlayerSelected(seat.id) },
+                    shape = SegmentedButtonDefaults.itemShape(index = index, count = seats.size),
+                    colors = beloteSegmentedColors(),
+                    modifier = Modifier.testTag("belote_round_taker_${seat.id}")
+                ) {
+                    Text(text = seat.name)
+                }
+            }
+        }
+    }
+    val taker = state.taker
+    if (taker != null && state.takerPlayerId == null) {
+        Text(
+            text = stringResource(R.string.belote_round_taker_player_hint, state.teamNames[taker.ordinal]),
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.primary,
+            modifier = Modifier.testTag("belote_round_taker_player_hint")
+        )
     }
 }
 

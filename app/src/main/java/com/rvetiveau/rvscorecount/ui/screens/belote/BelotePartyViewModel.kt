@@ -110,7 +110,8 @@ internal fun BelotePartyState.toUiState(): BelotePartyUiState.Loaded {
         rounds = rounds.zip(results) { round, result ->
             BeloteRoundRowUiModel(
                 roundNumber = round.roundNumber,
-                takerName = team(round.input.taker).name,
+                // The player who took when recorded (Story 8.3), the Équipe for a Manche played before.
+                takerName = players.firstOrNull { it.id == round.takerPlayerId }?.name ?: team(round.input.taker).name,
                 outcome = result.outcome,
                 firstPoints = result.points.first,
                 secondPoints = result.points.second

@@ -2,6 +2,7 @@ package com.rvetiveau.rvscorecount.domain.usecase
 
 import com.rvetiveau.rvscorecount.domain.engine.BeloteRules
 import com.rvetiveau.rvscorecount.domain.model.BeloteEndRule
+import com.rvetiveau.rvscorecount.domain.model.BelotePartyState
 import com.rvetiveau.rvscorecount.domain.model.BelotePartyStatus
 import com.rvetiveau.rvscorecount.domain.model.BeloteRound
 import com.rvetiveau.rvscorecount.domain.model.BeloteRoundInput
@@ -28,11 +29,13 @@ class PlayBeloteRoundUseCase @Inject constructor(
     private val beloteRepository: BeloteRepository,
     private val rules: BeloteRules
 ) {
-    suspend operator fun invoke(partyId: UUID, input: BeloteRoundInput): Result<BelotePartyStatus> =
+    /** [takerPlayerId]: the player of the taking Équipe who took (Story 8.3). */
+    suspend operator fun invoke(partyId: UUID, input: BeloteRoundInput, takerPlayerId: UUID): Result<BelotePartyStatus> =
         runBeloteRoundWrite {
             val state = loadPartyInProgress(partyId, partyRepository, beloteRepository, rules)
+            requireTaker(state, input, takerPlayerId)
             val status = statusAfter(state.rounds.map { it.input } + input, state.endRule, rules)
-            val round = BeloteRound(UUID.randomUUID(), partyId, state.rounds.size + 1, input)
+            val round = BeloteRound(UUID.randomUUID(), partyId, state.rounds.size + 1, input, takerPlayerId)
             val updatedParty = state.party.copy(
                 currentDealerIndex = (state.party.currentDealerIndex + 1) % state.players.size,
                 status = status.toPartyState()
@@ -53,6 +56,13 @@ internal suspend fun loadPartyInProgress(
         ?: throw InvalidBeloteRoundException("Party $partyId is not a Belote party in progress")
 } catch (incoherent: IllegalStateException) {
     throw InvalidBeloteRoundException("Party $partyId is not a coherent Belote party", incoherent)
+}
+
+/** The taker player must be a player of the Partie in the taking Équipe. */
+internal fun requireTaker(state: BelotePartyState, input: BeloteRoundInput, takerPlayerId: UUID) {
+    if (state.players.none { it.id == takerPlayerId && it.teamSide == input.taker }) {
+        throw InvalidBeloteRoundException("Player $takerPlayerId is not a player of the taking team")
+    }
 }
 
 /** The engine's status once [inputs] are played; an input it refuses is an invalid Manche. */

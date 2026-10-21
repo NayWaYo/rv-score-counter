@@ -26,14 +26,16 @@ import com.rvetiveau.rvscorecount.data.entity.TeamEntity
         TeamEntity::class,
         BeloteRoundEntity::class
     ],
-    version = 3,
+    version = 4,
     exportSchema = true,
     autoMigrations = [
         // v2 : colonne rounds.sevenHolderId (qui a eu le 7 de la couleur du dé), nulle pour les manches existantes.
         AutoMigration(from = 1, to = 2),
         // v3 (Belote) : tables teams et belote_rounds, colonnes parties.endRuleType/endRuleValue et
         // participants.teamSide, nulles pour les parties de Papayoo existantes.
-        AutoMigration(from = 2, to = 3)
+        AutoMigration(from = 2, to = 3),
+        // v4 : colonne belote_rounds.takerPlayerId (joueur preneur), nulle pour les manches existantes.
+        AutoMigration(from = 3, to = 4)
     ]
 )
 @TypeConverters(Converters::class)

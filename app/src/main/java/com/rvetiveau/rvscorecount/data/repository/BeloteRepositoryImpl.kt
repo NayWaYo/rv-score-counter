@@ -73,7 +73,9 @@ class BeloteRepositoryImpl @Inject constructor(
             require(party.status == PartyState.IN_PROGRESS.name) { "Only a round of a party in progress can be corrected" }
 
             val entity = round.toEntity()
-            beloteRoundDao.updateInput(entity.id, entity.takerSide, entity.takerTrickPoints, entity.beloteSide, entity.capotSide)
+            beloteRoundDao.updateInput(
+                entity.id, entity.takerSide, entity.takerTrickPoints, entity.beloteSide, entity.capotSide, entity.takerPlayerId
+            )
             partyDao.update(updatedParty.toEntity())
         }
     }

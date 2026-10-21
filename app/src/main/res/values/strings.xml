@@ -232,6 +232,7 @@
     <string name="belote_round_title">Manche %1$d</string>
     <string name="belote_round_correction_title">Corriger la manche %1$d</string>
     <string name="belote_round_taker">Qui a pris ?</string>
+    <string name="belote_round_taker_player_hint">Indiquez quel joueur de %1$s a pris.</string>
     <string name="belote_round_trick_points">Points de plis (sur 162)</string>
     <string name="belote_round_points_error">Entre 0 et 162</string>
     <string name="belote_round_belote">Belote-rebelote</string>
@@ -252,5 +253,18 @@
     <!-- Belote : historique, détail et statistiques (Story 7.4) -->
     <string name="belote_history_outcome">%1$s %2$d · %3$s %4$d — %5$s gagne</string>
     <string name="belote_stats_curve_title">Scores cumulés par équipe</string>
+    <string name="stat_chad_emoji" translatable="false">🗿</string>
+    <string name="stat_chad_label">Chad de la game</string>
+    <string name="stat_chad_value">%1$s · %2$s</string>
+    <string name="stat_chad_rank">%1$d. %2$s</string>
+    <string name="stat_chad_content_description">Chad de la game : %1$s. Classement des preneurs : %2$s</string>
+    <plurals name="stat_chad_takes">
+        <item quantity="one">%d prise</item>
+        <item quantity="other">%d prises</item>
+    </plurals>
+    <plurals name="stat_chad_made">
+        <item quantity="one">%d faite</item>
+        <item quantity="other">%d faites</item>
+    </plurals>
     <string name="belote_stats_no_round">Aucune manche jouée pour l\'instant.</string>
 </resources>

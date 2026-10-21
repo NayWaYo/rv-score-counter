@@ -25,7 +25,14 @@ interface BeloteRoundDao {
 
     @Query(
         "UPDATE belote_rounds SET takerSide = :takerSide, takerTrickPoints = :takerTrickPoints, " +
-            "beloteSide = :beloteSide, capotSide = :capotSide WHERE id = :id"
+            "beloteSide = :beloteSide, capotSide = :capotSide, takerPlayerId = :takerPlayerId WHERE id = :id"
     )
-    suspend fun updateInput(id: String, takerSide: String, takerTrickPoints: Int, beloteSide: String?, capotSide: String?)
+    suspend fun updateInput(
+        id: String,
+        takerSide: String,
+        takerTrickPoints: Int,
+        beloteSide: String?,
+        capotSide: String?,
+        takerPlayerId: String?
+    )
 }

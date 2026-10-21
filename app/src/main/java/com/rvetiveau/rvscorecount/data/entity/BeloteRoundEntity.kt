@@ -1,5 +1,6 @@
 package com.rvetiveau.rvscorecount.data.entity
 
+import androidx.room.ColumnInfo
 import androidx.room.Entity
 import androidx.room.ForeignKey
 import androidx.room.Index
@@ -33,7 +34,9 @@ data class BeloteRoundEntity(
     val takerSide: String,
     val takerTrickPoints: Int,
     val beloteSide: String?,
-    val capotSide: String?
+    val capotSide: String?,
+    /** The player who took (schema v4); null for the Manches played before. */
+    @ColumnInfo(defaultValue = "NULL") val takerPlayerId: String? = null
 )
 
 fun BeloteRoundEntity.toDomain() = BeloteRound(
@@ -45,7 +48,8 @@ fun BeloteRoundEntity.toDomain() = BeloteRound(
         takerTrickPoints = takerTrickPoints,
         beloteTeam = beloteSide?.let(TeamSide::valueOf),
         capotTeam = capotSide?.let(TeamSide::valueOf)
-    )
+    ),
+    takerPlayerId = takerPlayerId?.let(UUID::fromString)
 )
 
 fun BeloteRound.toEntity() = BeloteRoundEntity(
@@ -55,5 +59,6 @@ fun BeloteRound.toEntity() = BeloteRoundEntity(
     takerSide = input.taker.name,
     takerTrickPoints = input.takerTrickPoints,
     beloteSide = input.beloteTeam?.name,
-    capotSide = input.capotTeam?.name
+    capotSide = input.capotTeam?.name,
+    takerPlayerId = takerPlayerId?.toString()
 )

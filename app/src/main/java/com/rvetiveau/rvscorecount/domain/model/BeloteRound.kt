@@ -39,10 +39,14 @@ data class BeloteRoundResult(
     val reserveAfter: Int
 )
 
-/** A validated Manche of Belote: what was entered, its points being recomputed by the engine. */
+/**
+ * A validated Manche of Belote: what was entered, its points being recomputed by the engine.
+ * [takerPlayerId]: the player of the taking Équipe who took (Story 8.3); null for Manches played before.
+ */
 data class BeloteRound(
     val id: UUID,
     val partyId: UUID,
     val roundNumber: Int,
-    val input: BeloteRoundInput
+    val input: BeloteRoundInput,
+    val takerPlayerId: UUID? = null
 )

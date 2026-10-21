@@ -18,15 +18,25 @@ class CorrectBeloteRoundUseCase @Inject constructor(
     private val beloteRepository: BeloteRepository,
     private val rules: BeloteRules
 ) {
-    suspend operator fun invoke(partyId: UUID, roundNumber: Int, input: BeloteRoundInput): Result<BelotePartyStatus> =
+    /** [takerPlayerId] is required, also for a Manche played before it was recorded (Story 8.3). */
+    suspend operator fun invoke(
+        partyId: UUID,
+        roundNumber: Int,
+        input: BeloteRoundInput,
+        takerPlayerId: UUID
+    ): Result<BelotePartyStatus> =
         runBeloteRoundWrite {
             val state = loadPartyInProgress(partyId, partyRepository, beloteRepository, rules)
+            requireTaker(state, input, takerPlayerId)
             val round = state.rounds.firstOrNull { it.roundNumber == roundNumber }
                 ?: throw InvalidBeloteRoundException("Party $partyId has no round $roundNumber")
             val inputs = state.rounds.map { if (it.roundNumber == roundNumber) input else it.input }
             val status = statusAfter(inputs, state.endRule, rules)
             persist {
-                beloteRepository.correctRound(round.copy(input = input), state.party.copy(status = status.toPartyState()))
+                beloteRepository.correctRound(
+                    round.copy(input = input, takerPlayerId = takerPlayerId),
+                    state.party.copy(status = status.toPartyState())
+                )
             }
             status
         }

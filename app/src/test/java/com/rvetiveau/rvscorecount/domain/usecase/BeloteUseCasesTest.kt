@@ -3,6 +3,7 @@ package com.rvetiveau.rvscorecount.domain.usecase
 import com.rvetiveau.rvscorecount.domain.engine.Game
 import com.rvetiveau.rvscorecount.domain.model.BeloteEndRule
 import com.rvetiveau.rvscorecount.domain.model.BelotePartyStatus
+import com.rvetiveau.rvscorecount.domain.model.BeloteRound
 import com.rvetiveau.rvscorecount.domain.model.BeloteRoundInput
 import com.rvetiveau.rvscorecount.domain.model.PartyState
 import com.rvetiveau.rvscorecount.domain.model.TeamPoints
@@ -26,8 +27,15 @@ class BeloteUseCasesTest {
     private val store = FakeBeloteStore()
     private val rules = BeloteEngine()
     private val create = CreateBelotePartyUseCase(store, store)
-    private val play = PlayBeloteRoundUseCase(store, store, rules)
-    private val correct = CorrectBeloteRoundUseCase(store, store, rules)
+    private val playRound = PlayBeloteRoundUseCase(store, store, rules)
+    private val correctRound = CorrectBeloteRoundUseCase(store, store, rules)
+
+    /** Plays or corrects with the first player of the taking Équipe as taker (Story 8.3). */
+    private suspend fun play(partyId: UUID, input: BeloteRoundInput) =
+        playRound(partyId, input, store.takerOf(partyId, input.taker))
+
+    private suspend fun correct(partyId: UUID, roundNumber: Int, input: BeloteRoundInput) =
+        correctRound(partyId, roundNumber, input, store.takerOf(partyId, input.taker))
     private val observe = ObserveBelotePartyUseCase(store, store, rules)
 
     private val drafts = listOf(
@@ -190,6 +198,61 @@ class BeloteUseCasesTest {
         val party = store.seedParty()
 
         assertTrue(correct(party.id, 1, BeloteRoundInput(FIRST, 100)).exceptionOrNull() is InvalidBeloteRoundException)
+    }
+
+    // Joueur preneur et « 🗿 Chad de la game » (Story 8.3)
+
+    private fun playerNamed(name: String) = store.participants.value.first { it.name == name }.id
+
+    @Test
+    fun `the taker player is stored with the round, and a correction replaces it`() = runTest {
+        val party = store.seedParty()
+        playRound(party.id, BeloteRoundInput(FIRST, 100), playerNamed("Chloé")).getOrThrow()
+
+        assertEquals(playerNamed("Chloé"), store.getRounds(party.id).single().takerPlayerId)
+
+        correctRound(party.id, 1, BeloteRoundInput(SECOND, 100), playerNamed("David")).getOrThrow()
+        assertEquals(playerNamed("David"), store.getRounds(party.id).single().takerPlayerId)
+    }
+
+    @Test
+    fun `a taker player outside the taking team or the party is refused`() = runTest {
+        val party = store.seedParty()
+
+        val otherTeam = playRound(party.id, BeloteRoundInput(FIRST, 100), playerNamed("Bob"))
+        val stranger = playRound(party.id, BeloteRoundInput(FIRST, 100), UUID.randomUUID())
+
+        assertTrue(otherTeam.exceptionOrNull() is InvalidBeloteRoundException)
+        assertTrue(stranger.exceptionOrNull() is InvalidBeloteRoundException)
+        assertTrue(store.getRounds(party.id).isEmpty())
+    }
+
+    @Test
+    fun `the takers are ranked by takes, then contracts made, then table order`() = runTest {
+        val party = store.seedParty()
+        playRound(party.id, BeloteRoundInput(FIRST, 100), playerNamed("Chloé")).getOrThrow()
+        playRound(party.id, BeloteRoundInput(FIRST, 50), playerNamed("Chloé")).getOrThrow()
+        playRound(party.id, BeloteRoundInput(SECOND, 0, capotTeam = FIRST), playerNamed("Bob")).getOrThrow()
+        playRound(party.id, BeloteRoundInput(SECOND, 162, capotTeam = SECOND), playerNamed("David")).getOrThrow()
+        playRound(party.id, BeloteRoundInput(FIRST, 81), playerNamed("Alice")).getOrThrow()
+
+        val ranking = checkNotNull(observe(party.id).first()).takerRanking()
+
+        assertEquals(listOf("Chloé", "David", "Alice", "Bob"), ranking.map { it.player.name })
+        assertEquals(listOf(2, 1, 1, 1), ranking.map { it.takes })
+        assertEquals(listOf(1, 1, 0, 0), ranking.map { it.made })
+    }
+
+    @Test
+    fun `rounds without a taker player do not count, and none gives no ranking`() = runTest {
+        val party = store.seedParty()
+        store.rounds.value = listOf(BeloteRound(UUID.randomUUID(), party.id, 1, BeloteRoundInput(FIRST, 100)))
+
+        assertTrue(checkNotNull(observe(party.id).first()).takerRanking().isEmpty())
+
+        playRound(party.id, BeloteRoundInput(SECOND, 100), playerNamed("Bob")).getOrThrow()
+        val ranking = checkNotNull(observe(party.id).first()).takerRanking()
+        assertEquals(listOf("Bob" to 1, "Alice" to 0, "Chloé" to 0, "David" to 0), ranking.map { it.player.name to it.takes })
     }
 
     // Historique (Story 7.4)

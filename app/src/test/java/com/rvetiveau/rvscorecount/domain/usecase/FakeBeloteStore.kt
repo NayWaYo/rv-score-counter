@@ -42,6 +42,10 @@ class FakeBeloteStore : PartyRepository, BeloteRepository {
         return party
     }
 
+    /** The first player of [side] in the Partie, as the taker of a Manche (Story 8.3). */
+    fun takerOf(partyId: UUID, side: TeamSide): UUID =
+        participants.value.first { it.partyId == partyId && it.teamSide == side }.id
+
     private fun checkWritable() {
         writeFailure?.let { throw it }
     }

@@ -30,7 +30,7 @@ fun BeloteRoundRoute(
 
     BeloteRoundScreen(
         state = state,
-        onTakerSelected = viewModel::onTakerSelected,
+        onTakerPlayerSelected = viewModel::onTakerPlayerSelected,
         onPointsChanged = viewModel::onPointsChanged,
         onBeloteChanged = viewModel::onBeloteChanged,
         onCapotChanged = viewModel::onCapotChanged,

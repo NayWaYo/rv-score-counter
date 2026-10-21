@@ -57,11 +57,17 @@ class BeloteRoundViewModel @Inject constructor(
                 val party = observeBelotePartyUseCase(partyId).first()
                     ?.takeIf { it.party.status == PartyState.IN_PROGRESS }
                 val teamNames = party?.let { state -> TeamSide.entries.map { state.team(it).name } }
+                val players = party?.players.orEmpty().map { BeloteSeatUiModel(it.id, it.name, checkNotNull(it.teamSide)) }
                 when {
                     party == null || teamNames == null -> BeloteRoundUiState.Unavailable
                     correctedRoundNumber == null -> {
                         pendingReserve = party.pendingReserve
-                        BeloteRoundUiState.Loaded(party.rounds.size + 1, isCorrection = false, teamNames = teamNames)
+                        BeloteRoundUiState.Loaded(
+                            roundNumber = party.rounds.size + 1,
+                            isCorrection = false,
+                            teamNames = teamNames,
+                            players = players
+                        )
                     }
                     else -> {
                         val round = party.rounds.firstOrNull { it.roundNumber == correctedRoundNumber }
@@ -75,6 +81,8 @@ class BeloteRoundViewModel @Inject constructor(
                                 roundNumber = correctedRoundNumber,
                                 isCorrection = true,
                                 teamNames = teamNames,
+                                players = players,
+                                takerPlayerId = round.takerPlayerId,
                                 taker = input.taker,
                                 pointsInputs = TeamSide.entries.map { side ->
                                     (if (side == input.taker) input.takerTrickPoints else defensePoints).toString()
@@ -93,7 +101,11 @@ class BeloteRoundViewModel @Inject constructor(
         }
     }
 
-    fun onTakerSelected(side: TeamSide) = edit { it.copy(taker = side) }
+    /** The taking Équipe follows the player who took (Story 8.3). */
+    fun onTakerPlayerSelected(playerId: UUID) = edit { state ->
+        val player = state.players.firstOrNull { it.id == playerId } ?: return@edit state
+        state.copy(takerPlayerId = player.id, taker = player.side)
+    }
 
     /** Digits only; a value within 0..162 fills the other Équipe, a larger one is flagged. */
     fun onPointsChanged(side: TeamSide, text: String) {
@@ -131,14 +143,15 @@ class BeloteRoundViewModel @Inject constructor(
         val state = _uiState.value as? BeloteRoundUiState.Loaded ?: return
         val id = partyId ?: return
         val input = state.input() ?: return
+        val takerPlayerId = state.takerPlayerId ?: return
         if (!state.canValidate) return
         _uiState.value = state.copy(isSaving = true, errorRes = null)
 
         viewModelScope.launch {
             val result = if (state.isCorrection) {
-                correctBeloteRoundUseCase(id, state.roundNumber, input)
+                correctBeloteRoundUseCase(id, state.roundNumber, input, takerPlayerId)
             } else {
-                playBeloteRoundUseCase(id, input)
+                playBeloteRoundUseCase(id, input, takerPlayerId)
             }
             result.fold(
                 onSuccess = { status ->

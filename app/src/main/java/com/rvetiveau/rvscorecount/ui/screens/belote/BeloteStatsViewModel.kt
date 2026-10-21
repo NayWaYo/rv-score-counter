@@ -20,11 +20,19 @@ sealed interface BeloteStatsUiState {
     data object Loading : BeloteStatsUiState
     data object Unavailable : BeloteStatsUiState
 
-    /** One cumulated series per Équipe, in creation order, starting at 0 before the first Manche. */
-    data class Loaded(val series: List<ScoreSeries>) : BeloteStatsUiState {
+    /**
+     * One cumulated series per Équipe, in creation order, starting at 0 before the first Manche; the
+     * [takers] ranked for « 🗿 Chad de la game », empty when no Manche records who took (Story 8.3).
+     */
+    data class Loaded(
+        val series: List<ScoreSeries>,
+        val takers: List<BeloteTakerUiModel> = emptyList()
+    ) : BeloteStatsUiState {
         val roundCount: Int get() = (series.firstOrNull()?.points?.size ?: 1) - 1
     }
 }
+
+data class BeloteTakerUiModel(val name: String, val takes: Int, val made: Int)
 
 /** Statistiques of a Partie of Belote, in progress or finished (Story 7.4, AC 3), observed live. */
 @HiltViewModel
@@ -43,8 +51,14 @@ class BeloteStatsViewModel @Inject constructor(
         viewModelScope.launch {
             try {
                 observeBelotePartyUseCase(partyId).collect { state ->
-                    _uiState.value = state?.let { BeloteStatsUiState.Loaded(it.cumulativeSeries()) }
-                        ?: BeloteStatsUiState.Unavailable
+                    _uiState.value = if (state == null) {
+                        BeloteStatsUiState.Unavailable
+                    } else {
+                        BeloteStatsUiState.Loaded(
+                            series = state.cumulativeSeries(),
+                            takers = state.takerRanking().map { BeloteTakerUiModel(it.player.name, it.takes, it.made) }
+                        )
+                    }
                 }
             } catch (cancellation: CancellationException) {
                 throw cancellation

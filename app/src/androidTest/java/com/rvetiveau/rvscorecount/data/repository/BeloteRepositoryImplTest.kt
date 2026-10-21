@@ -136,7 +136,10 @@ class BeloteRepositoryImplTest {
         repository.createParty(party, teams, participants)
         val round = aRound(1)
         repository.saveRound(round, party)
-        val corrected = round.copy(input = BeloteRoundInput(SECOND, 0, beloteTeam = SECOND, capotTeam = FIRST))
+        val corrected = round.copy(
+            input = BeloteRoundInput(SECOND, 0, beloteTeam = SECOND, capotTeam = FIRST),
+            takerPlayerId = participants[1].id
+        )
 
         repository.correctRound(corrected, party.copy(status = PartyState.FINISHED))
 

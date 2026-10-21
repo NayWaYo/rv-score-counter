@@ -4,6 +4,7 @@ import androidx.lifecycle.SavedStateHandle
 import com.rvetiveau.rvscorecount.R
 import com.rvetiveau.rvscorecount.domain.model.BeloteEndRule
 import com.rvetiveau.rvscorecount.domain.model.BeloteOutcome
+import com.rvetiveau.rvscorecount.domain.model.BeloteRound
 import com.rvetiveau.rvscorecount.domain.model.BeloteRoundInput
 import com.rvetiveau.rvscorecount.domain.model.PartyState
 import com.rvetiveau.rvscorecount.domain.model.TeamPoints
@@ -45,7 +46,11 @@ class BeloteViewModelsTest {
     private val rules = BeloteEngine()
     private val observe = ObserveBelotePartyUseCase(store, store, rules)
     private val create = CreateBelotePartyUseCase(store, store)
-    private val play = PlayBeloteRoundUseCase(store, store, rules)
+    private val playRound = PlayBeloteRoundUseCase(store, store, rules)
+
+    /** Plays with the first player of the taking Équipe as taker (Story 8.3). */
+    private suspend fun play(partyId: UUID, input: BeloteRoundInput) =
+        playRound(partyId, input, store.takerOf(partyId, input.taker))
 
     @Before
     fun setUp() {
@@ -160,7 +165,7 @@ class BeloteViewModelsTest {
         assertEquals("Chloé", state.dealerName)
         assertEquals(81, state.pendingReserve)
         assertEquals(listOf(BeloteOutcome.MADE, BeloteOutcome.DISPUTED), state.rounds.map { it.outcome })
-        assertEquals("Eux", state.rounds[1].takerName)
+        assertEquals("Bob", state.rounds[1].takerName)
         assertEquals(3, state.nextRoundNumber)
     }
 
@@ -200,7 +205,7 @@ class BeloteViewModelsTest {
     // Round entry
 
     private fun roundViewModel(partyId: UUID, correctedRoundNumber: Int? = null) =
-        BeloteRoundViewModel(observe, play, CorrectBeloteRoundUseCase(store, store, rules), rules)
+        BeloteRoundViewModel(observe, playRound, CorrectBeloteRoundUseCase(store, store, rules), rules)
             .apply { initialize(partyId, correctedRoundNumber) }
 
     private val BeloteRoundViewModel.loaded get() = uiState.value as BeloteRoundUiState.Loaded
@@ -210,7 +215,7 @@ class BeloteViewModelsTest {
         val party = store.seedParty()
         val viewModel = roundViewModel(party.id)
 
-        viewModel.onTakerSelected(FIRST)
+        viewModel.onTakerPlayerSelected(store.takerOf(party.id, FIRST))
         viewModel.onPointsChanged(SECOND, "62")
 
         assertEquals(listOf("100", "62"), viewModel.loaded.pointsInputs)
@@ -222,7 +227,7 @@ class BeloteViewModelsTest {
     fun `points above 162 are flagged and block the validation`() {
         val party = store.seedParty()
         val viewModel = roundViewModel(party.id)
-        viewModel.onTakerSelected(FIRST)
+        viewModel.onTakerPlayerSelected(store.takerOf(party.id, FIRST))
 
         viewModel.onPointsChanged(FIRST, "170")
 
@@ -236,7 +241,7 @@ class BeloteViewModelsTest {
     fun `a capot sets 162 and 0, and typing points again removes it`() {
         val party = store.seedParty()
         val viewModel = roundViewModel(party.id)
-        viewModel.onTakerSelected(SECOND)
+        viewModel.onTakerPlayerSelected(store.takerOf(party.id, SECOND))
 
         viewModel.onCapotChanged(SECOND)
         assertEquals(listOf("0", "162"), viewModel.loaded.pointsInputs)
@@ -253,7 +258,7 @@ class BeloteViewModelsTest {
         play(party.id, BeloteRoundInput(FIRST, 81))
         val viewModel = roundViewModel(party.id)
 
-        viewModel.onTakerSelected(SECOND)
+        viewModel.onTakerPlayerSelected(store.takerOf(party.id, SECOND))
         viewModel.onPointsChanged(SECOND, "100")
 
         assertEquals(2, viewModel.loaded.roundNumber)
@@ -265,7 +270,7 @@ class BeloteViewModelsTest {
     fun `validating a round goes back to the party`() = runTest {
         val party = store.seedParty()
         val viewModel = roundViewModel(party.id)
-        viewModel.onTakerSelected(FIRST)
+        viewModel.onTakerPlayerSelected(store.takerOf(party.id, FIRST))
         viewModel.onPointsChanged(FIRST, "100")
 
         viewModel.onValidate()
@@ -278,7 +283,7 @@ class BeloteViewModelsTest {
     fun `the round ending the party opens the results`() = runTest {
         val party = store.seedParty(BeloteEndRule.RoundCount(1))
         val viewModel = roundViewModel(party.id)
-        viewModel.onTakerSelected(FIRST)
+        viewModel.onTakerPlayerSelected(store.takerOf(party.id, FIRST))
         viewModel.onPointsChanged(FIRST, "100")
 
         viewModel.onValidate()
@@ -307,6 +312,48 @@ class BeloteViewModelsTest {
     }
 
     @Test
+    fun `choosing the player who took chooses the taking team`() {
+        val party = store.seedParty()
+        val viewModel = roundViewModel(party.id)
+        val bob = store.participants.value.first { it.name == "Bob" }
+
+        assertEquals(listOf("Alice", "Bob", "Chloé", "David"), viewModel.loaded.players.map { it.name })
+        viewModel.onTakerPlayerSelected(bob.id)
+        viewModel.onPointsChanged(SECOND, "100")
+
+        assertEquals(bob.id, viewModel.loaded.takerPlayerId)
+        assertEquals(SECOND, viewModel.loaded.taker)
+        assertTrue(viewModel.loaded.canValidate)
+    }
+
+    @Test
+    fun `correcting a round played before asks for the player who took`() = runTest {
+        val party = store.seedParty()
+        store.rounds.value = listOf(BeloteRound(UUID.randomUUID(), party.id, 1, BeloteRoundInput(SECOND, 100)))
+        val viewModel = roundViewModel(party.id, correctedRoundNumber = 1)
+
+        assertEquals(SECOND, viewModel.loaded.taker)
+        assertNull(viewModel.loaded.takerPlayerId)
+        assertFalse(viewModel.loaded.canValidate)
+
+        viewModel.onTakerPlayerSelected(store.takerOf(party.id, SECOND))
+        viewModel.onValidate()
+        assertEquals(NavigationEvent.NavigateBack, viewModel.navigationEvents.first())
+        assertEquals(store.takerOf(party.id, SECOND), store.getRounds(party.id).single().takerPlayerId)
+    }
+
+    @Test
+    fun `the statistics rank the takers for the Chad card`() = runTest {
+        val party = store.seedParty()
+        play(party.id, BeloteRoundInput(SECOND, 100))
+        val viewModel = BeloteStatsViewModel(observe).apply { initialize(party.id) }
+
+        val takers = (viewModel.uiState.value as BeloteStatsUiState.Loaded).takers
+        assertEquals(BeloteTakerUiModel("Bob", takes = 1, made = 1), takers.first())
+        assertEquals(4, takers.size)
+    }
+
+    @Test
     fun `an unknown round or a finished party cannot be entered`() {
         val party = store.seedParty()
         assertEquals(BeloteRoundUiState.Unavailable, roundViewModel(party.id, correctedRoundNumber = 1).uiState.value)
@@ -319,7 +366,7 @@ class BeloteViewModelsTest {
     fun `a saving failure is shown and the entry is kept`() {
         val party = store.seedParty()
         val viewModel = roundViewModel(party.id)
-        viewModel.onTakerSelected(FIRST)
+        viewModel.onTakerPlayerSelected(store.takerOf(party.id, FIRST))
         viewModel.onPointsChanged(FIRST, "100")
         store.writeFailure = IOException("disk")
 

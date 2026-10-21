@@ -1,10 +1,13 @@
 package com.rvetiveau.rvscorecount.ui.screens.belote
 
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.test.assert
 import androidx.compose.ui.test.assertHasNoClickAction
 import androidx.compose.ui.test.assertIsEnabled
 import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.assertTextContains
+import androidx.compose.ui.test.assertTextEquals
+import androidx.compose.ui.test.hasContentDescription
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithTag
@@ -137,6 +140,42 @@ class BeloteScreensTest {
 
     private val emptyRound = BeloteRoundUiState.Loaded(roundNumber = 3, isCorrection = false, teamNames = listOf("Nous", "Eux"))
 
+    private val seats = listOf("Alice" to TeamSide.FIRST, "Bob" to TeamSide.SECOND, "Chloé" to TeamSide.FIRST, "David" to TeamSide.SECOND)
+        .map { (name, side) -> BeloteSeatUiModel(UUID.randomUUID(), name, side) }
+
+    @Test
+    fun roundEntryOffersThePlayersByTeamAndAsksForThePlayerOfAKnownTeam() {
+        setContent { BeloteRoundScreen(emptyRound.copy(players = seats, taker = TeamSide.SECOND, isCorrection = true)) }
+
+        seats.forEach { composeTestRule.onNodeWithTag("belote_round_taker_${it.id}").assertTextContains(it.name) }
+        composeTestRule.onNodeWithTag("belote_round_taker_player_hint").assertTextEquals("Indiquez quel joueur de Eux a pris.")
+        composeTestRule.onNodeWithTag("belote_round_validate").performScrollTo().assertIsNotEnabled()
+    }
+
+    @Test
+    fun statsShowTheChadCardWithTheRanking() {
+        val series = listOf("Nous", "Eux").map { ScoreSeries(RoundTablePlayer(UUID.randomUUID(), it), listOf(0, 100)) }
+        val takers = listOf(
+            BeloteTakerUiModel("Chloé", takes = 2, made = 1),
+            BeloteTakerUiModel("David", takes = 1, made = 1),
+            BeloteTakerUiModel("Alice", takes = 0, made = 0),
+            BeloteTakerUiModel("Bob", takes = 0, made = 0)
+        )
+        setContent { BeloteStatsScreen(BeloteStatsUiState.Loaded(series, takers)) }
+
+        composeTestRule.onNodeWithTag("stat_card_chad").performScrollTo().assert(
+            hasContentDescription("Chad de la game : Chloé.", substring = true)
+        ).assert(hasContentDescription("1. Chloé, 2 prises · 1 faite ; 2. David, 1 prise · 1 faite", substring = true))
+    }
+
+    @Test
+    fun statsWithoutRecordedTakerHaveNoChadCard() {
+        val series = listOf("Nous", "Eux").map { ScoreSeries(RoundTablePlayer(UUID.randomUUID(), it), listOf(0, 100)) }
+        setContent { BeloteStatsScreen(BeloteStatsUiState.Loaded(series)) }
+
+        composeTestRule.onNodeWithTag("stat_card_chad").assertDoesNotExist()
+    }
+
     @Test
     fun roundEntryWaitsForTheTakerAndThePoints() {
         setContent { BeloteRoundScreen(emptyRound) }
@@ -150,7 +189,16 @@ class BeloteScreensTest {
     fun roundEntryShowsThePreviewWithTheReserve() {
         val preview = BeloteRoundResult(BeloteOutcome.DISPUTED, TeamPoints(81, 20), reserveWon = 0, reserveAfter = 152)
         setContent {
-            BeloteRoundScreen(emptyRound.copy(taker = TeamSide.SECOND, pointsInputs = listOf("91", "71"), beloteTeam = TeamSide.SECOND, preview = preview))
+            BeloteRoundScreen(
+                emptyRound.copy(
+                    players = seats,
+                    takerPlayerId = seats[1].id,
+                    taker = TeamSide.SECOND,
+                    pointsInputs = listOf("91", "71"),
+                    beloteTeam = TeamSide.SECOND,
+                    preview = preview
+                )
+            )
         }
 
         composeTestRule.onNodeWithTag("belote_round_preview_outcome").performScrollTo().assertTextContains("Litige")
@@ -161,21 +209,21 @@ class BeloteScreensTest {
 
     @Test
     fun roundEntryReportsChoicesAndFlagsInvalidPoints() {
-        var taker: TeamSide? = null
+        var taker: UUID? = null
         var capot: TeamSide? = TeamSide.FIRST
         setContent {
             BeloteRoundScreen(
-                emptyRound.copy(pointsInputs = listOf("170", ""), pointsError = true),
-                onTakerSelected = { taker = it },
+                emptyRound.copy(pointsInputs = listOf("170", ""), pointsError = true, players = seats),
+                onTakerPlayerSelected = { taker = it },
                 onCapotChanged = { capot = it }
             )
         }
 
         composeTestRule.onNodeWithTag("belote_round_points_error").assertTextContains("Entre 0 et 162")
-        composeTestRule.onNodeWithTag("belote_round_taker_SECOND").performClick()
+        composeTestRule.onNodeWithTag("belote_round_taker_${seats[1].id}").performClick()
         composeTestRule.onNodeWithTag("belote_round_capot_NONE").performScrollTo().performClick()
 
-        assertEquals(TeamSide.SECOND, taker)
+        assertEquals(seats[1].id, taker)
         assertEquals(null, capot)
     }
 
