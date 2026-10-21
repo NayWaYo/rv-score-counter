@@ -38,6 +38,7 @@ fun BeloteSetupRoute(
         onEndModeChanged = viewModel::onEndModeChanged,
         onEndValueChanged = viewModel::onEndValueChanged,
         onStartParty = viewModel::onStartParty,
+        onHistorySelected = viewModel::onHistorySelected,
         modifier = modifier
     )
 }

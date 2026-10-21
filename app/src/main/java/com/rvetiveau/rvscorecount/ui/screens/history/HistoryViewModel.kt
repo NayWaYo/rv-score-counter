@@ -1,5 +1,6 @@
 package com.rvetiveau.rvscorecount.ui.screens.history
 
+import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.rvetiveau.rvscorecount.R
@@ -28,8 +29,12 @@ import kotlinx.coroutines.launch
 @HiltViewModel
 class HistoryViewModel @Inject constructor(
     private val observePartyHistoryUseCase: ObservePartyHistoryUseCase,
-    private val deletePartyUseCase: DeletePartyUseCase
+    private val deletePartyUseCase: DeletePartyUseCase,
+    savedStateHandle: SavedStateHandle
 ) : ViewModel() {
+
+    /** The Jeu of [Routes.GameHistory] (Story 8.2); null for the Historique of every Jeu, from the Accueil. */
+    val gameId: String? = savedStateHandle.get<String>(GAME_ID_KEY)
 
     private val _uiState = MutableStateFlow<HistoryUiState>(HistoryUiState.Loading)
     val uiState: StateFlow<HistoryUiState> = _uiState.asStateFlow()
@@ -48,7 +53,7 @@ class HistoryViewModel @Inject constructor(
         _uiState.value = HistoryUiState.Loading
         observation = viewModelScope.launch {
             try {
-                observePartyHistoryUseCase().collect { entries ->
+                observePartyHistoryUseCase(gameId).collect { entries ->
                     val current = _uiState.value as? HistoryUiState.Loaded
                     _uiState.value = when {
                         entries.isEmpty() -> HistoryUiState.Empty
@@ -70,8 +75,8 @@ class HistoryViewModel @Inject constructor(
 
     /** Each Jeu has its own detail: the Belote one is by Équipe. */
     fun onEntrySelected(partyId: UUID) {
-        val gameId = (_uiState.value as? HistoryUiState.Loaded)?.entries?.firstOrNull { it.partyId == partyId }?.gameId
-        val route = when (gameId) {
+        val entryGameId = (_uiState.value as? HistoryUiState.Loaded)?.entries?.firstOrNull { it.partyId == partyId }?.gameId
+        val route = when (entryGameId) {
             GameIds.BELOTE -> Routes.BelotePartyDetail(partyId.toString())
             else -> Routes.PartyDetail(partyId.toString())
         }
@@ -108,5 +113,10 @@ class HistoryViewModel @Inject constructor(
                 else -> Unit
             }
         }
+    }
+
+    private companion object {
+        /** Name of [Routes.GameHistory.gameId], under which navigation stores it. */
+        const val GAME_ID_KEY = "gameId"
     }
 }

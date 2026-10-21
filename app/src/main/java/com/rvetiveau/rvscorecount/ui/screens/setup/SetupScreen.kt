@@ -45,9 +45,8 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.zIndex
 import com.rvetiveau.rvscorecount.R
+import com.rvetiveau.rvscorecount.ui.components.HistoryButton
 import com.rvetiveau.rvscorecount.ui.components.ScreenHeader
-import com.rvetiveau.rvscorecount.domain.model.PartySummary
-import com.rvetiveau.rvscorecount.ui.components.PartySummaryRow
 import java.util.UUID
 
 /**
@@ -64,7 +63,7 @@ fun SetupScreen(
     onMoveParticipant: (Int, Int) -> Unit,
     onStartParty: () -> Unit,
     modifier: Modifier = Modifier,
-    onHistoryEntrySelected: (UUID) -> Unit = {}
+    onHistorySelected: () -> Unit = {}
 ) {
     Column(
         modifier = modifier
@@ -76,7 +75,9 @@ fun SetupScreen(
             title = stringResource(R.string.setup_title),
             titleTag = "setup_title",
             modifier = Modifier.padding(vertical = 8.dp)
-        )
+        ) {
+            HistoryButton(onClick = onHistorySelected, modifier = Modifier.testTag("setup_history_action"))
+        }
 
         NameInputRow(
             nameInput = state.nameInput,
@@ -147,59 +148,6 @@ fun SetupScreen(
                 .testTag("setup_start_button")
         ) {
             Text(text = stringResource(R.string.setup_start_button))
-        }
-
-        GameHistorySection(
-            history = state.history,
-            loadFailed = state.historyLoadFailed,
-            onEntrySelected = onHistoryEntrySelected,
-            modifier = Modifier.weight(1f, fill = false)
-        )
-    }
-}
-
-/** Parties terminées de ce Jeu, la plus récente d'abord ; un tap ouvre le Détail de Partie. */
-@Composable
-private fun GameHistorySection(
-    history: List<PartySummary>,
-    loadFailed: Boolean,
-    onEntrySelected: (UUID) -> Unit,
-    modifier: Modifier = Modifier
-) {
-    Column(modifier = modifier.padding(bottom = 16.dp)) {
-        Text(
-            text = stringResource(R.string.setup_history_title),
-            style = MaterialTheme.typography.titleMedium,
-            color = MaterialTheme.colorScheme.onBackground,
-            modifier = Modifier
-                .padding(bottom = 8.dp)
-                .testTag("setup_history_title")
-        )
-        when {
-            loadFailed -> Text(
-                text = stringResource(R.string.history_load_error),
-                style = MaterialTheme.typography.bodyLarge,
-                color = MaterialTheme.colorScheme.error,
-                modifier = Modifier.testTag("setup_history_error")
-            )
-            history.isEmpty() -> Text(
-                text = stringResource(R.string.history_empty),
-                style = MaterialTheme.typography.bodyLarge,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.testTag("setup_history_empty")
-            )
-            else -> LazyColumn(
-                verticalArrangement = Arrangement.spacedBy(8.dp),
-                modifier = Modifier.testTag("setup_history_list")
-            ) {
-                items(history, key = { it.partyId }) { entry ->
-                    PartySummaryRow(
-                        entry = entry,
-                        onSelected = { onEntrySelected(entry.partyId) },
-                        modifier = Modifier.testTag("setup_history_entry_${entry.partyId}")
-                    )
-                }
-            }
         }
     }
 }

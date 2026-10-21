@@ -21,7 +21,6 @@ import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performTouchInput
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.dp
-import com.rvetiveau.rvscorecount.domain.model.PartySummary
 import com.rvetiveau.rvscorecount.ui.theme.RvScoreCounterTheme
 import java.util.UUID
 import org.junit.Assert.assertEquals
@@ -330,46 +329,28 @@ class SetupScreenTest {
             .assertContentDescriptionEquals("Réorganiser Alice, joueur 1 sur 3")
     }
 
-    // --- Historique du Jeu sous la Création de Partie ---
+    // --- Historique du Jeu depuis la Création de Partie (Story 8.2) ---
 
-    private fun setContentWithHistory(state: SetupUiState, onHistoryEntrySelected: (UUID) -> Unit = {}) {
+    @Test
+    fun theHistoryButtonInTheHeaderOpensTheHistoryOfThisGame() {
+        var opened = false
         composeTestRule.setContent {
             RvScoreCounterTheme {
                 SetupScreen(
-                    state = state,
+                    state = stateWith(),
                     onNameChanged = {},
                     onAddParticipant = {},
                     onRemoveParticipant = {},
                     onMoveParticipant = { _, _ -> },
                     onStartParty = {},
-                    onHistoryEntrySelected = onHistoryEntrySelected
+                    onHistorySelected = { opened = true }
                 )
             }
         }
-    }
 
-    @Test
-    fun showsThePastPartiesOfThisGameBelowTheStartButtonAndOpensOne() {
-        val past = PartySummary(UUID.randomUUID(), "papayoo", 0L, roundCount = 4, winners = listOf("Bob"), winningScore = 180)
-        var selected: UUID? = null
-        setContentWithHistory(stateWith().copy(history = listOf(past)), onHistoryEntrySelected = { selected = it })
+        composeTestRule.onNodeWithTag("setup_history_action").assertContentDescriptionEquals("Historique").performClick()
 
-        composeTestRule.onNodeWithTag("setup_history_title").assertTextEquals("Parties précédentes")
-        val buttonBottom = composeTestRule.onNodeWithTag("setup_start_button").fetchSemanticsNode().boundsInRoot.bottom
-        val entryTop = composeTestRule.onNodeWithTag("setup_history_entry_${past.partyId}").fetchSemanticsNode().boundsInRoot.top
-        assertTrue(entryTop >= buttonBottom)
-
-        composeTestRule.onNodeWithTag("setup_history_entry_${past.partyId}")
-            .assertTextContains("Vainqueur : Bob · 180 points")
-            .performClick()
-
-        assertEquals(past.partyId, selected)
-    }
-
-    @Test
-    fun saysSoWhenThisGameHasNoFinishedParty() {
-        setContentWithHistory(stateWith())
-
-        composeTestRule.onNodeWithTag("setup_history_empty").assertTextEquals("Aucune partie terminée pour l'instant.")
+        assertTrue(opened)
+        composeTestRule.onNodeWithTag("setup_history_title").assertDoesNotExist()
     }
 }

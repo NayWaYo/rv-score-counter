@@ -64,6 +64,16 @@ class BeloteScreensTest {
     }
 
     @Test
+    fun setupOpensTheBeloteHistoryFromItsHeader() {
+        var opened = false
+        setContent { BeloteSetupScreen(filledSetup, onHistorySelected = { opened = true }) }
+
+        composeTestRule.onNodeWithTag("belote_setup_history_action").performClick()
+
+        assertEquals(true, opened)
+    }
+
+    @Test
     fun setupReportsTheChosenEndMode() {
         var mode: BeloteEndMode? = null
         setContent { BeloteSetupScreen(filledSetup, onEndModeChanged = { mode = it }) }

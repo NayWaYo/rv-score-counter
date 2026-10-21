@@ -12,7 +12,6 @@ import com.rvetiveau.rvscorecount.domain.model.RoundScore
 import com.rvetiveau.rvscorecount.domain.repository.PartyRepository
 import com.rvetiveau.rvscorecount.domain.usecase.CreatePartyUseCase
 import com.rvetiveau.rvscorecount.domain.usecase.GetAvailableGamesUseCase
-import com.rvetiveau.rvscorecount.domain.usecase.ObservePartyHistoryUseCase
 import com.rvetiveau.rvscorecount.ui.navigation.NavigationEvent
 import com.rvetiveau.rvscorecount.ui.navigation.Routes
 import java.util.UUID
@@ -29,8 +28,6 @@ import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import kotlinx.coroutines.test.resetMain
 import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.test.setMain
-import com.rvetiveau.rvscorecount.domain.usecase.FakeBeloteStore
-import com.rvetiveau.rvscorecount.game.belote.BeloteEngine
 import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
@@ -113,8 +110,7 @@ class SetupViewModelTest {
     ): SetupViewModel =
         SetupViewModel(
             GetAvailableGamesUseCase(mapOf(engine.gameId to engine)),
-            createPartyUseCase(engine, partyRepository),
-            ObservePartyHistoryUseCase(partyRepository, FakeBeloteStore(), BeloteEngine())
+            createPartyUseCase(engine, partyRepository)
         ).also { it.initialize(engine.gameId) }
 
     private fun SetupViewModel.addName(name: String) {
@@ -125,7 +121,7 @@ class SetupViewModelTest {
     @Test
     fun `default state before initialize disables start and add`() {
         val engine = FakeGameEngine("papayoo")
-        val vm = SetupViewModel(GetAvailableGamesUseCase(mapOf("papayoo" to engine)), createPartyUseCase(engine), ObservePartyHistoryUseCase(FakePartyRepository(), FakeBeloteStore(), BeloteEngine()))
+        val vm = SetupViewModel(GetAvailableGamesUseCase(mapOf("papayoo" to engine)), createPartyUseCase(engine))
 
         val state = vm.uiState.value
         assertFalse(state.isInitialized)
@@ -146,7 +142,7 @@ class SetupViewModelTest {
     @Test
     fun `initialize is idempotent across repeated calls`() {
         val engine = FakeGameEngine("papayoo")
-        val vm = SetupViewModel(GetAvailableGamesUseCase(mapOf("papayoo" to engine)), createPartyUseCase(engine), ObservePartyHistoryUseCase(FakePartyRepository(), FakeBeloteStore(), BeloteEngine()))
+        val vm = SetupViewModel(GetAvailableGamesUseCase(mapOf("papayoo" to engine)), createPartyUseCase(engine))
         vm.initialize("papayoo")
         vm.addName("Alice")
 
@@ -158,7 +154,7 @@ class SetupViewModelTest {
     @Test
     fun `fails fast when no engine is registered for the requested gameId`() {
         val engine = FakeGameEngine("belote")
-        val vm = SetupViewModel(GetAvailableGamesUseCase(mapOf("belote" to engine)), createPartyUseCase(engine), ObservePartyHistoryUseCase(FakePartyRepository(), FakeBeloteStore(), BeloteEngine()))
+        val vm = SetupViewModel(GetAvailableGamesUseCase(mapOf("belote" to engine)), createPartyUseCase(engine))
 
         assertThrows(IllegalStateException::class.java) { vm.initialize("papayoo") }
     }
@@ -411,32 +407,16 @@ class SetupViewModelTest {
         assertTrue(event is NavigationEvent.NavigateTo)
     }
 
-    // --- Historique du Jeu sous la Création de Partie ---
-
-    private fun aFinishedParty(gameId: String, createdAt: Long) =
-        Party(id = UUID.randomUUID(), gameId = gameId, status = PartyState.FINISHED, currentDealerIndex = 0, createdAt = createdAt)
+    // --- Historique du Jeu depuis la Création de Partie (Story 8.2) ---
 
     @Test
-    fun `lists only the finished parties of the selected game and follows Room`() = runTest {
-        val repository = FakePartyRepository()
-        val papayoo = aFinishedParty("papayoo", 20L)
-        repository.finishedParties.value = listOf(papayoo, aFinishedParty("belote", 10L))
-        val vm = viewModel(partyRepository = repository)
-
-        assertEquals(listOf(papayoo.id), vm.uiState.value.history.map { it.partyId })
-
-        val newer = aFinishedParty("papayoo", 30L)
-        repository.finishedParties.value = listOf(newer, papayoo)
-        assertEquals(listOf(newer.id, papayoo.id), vm.uiState.value.history.map { it.partyId })
-    }
-
-    @Test
-    fun `selecting a past party opens its detail`() = runTest {
+    fun `the history button opens the history of this game and keeps the draft`() = runTest {
         val vm = viewModel()
-        val partyId = UUID.randomUUID()
+        vm.addName("Alice")
 
-        vm.onHistoryEntrySelected(partyId)
+        vm.onHistorySelected()
 
-        assertEquals(NavigationEvent.NavigateTo(Routes.PartyDetail(partyId.toString())), vm.navigationEvents.first())
+        assertEquals(NavigationEvent.NavigateTo(Routes.GameHistory("papayoo")), vm.navigationEvents.first())
+        assertEquals(listOf("Alice"), vm.uiState.value.participants.map { it.name })
     }
 }

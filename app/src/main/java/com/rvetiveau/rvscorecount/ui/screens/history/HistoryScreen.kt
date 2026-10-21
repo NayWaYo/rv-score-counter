@@ -39,6 +39,7 @@ import com.rvetiveau.rvscorecount.R
 import com.rvetiveau.rvscorecount.ui.components.ScreenHeader
 import com.rvetiveau.rvscorecount.domain.model.PartySummary
 import com.rvetiveau.rvscorecount.ui.components.PartySummaryRow
+import com.rvetiveau.rvscorecount.ui.components.gamePresentation
 import java.time.Instant
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
@@ -48,25 +49,28 @@ import kotlinx.coroutines.launch
 
 /**
  * Stateless Historique (Story 6.1): finished Parties most recent first, tap to open the detail,
- * swipe left (or the « Supprimer » accessibility action) to ask for a confirmed deletion.
+ * swipe left or the trash button (Story 8.1) to ask for a confirmed deletion. With a [gameId], only
+ * that Jeu's Parties, named in the title and the empty state (Story 8.2).
  */
 @Composable
 fun HistoryScreen(
     state: HistoryUiState,
     modifier: Modifier = Modifier,
+    gameId: String? = null,
     onRetry: () -> Unit = {},
     onEntrySelected: (UUID) -> Unit = {},
     onDeleteRequested: (UUID) -> Unit = {},
     onDeleteConfirmed: () -> Unit = {},
     onDeleteDismissed: () -> Unit = {}
 ) {
+    val gameName = gameId?.let { stringResource(gamePresentation(it).nameRes) }
     Column(
         modifier = modifier
             .fillMaxSize()
             .padding(16.dp)
     ) {
         ScreenHeader(
-            title = stringResource(R.string.history_title),
+            title = gameName?.let { stringResource(R.string.history_game_title, it) } ?: stringResource(R.string.history_title),
             titleTag = "history_title",
             modifier = Modifier.padding(vertical = 8.dp)
         )
@@ -77,7 +81,7 @@ fun HistoryScreen(
 
             is HistoryUiState.Empty -> CenteredContent {
                 Text(
-                    text = stringResource(R.string.history_empty),
+                    text = gameName?.let { stringResource(R.string.history_game_empty, it) } ?: stringResource(R.string.history_empty),
                     style = MaterialTheme.typography.bodyLarge,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier.testTag("history_empty")

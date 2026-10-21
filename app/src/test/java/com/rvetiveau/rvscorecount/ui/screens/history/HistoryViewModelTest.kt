@@ -1,5 +1,6 @@
 package com.rvetiveau.rvscorecount.ui.screens.history
 
+import androidx.lifecycle.SavedStateHandle
 import com.rvetiveau.rvscorecount.R
 import com.rvetiveau.rvscorecount.domain.model.Participant
 import com.rvetiveau.rvscorecount.domain.model.Party
@@ -76,8 +77,11 @@ class HistoryViewModelTest {
     private fun aParty(createdAt: Long) =
         Party(id = UUID.randomUUID(), gameId = "papayoo", status = PartyState.FINISHED, currentDealerIndex = 0, createdAt = createdAt)
 
-    private fun viewModel(repository: PartyRepository) =
-        HistoryViewModel(ObservePartyHistoryUseCase(repository, FakeBeloteStore(), BeloteEngine()), DeletePartyUseCase(repository))
+    private fun viewModel(repository: PartyRepository, gameId: String? = null) = HistoryViewModel(
+        ObservePartyHistoryUseCase(repository, FakeBeloteStore(), BeloteEngine()),
+        DeletePartyUseCase(repository),
+        SavedStateHandle(listOfNotNull(gameId?.let { "gameId" to it }).toMap())
+    )
 
     @Test
     fun `lists the finished parties in the order given by Room`() = runTest {
@@ -94,6 +98,20 @@ class HistoryViewModelTest {
         val vm = viewModel(FakePartyRepository(emptyList()))
 
         assertEquals(HistoryUiState.Empty, vm.uiState.value)
+    }
+
+    @Test
+    fun `the history of a game lists only its parties`() = runTest {
+        val papayoo = aParty(20L)
+        val repository = FakePartyRepository(listOf(papayoo))
+
+        val papayooHistory = viewModel(repository, gameId = "papayoo")
+        val beloteHistory = viewModel(repository, gameId = "belote")
+
+        assertEquals("papayoo", papayooHistory.gameId)
+        assertEquals(listOf(papayoo.id), (papayooHistory.uiState.value as HistoryUiState.Loaded).entries.map { it.partyId })
+        assertEquals(HistoryUiState.Empty, beloteHistory.uiState.value)
+        assertEquals(null, viewModel(repository).gameId)
     }
 
     @Test

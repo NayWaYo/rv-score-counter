@@ -74,6 +74,9 @@ fun RvScoreCounterNavHost(
         composable<Routes.History> {
             HistoryRoute(onNavigate = { event -> navController.dispatch(event) })
         }
+        composable<Routes.GameHistory> {
+            HistoryRoute(onNavigate = { event -> navController.dispatch(event) })
+        }
         composable<Routes.PartyDetail> { backStackEntry ->
             val route: Routes.PartyDetail = backStackEntry.toRoute()
             PartyDetailRoute(

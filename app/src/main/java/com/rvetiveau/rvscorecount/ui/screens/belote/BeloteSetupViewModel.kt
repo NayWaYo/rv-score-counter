@@ -3,6 +3,7 @@ package com.rvetiveau.rvscorecount.ui.screens.belote
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.rvetiveau.rvscorecount.R
+import com.rvetiveau.rvscorecount.domain.engine.GameIds
 import com.rvetiveau.rvscorecount.domain.usecase.BeloteTeamDraft
 import com.rvetiveau.rvscorecount.domain.usecase.CreateBelotePartyUseCase
 import com.rvetiveau.rvscorecount.domain.usecase.InvalidPartyConfigurationException
@@ -93,6 +94,11 @@ class BeloteSetupViewModel @Inject constructor(
                 _uiState.update { it.copy(isCreatingParty = false) }
             }
         }
+    }
+
+    /** Historique of the Belote only (Story 8.2); the draft stays below it on the back stack. */
+    fun onHistorySelected() {
+        viewModelScope.launch { _navigationEvents.send(NavigationEvent.NavigateTo(Routes.GameHistory(GameIds.BELOTE))) }
     }
 
     private fun <T> List<T>.replaced(index: Int, value: T): List<T> =

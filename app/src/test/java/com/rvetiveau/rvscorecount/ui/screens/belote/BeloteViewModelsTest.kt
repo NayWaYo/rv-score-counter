@@ -1,5 +1,6 @@
 package com.rvetiveau.rvscorecount.ui.screens.belote
 
+import androidx.lifecycle.SavedStateHandle
 import com.rvetiveau.rvscorecount.R
 import com.rvetiveau.rvscorecount.domain.model.BeloteEndRule
 import com.rvetiveau.rvscorecount.domain.model.BeloteOutcome
@@ -117,6 +118,17 @@ class BeloteViewModelsTest {
         val party = store.parties.value.values.single()
         assertEquals(NavigationEvent.ReplaceAll(Routes.BeloteParty(party.id.toString())), viewModel.navigationEvents.first())
         assertEquals(BeloteEndRule.TargetScore(1000), party.endRule)
+    }
+
+    @Test
+    fun `the setup history button opens the Belote history and keeps the draft`() = runTest {
+        val viewModel = setupViewModel()
+        viewModel.fillPlayers()
+
+        viewModel.onHistorySelected()
+
+        assertEquals(NavigationEvent.NavigateTo(Routes.GameHistory("belote")), viewModel.navigationEvents.first())
+        assertTrue(viewModel.uiState.value.canStart)
     }
 
     @Test
@@ -352,7 +364,7 @@ class BeloteViewModelsTest {
     fun `the history opens the Belote detail for a Belote party`() = runTest {
         val party = store.seedParty(BeloteEndRule.RoundCount(1))
         play(party.id, BeloteRoundInput(FIRST, 100))
-        val viewModel = HistoryViewModel(ObservePartyHistoryUseCase(store, store, rules), DeletePartyUseCase(store))
+        val viewModel = HistoryViewModel(ObservePartyHistoryUseCase(store, store, rules), DeletePartyUseCase(store), SavedStateHandle())
 
         viewModel.onEntrySelected(party.id)
 

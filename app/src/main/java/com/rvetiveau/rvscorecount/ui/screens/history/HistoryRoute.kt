@@ -25,6 +25,7 @@ fun HistoryRoute(
 
     HistoryScreen(
         state = state,
+        gameId = viewModel.gameId,
         onRetry = viewModel::retry,
         onEntrySelected = viewModel::onEntrySelected,
         onDeleteRequested = viewModel::onDeleteRequested,

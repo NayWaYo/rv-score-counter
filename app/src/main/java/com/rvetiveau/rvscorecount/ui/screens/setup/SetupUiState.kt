@@ -1,14 +1,13 @@
 package com.rvetiveau.rvscorecount.ui.screens.setup
 
 import androidx.annotation.StringRes
-import com.rvetiveau.rvscorecount.domain.model.PartySummary
 import java.util.UUID
 
 /**
  * In-memory ordered draft of Participants before Party creation (AC 1-6, 9). List order is
  * the single source of truth for the future listPosition and the Manche 1 Donneur; Story 2.3
- * owns turning this draft into a persisted Party. [history] lists the finished Parties of this
- * Jeu, most recent first, observed from Room.
+ * owns turning this draft into a persisted Party. Its finished Parties are one tap away, in the
+ * Historique of this Jeu (Story 8.2).
  */
 data class SetupUiState(
     val gameId: String = "",
@@ -20,9 +19,7 @@ data class SetupUiState(
     @StringRes val messageRes: Int? = null,
     val isCreatingParty: Boolean = false,
     val creationCompleted: Boolean = false,
-    @StringRes val creationErrorRes: Int? = null,
-    val history: List<PartySummary> = emptyList(),
-    val historyLoadFailed: Boolean = false
+    @StringRes val creationErrorRes: Int? = null
 ) {
     val canAdd: Boolean get() = isInitialized && participants.size < maxPlayers
     val canStart: Boolean

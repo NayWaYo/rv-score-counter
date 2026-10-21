@@ -56,6 +56,16 @@ class HistoryScreenTest {
     }
 
     @Test
+    fun theHistoryOfAGameIsNamedAfterItAndSaysWhenItIsEmpty() {
+        composeTestRule.setContent {
+            RvScoreCounterTheme { HistoryScreen(state = HistoryUiState.Empty, gameId = "belote") }
+        }
+
+        composeTestRule.onNodeWithTag("history_title").assertTextEquals("Historique · Belote")
+        composeTestRule.onNodeWithTag("history_empty").assertTextEquals("Aucune partie de Belote terminée pour l'instant.")
+    }
+
+    @Test
     fun eachEntryShowsGameRoundCountAndWinnerOrItsAbsence() {
         setContent(HistoryUiState.Loaded(listOf(played, empty, broken)))
 

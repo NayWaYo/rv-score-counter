@@ -135,7 +135,7 @@ development_status:
   epic-8: in-progress
 
   8-1-suppression-visible-dans-l-historique: done
-  8-2-historique-d-un-jeu-depuis-sa-creation: backlog
+  8-2-historique-d-un-jeu-depuis-sa-creation: done
   8-3-preneur-par-joueur-et-classement-chad: backlog
 
   epic-8-retrospective: optional
