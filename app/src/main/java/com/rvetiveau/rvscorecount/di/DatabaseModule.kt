@@ -2,10 +2,12 @@ package com.rvetiveau.rvscorecount.di
 
 import android.content.Context
 import androidx.room.Room
+import com.rvetiveau.rvscorecount.data.dao.BeloteRoundDao
 import com.rvetiveau.rvscorecount.data.dao.ParticipantDao
 import com.rvetiveau.rvscorecount.data.dao.PartyDao
 import com.rvetiveau.rvscorecount.data.dao.RoundDao
 import com.rvetiveau.rvscorecount.data.dao.RoundScoreDao
+import com.rvetiveau.rvscorecount.data.dao.TeamDao
 import com.rvetiveau.rvscorecount.data.db.AppDatabase
 import dagger.Module
 import dagger.Provides
@@ -39,4 +41,12 @@ object DatabaseModule {
     @Provides
     @Singleton
     fun provideRoundScoreDao(db: AppDatabase): RoundScoreDao = db.roundScoreDao()
+
+    @Provides
+    @Singleton
+    fun provideTeamDao(db: AppDatabase): TeamDao = db.teamDao()
+
+    @Provides
+    @Singleton
+    fun provideBeloteRoundDao(db: AppDatabase): BeloteRoundDao = db.beloteRoundDao()
 }

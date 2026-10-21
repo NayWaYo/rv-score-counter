@@ -1,5 +1,7 @@
 package com.rvetiveau.rvscorecount.domain.model
 
+import java.util.UUID
+
 /**
  * What is entered for one Manche of Belote: the [taker]'s trick points, dix de der included (the
  * defense has the rest of the deck's points), the Équipe that announced the belote-rebelote and the
@@ -35,4 +37,12 @@ data class BeloteRoundResult(
     val points: TeamPoints,
     val reserveWon: Int,
     val reserveAfter: Int
+)
+
+/** A validated Manche of Belote: what was entered, its points being recomputed by the engine. */
+data class BeloteRound(
+    val id: UUID,
+    val partyId: UUID,
+    val roundNumber: Int,
+    val input: BeloteRoundInput
 )

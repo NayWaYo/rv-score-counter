@@ -1,8 +1,10 @@
 package com.rvetiveau.rvscorecount.di
 
 import com.rvetiveau.rvscorecount.data.repository.AppearanceRepositoryImpl
+import com.rvetiveau.rvscorecount.data.repository.BeloteRepositoryImpl
 import com.rvetiveau.rvscorecount.data.repository.PartyRepositoryImpl
 import com.rvetiveau.rvscorecount.domain.repository.AppearanceRepository
+import com.rvetiveau.rvscorecount.domain.repository.BeloteRepository
 import com.rvetiveau.rvscorecount.domain.repository.PartyRepository
 import dagger.Binds
 import dagger.Module
@@ -20,4 +22,8 @@ abstract class RepositoryModule {
     @Binds
     @Singleton
     abstract fun bindAppearanceRepository(impl: AppearanceRepositoryImpl): AppearanceRepository
+
+    @Binds
+    @Singleton
+    abstract fun bindBeloteRepository(impl: BeloteRepositoryImpl): BeloteRepository
 }

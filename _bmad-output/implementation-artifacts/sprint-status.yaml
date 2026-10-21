@@ -123,7 +123,7 @@ development_status:
   epic-7: in-progress
 
   7-1-moteur-belote-calcul-manche-et-fin-de-partie: done
-  7-2-donnees-equipes-mode-de-fin-et-manches-belote: backlog
+  7-2-donnees-equipes-mode-de-fin-et-manches-belote: done
   7-3-creation-partie-belote: backlog
   7-4-saisie-assistee-manche-belote: backlog
   7-5-partie-en-cours-et-cloture-belote: backlog

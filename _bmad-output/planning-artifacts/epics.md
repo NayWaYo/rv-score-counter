@@ -544,7 +544,7 @@ Afin de les reprendre après une fermeture de l'application et de les retrouver 
 **When** l'application passe en version 3
 **Then** une table des Équipes (nom, position) rattachée à la Partie existe, et chaque Participant peut appartenir à une Équipe
 **And** la Partie mémorise son mode de fin et sa valeur (nuls pour le Papayoo)
-**And** chaque Manche de Belote mémorise l'Équipe preneuse, les points de plis saisis, l'Équipe de la belote, le capot et les points obtenus par Équipe
+**And** chaque Manche de Belote mémorise ce qui a été saisi (Équipe preneuse, points de plis du preneur, Équipe de la belote, Équipe capot) ; les points par Équipe et la réserve de litige sont recalculés par le moteur, jamais stockés
 **And** les Parties de Papayoo existantes sont migrées sans perte (`AppDatabaseMigrationTest` étendu)
 **And** l'enregistrement d'une Manche de Belote se fait en une transaction
 
