@@ -7,6 +7,10 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.toRoute
+import com.rvetiveau.rvscorecount.ui.screens.belote.BelotePartyRoute
+import com.rvetiveau.rvscorecount.ui.screens.belote.BeloteResultsRoute
+import com.rvetiveau.rvscorecount.ui.screens.belote.BeloteRoundRoute
+import com.rvetiveau.rvscorecount.ui.screens.belote.BeloteSetupRoute
 import com.rvetiveau.rvscorecount.ui.screens.history.HistoryRoute
 import com.rvetiveau.rvscorecount.ui.screens.home.HomeRoute
 import com.rvetiveau.rvscorecount.ui.screens.party.PartyRoute
@@ -71,6 +75,31 @@ fun RvScoreCounterNavHost(
         composable<Routes.PartyDetail> { backStackEntry ->
             val route: Routes.PartyDetail = backStackEntry.toRoute()
             PartyDetailRoute(
+                partyId = UUID.fromString(route.partyId),
+                onNavigate = { event -> navController.dispatch(event) }
+            )
+        }
+        composable<Routes.BeloteSetup> {
+            BeloteSetupRoute(onNavigate = { event -> navController.dispatch(event) })
+        }
+        composable<Routes.BeloteParty> { backStackEntry ->
+            val route: Routes.BeloteParty = backStackEntry.toRoute()
+            BelotePartyRoute(
+                partyId = UUID.fromString(route.partyId),
+                onNavigate = { event -> navController.dispatch(event) }
+            )
+        }
+        composable<Routes.BeloteRound> { backStackEntry ->
+            val route: Routes.BeloteRound = backStackEntry.toRoute()
+            BeloteRoundRoute(
+                partyId = UUID.fromString(route.partyId),
+                correctedRoundNumber = route.correctedRoundNumber,
+                onNavigate = { event -> navController.dispatch(event) }
+            )
+        }
+        composable<Routes.BeloteResults> { backStackEntry ->
+            val route: Routes.BeloteResults = backStackEntry.toRoute()
+            BeloteResultsRoute(
                 partyId = UUID.fromString(route.partyId),
                 onNavigate = { event -> navController.dispatch(event) }
             )

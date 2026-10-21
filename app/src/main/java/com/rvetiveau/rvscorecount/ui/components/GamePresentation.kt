@@ -16,5 +16,9 @@ fun gamePresentation(gameId: String): GamePresentation = when (gameId) {
         nameRes = R.string.game_name_papayoo,
         logoRes = R.drawable.ic_papayoo_logo
     )
+    GameIds.BELOTE -> GamePresentation(
+        nameRes = R.string.game_name_belote,
+        logoRes = R.drawable.ic_belote_logo
+    )
     else -> error("No presentation registered for gameId '$gameId'")
 }

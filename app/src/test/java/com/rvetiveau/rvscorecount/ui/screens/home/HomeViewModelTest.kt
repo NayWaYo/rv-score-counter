@@ -1,10 +1,8 @@
 package com.rvetiveau.rvscorecount.ui.screens.home
 
 import com.rvetiveau.rvscorecount.R
-import com.rvetiveau.rvscorecount.domain.engine.GameEngine
-import com.rvetiveau.rvscorecount.domain.engine.RoundValidation
-import com.rvetiveau.rvscorecount.domain.model.ParticipantId
-import com.rvetiveau.rvscorecount.domain.usecase.GetAvailableGamesUseCase
+import com.rvetiveau.rvscorecount.domain.engine.Game
+import com.rvetiveau.rvscorecount.domain.usecase.GetGameCatalogUseCase
 import com.rvetiveau.rvscorecount.ui.navigation.NavigationEvent
 import com.rvetiveau.rvscorecount.ui.navigation.Routes
 import kotlinx.coroutines.Dispatchers
@@ -23,13 +21,7 @@ import org.junit.Test
 @OptIn(ExperimentalCoroutinesApi::class)
 class HomeViewModelTest {
 
-    private class FakeGameEngine(override val gameId: String) : GameEngine {
-        override val minPlayers: Int = 3
-        override val maxPlayers: Int = 8
-        override val totalPointsPerRound: Int = 250
-        override fun precomputeLastScore(entered: Map<ParticipantId, Int>): Int = 0
-        override fun validateRound(scores: Map<ParticipantId, Int>): RoundValidation = RoundValidation.Success
-    }
+    private class FakeGame(override val gameId: String) : Game
 
     @Before
     fun setUp() {
@@ -42,7 +34,7 @@ class HomeViewModelTest {
     }
 
     private fun papayooViewModel(): HomeViewModel =
-        HomeViewModel(GetAvailableGamesUseCase(mapOf("papayoo" to FakeGameEngine("papayoo"))))
+        HomeViewModel(GetGameCatalogUseCase(mapOf("papayoo" to FakeGame("papayoo"))))
 
     @Test
     fun `exposes a Papayoo tile from the registered engine`() {
@@ -75,8 +67,28 @@ class HomeViewModelTest {
     }
 
     @Test
+    fun `shows the Papayoo first, then the Belote`() {
+        val viewModel = HomeViewModel(
+            GetGameCatalogUseCase(mapOf("belote" to FakeGame("belote"), "papayoo" to FakeGame("papayoo")))
+        )
+
+        assertEquals(listOf("papayoo", "belote"), viewModel.uiState.value.tiles.map { it.gameId })
+        assertEquals(R.drawable.ic_belote_logo, viewModel.uiState.value.tiles.last().logoRes)
+        assertEquals(R.string.game_name_belote, viewModel.uiState.value.tiles.last().nameRes)
+    }
+
+    @Test
+    fun `emits NavigateTo BeloteSetup on Belote selection`() = runTest {
+        val viewModel = HomeViewModel(GetGameCatalogUseCase(mapOf("belote" to FakeGame("belote"))))
+
+        viewModel.onGameSelected("belote")
+
+        assertEquals(NavigationEvent.NavigateTo(Routes.BeloteSetup), viewModel.navigationEvents.first())
+    }
+
+    @Test
     fun `fails fast when a registered engine has no Home presentation`() {
-        val useCase = GetAvailableGamesUseCase(mapOf("unknown-game" to FakeGameEngine("unknown-game")))
+        val useCase = GetGameCatalogUseCase(mapOf("unknown-game" to FakeGame("unknown-game")))
 
         assertThrows(IllegalStateException::class.java) { HomeViewModel(useCase) }
     }

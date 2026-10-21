@@ -11,6 +11,7 @@
     <!-- Accueil : grille de tuiles Jeux -->
     <string name="home_title">Jeux</string>
     <string name="game_name_papayoo">Papayoo</string>
+    <string name="game_name_belote">Belote</string>
     <string name="history_content_description">Historique</string>
     <string name="game_tile_content_description">Créer une partie de %1$s</string>
 
@@ -191,4 +192,58 @@
     <string name="round_correction_save_button">Enregistrer la correction</string>
     <string name="score_field_suggested_content_description">Score de %1$s, %2$d suggéré</string>
     <string name="score_field_use_suggestion">Utiliser %1$d pour %2$s</string>
+
+    <!-- Belote (Story 7.3) : création -->
+    <string name="belote_setup_title">Nouvelle partie de Belote</string>
+    <string name="belote_team_default_first">Nous</string>
+    <string name="belote_team_default_second">Eux</string>
+    <string name="belote_setup_team_name">Nom de l\'équipe %1$d</string>
+    <string name="belote_setup_player_hint">Joueur %1$d</string>
+    <string name="belote_setup_end_title">Fin de la partie</string>
+    <string name="belote_setup_end_target">Score à atteindre</string>
+    <string name="belote_setup_end_rounds">Nombre de manches</string>
+    <string name="belote_setup_end_value_error">Entrez un nombre entre 1 et 9999</string>
+    <string name="belote_setup_table_title">Ordre de table</string>
+    <string name="belote_setup_first_dealer">%1$s donne en premier</string>
+    <string name="belote_setup_seat_placeholder">%1$s %2$d</string>
+
+    <!-- Belote : partie en cours -->
+    <string name="belote_party_title">Belote</string>
+    <string name="belote_party_progress_target">Objectif %1$d points : il en manque %2$d à %3$s</string>
+    <string name="belote_party_progress_target_tied">Objectif %1$d points : il en manque %2$d aux deux équipes</string>
+    <string name="belote_party_progress_rounds">Manche %1$d sur %2$d</string>
+    <string name="belote_party_progress_extra">Égalité : manche supplémentaire</string>
+    <string name="belote_party_dealer">Donneur : %1$s</string>
+    <string name="belote_party_rules">Distribution : 3 puis 2 cartes chacun, une carte retournée ; après la prise, 3 cartes de plus (2 pour le preneur).</string>
+    <string name="belote_party_reserve">Litige en réserve : %1$d points pour l\'équipe qui gagnera la prochaine manche</string>
+    <string name="belote_party_leader_content_description">%1$s, en tête</string>
+    <string name="belote_party_no_round">Aucune manche jouée</string>
+    <string name="belote_party_play_round">Saisir la manche %1$d</string>
+    <string name="belote_party_round_taker">Pris par %1$s</string>
+    <string name="belote_party_round_content_description">Manche %1$d, prise par %2$s, %3$s : %4$s %5$d, %6$s %7$d</string>
+    <string name="belote_outcome_made">Fait</string>
+    <string name="belote_outcome_down">Dedans</string>
+    <string name="belote_outcome_disputed">Litige</string>
+    <string name="belote_outcome_capot">Capot</string>
+
+    <!-- Belote : saisie et correction d'une manche -->
+    <string name="belote_round_title">Manche %1$d</string>
+    <string name="belote_round_correction_title">Corriger la manche %1$d</string>
+    <string name="belote_round_taker">Qui a pris ?</string>
+    <string name="belote_round_trick_points">Points de plis (sur 162)</string>
+    <string name="belote_round_points_error">Entre 0 et 162</string>
+    <string name="belote_round_belote">Belote-rebelote</string>
+    <string name="belote_round_capot">Capot</string>
+    <string name="belote_round_nobody">Personne</string>
+    <string name="belote_round_preview_points">%1$s %2$d · %3$s %4$d</string>
+    <string name="belote_round_preview_reserve_won">Dont %1$d points de réserve gagnés</string>
+    <string name="belote_round_preview_reserve_kept">%1$d points mis en réserve pour la prochaine manche</string>
+    <string name="belote_round_preview_hint">Choisissez qui a pris et saisissez les points d\'une équipe.</string>
+    <string name="belote_round_validate">Valider la manche</string>
+    <string name="belote_round_save_correction">Enregistrer la correction</string>
+    <string name="belote_round_error_failed">Impossible d\'enregistrer la manche. Réessayez.</string>
+
+    <!-- Belote : résultats -->
+    <string name="belote_results_winner">🏆 %1$s gagne</string>
+    <string name="belote_results_team_score">%1$d points</string>
 </resources>

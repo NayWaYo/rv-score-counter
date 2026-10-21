@@ -42,6 +42,25 @@ sealed interface Routes {
     @SerialName("partyDetail")
     data class PartyDetail(val partyId: String) : Routes
 
+    // Belote (Story 7.3) : its own screens, the Papayoo ones being per player (AD-8).
+
+    @Serializable
+    @SerialName("beloteSetup")
+    data object BeloteSetup : Routes
+
+    @Serializable
+    @SerialName("beloteParty")
+    data class BeloteParty(val partyId: String) : Routes
+
+    /** Saisie of the next Manche, or correction of the validated Manche [correctedRoundNumber]. */
+    @Serializable
+    @SerialName("beloteRound")
+    data class BeloteRound(val partyId: String, val correctedRoundNumber: Int? = null) : Routes
+
+    @Serializable
+    @SerialName("beloteResults")
+    data class BeloteResults(val partyId: String) : Routes
+
     /** Statistiques of a Partie, in progress or finished. */
     @Serializable
     @SerialName("stats")

@@ -21,8 +21,11 @@ interface BeloteRepository {
     /** Atomic write: the Manche and [updatedParty] (next Donneur), or neither. */
     suspend fun saveRound(round: BeloteRound, updatedParty: Party)
 
-    /** Replaces what was entered for an existing Manche of a Partie in progress; its number stays. */
-    suspend fun correctRound(round: BeloteRound)
+    /**
+     * Atomic write: replaces what was entered for an existing Manche of a Partie in progress (its
+     * number stays) and saves [updatedParty], finished when the correction reaches the end.
+     */
+    suspend fun correctRound(round: BeloteRound, updatedParty: Party)
 
     suspend fun getRounds(partyId: UUID): List<BeloteRound>
     fun observeRounds(partyId: UUID): Flow<List<BeloteRound>>

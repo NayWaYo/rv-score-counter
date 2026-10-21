@@ -3,6 +3,7 @@ package com.rvetiveau.rvscorecount.ui.screens.history
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.rvetiveau.rvscorecount.R
+import com.rvetiveau.rvscorecount.domain.engine.GameIds
 import com.rvetiveau.rvscorecount.domain.usecase.DeletePartyUseCase
 import com.rvetiveau.rvscorecount.domain.usecase.ObservePartyHistoryUseCase
 import com.rvetiveau.rvscorecount.ui.navigation.NavigationEvent
@@ -47,7 +48,8 @@ class HistoryViewModel @Inject constructor(
         _uiState.value = HistoryUiState.Loading
         observation = viewModelScope.launch {
             try {
-                observePartyHistoryUseCase().collect { entries ->
+                // Papayoo only until the Belote history (Story 7.4)
+                observePartyHistoryUseCase(GameIds.PAPAYOO).collect { entries ->
                     val current = _uiState.value as? HistoryUiState.Loaded
                     _uiState.value = when {
                         entries.isEmpty() -> HistoryUiState.Empty

@@ -2,6 +2,7 @@ package com.rvetiveau.rvscorecount.ui.navigation
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.rvetiveau.rvscorecount.domain.engine.GameIds
 import com.rvetiveau.rvscorecount.domain.usecase.ResumePartyUseCase
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.CancellationException
@@ -36,7 +37,11 @@ class RootViewModel @Inject constructor(
         resumeJob = viewModelScope.launch {
             val nextState = try {
                 val party = resumePartyUseCase()
-                val startDestination = if (party != null) Routes.Party(party.id.toString()) else Routes.Home
+                val startDestination = when {
+                    party == null -> Routes.Home
+                    party.gameId == GameIds.BELOTE -> Routes.BeloteParty(party.id.toString())
+                    else -> Routes.Party(party.id.toString())
+                }
                 RootUiState.Ready(startDestination)
             } catch (cancellation: CancellationException) {
                 throw cancellation

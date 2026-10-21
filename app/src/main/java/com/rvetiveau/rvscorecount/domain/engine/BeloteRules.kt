@@ -9,8 +9,8 @@ import com.rvetiveau.rvscorecount.domain.model.BeloteRoundResult
  * Scoring of classic Belote, by Équipe (AD-8, beside [GameEngine]): pure and stateless.
  * Rules: `planning-artifacts/games/belote.md`.
  */
-interface BeloteRules {
-    val gameId: String
+interface BeloteRules : Game {
+    override val gameId: String
 
     /** Points of all the tricks of a Manche, dix de der included. */
     val totalTrickPoints: Int

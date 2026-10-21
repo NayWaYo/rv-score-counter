@@ -61,7 +61,9 @@ class BeloteRepositoryImpl @Inject constructor(
         }
     }
 
-    override suspend fun correctRound(round: BeloteRound) {
+    override suspend fun correctRound(round: BeloteRound, updatedParty: Party) {
+        require(updatedParty.id == round.partyId) { "The updated party must be the round's party" }
+
         appDatabase.withTransaction {
             val stored = requireNotNull(beloteRoundDao.getById(round.id.toString())) { "Round ${round.id} does not exist" }
             require(stored.partyId == round.partyId.toString() && stored.roundNumber == round.roundNumber) {
@@ -72,6 +74,7 @@ class BeloteRepositoryImpl @Inject constructor(
 
             val entity = round.toEntity()
             beloteRoundDao.updateInput(entity.id, entity.takerSide, entity.takerTrickPoints, entity.beloteSide, entity.capotSide)
+            partyDao.update(updatedParty.toEntity())
         }
     }
 

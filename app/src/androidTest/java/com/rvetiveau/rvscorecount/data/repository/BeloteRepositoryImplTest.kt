@@ -132,15 +132,16 @@ class BeloteRepositoryImplTest {
     }
 
     @Test
-    fun correctRoundReplacesWhatWasEnteredOnly() = runTest {
+    fun correctRoundReplacesWhatWasEnteredAndSavesThePartyTogether() = runTest {
         repository.createParty(party, teams, participants)
         val round = aRound(1)
         repository.saveRound(round, party)
         val corrected = round.copy(input = BeloteRoundInput(SECOND, 0, beloteTeam = SECOND, capotTeam = FIRST))
 
-        repository.correctRound(corrected)
+        repository.correctRound(corrected, party.copy(status = PartyState.FINISHED))
 
         assertEquals(listOf(corrected), repository.getRounds(party.id))
+        assertEquals("FINISHED", database.partyDao().getById(party.id.toString())?.status)
     }
 
     @Test
@@ -149,10 +150,10 @@ class BeloteRepositoryImplTest {
         val round = aRound(1)
         repository.saveRound(round, party)
 
-        val renumbered = failureOf { repository.correctRound(round.copy(roundNumber = 2)) }
-        val unknown = failureOf { repository.correctRound(aRound(1)) }
+        val renumbered = failureOf { repository.correctRound(round.copy(roundNumber = 2), party) }
+        val unknown = failureOf { repository.correctRound(aRound(1), party) }
         database.partyDao().update(party.copy(status = PartyState.FINISHED).toEntity())
-        val finished = failureOf { repository.correctRound(round.copy(input = BeloteRoundInput(SECOND, 90))) }
+        val finished = failureOf { repository.correctRound(round.copy(input = BeloteRoundInput(SECOND, 90)), party) }
 
         listOf(renumbered, unknown, finished).forEach { assertTrue(it is IllegalArgumentException) }
         assertEquals(listOf(round), repository.getRounds(party.id))

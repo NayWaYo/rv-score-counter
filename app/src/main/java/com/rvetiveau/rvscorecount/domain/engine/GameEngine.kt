@@ -6,8 +6,8 @@ import com.rvetiveau.rvscorecount.domain.model.ParticipantId
  * Contrat commun à tous les jeux : règles pures, sans persistance ni état.
  * Les appelants garantissent que les scores sont bornés aux valeurs métier du jeu.
  */
-interface GameEngine {
-    val gameId: String
+interface GameEngine : Game {
+    override val gameId: String
     val minPlayers: Int
     val maxPlayers: Int
     val totalPointsPerRound: Int

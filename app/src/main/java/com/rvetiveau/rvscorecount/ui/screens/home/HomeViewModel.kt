@@ -1,6 +1,7 @@
 package com.rvetiveau.rvscorecount.ui.screens.home
 
-import com.rvetiveau.rvscorecount.domain.usecase.GetAvailableGamesUseCase
+import com.rvetiveau.rvscorecount.domain.engine.GameIds
+import com.rvetiveau.rvscorecount.domain.usecase.GetGameCatalogUseCase
 import com.rvetiveau.rvscorecount.ui.components.gamePresentation
 import com.rvetiveau.rvscorecount.ui.navigation.NavigationEvent
 import com.rvetiveau.rvscorecount.ui.navigation.Routes
@@ -19,7 +20,7 @@ import javax.inject.Inject
 /** Resolves the Games catalog for the Accueil grid and emits one-shot navigation intents. */
 @HiltViewModel
 class HomeViewModel @Inject constructor(
-    getAvailableGamesUseCase: GetAvailableGamesUseCase
+    getGameCatalogUseCase: GetGameCatalogUseCase
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(HomeUiState())
@@ -29,11 +30,12 @@ class HomeViewModel @Inject constructor(
     val navigationEvents: Flow<NavigationEvent> = _navigationEvents.receiveAsFlow()
 
     init {
-        _uiState.value = HomeUiState(tiles = getAvailableGamesUseCase().map { it.gameId.toTileUiModel() })
+        _uiState.value = HomeUiState(tiles = getGameCatalogUseCase().map { it.toTileUiModel() })
     }
 
     fun onGameSelected(gameId: String) {
-        viewModelScope.launch { _navigationEvents.send(NavigationEvent.NavigateTo(Routes.Setup(gameId))) }
+        val route = if (gameId == GameIds.BELOTE) Routes.BeloteSetup else Routes.Setup(gameId)
+        viewModelScope.launch { _navigationEvents.send(NavigationEvent.NavigateTo(route)) }
     }
 
     fun onHistorySelected() {

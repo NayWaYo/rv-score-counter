@@ -548,63 +548,47 @@ Afin de les reprendre après une fermeture de l'application et de les retrouver 
 **And** les Parties de Papayoo existantes sont migrées sans perte (`AppDatabaseMigrationTest` étendu)
 **And** l'enregistrement d'une Manche de Belote se fait en une transaction
 
-### Story 7.3: Création d'une Partie de Belote
+### Story 7.3: Partie de Belote — création, saisie et suivi
+
+Fusion des anciennes stories 7.3 (création), 7.4 (saisie assistée) et 7.5 (Partie en cours et clôture), décidée le 2026-10-21 pour ne livrer la Belote qu'une fois jouable de bout en bout.
 
 En tant qu'utilisateur,
-Je veux créer une Partie de Belote avec mes deux Équipes et la règle de fin,
-Afin de commencer à jouer en quelques secondes.
+Je veux créer une Partie de Belote, saisir chaque Manche en quelques gestes et la voir se terminer d'elle-même,
+Afin de jouer une Partie complète sans calcul ni erreur.
 
 **Acceptance Criteria:**
 
 **Given** l'écran d'accueil
 **When** il s'affiche
-**Then** le moteur Belote entre dans le catalogue des Jeux (`@IntoMap`, AD-8) et une tuile Belote apparaît à côté du Papayoo, avec un logo au même gabarit (carré plein, bas libre pour le nom)
+**Then** le moteur Belote entre dans le catalogue des Jeux (AD-8) et une tuile Belote apparaît après celle du Papayoo, avec un logo ambre au même gabarit (carré plein, bas libre pour le nom)
 
 **Given** la tuile Belote touchée
 **When** l'écran de création s'affiche
 **Then** on saisit le nom des deux Équipes (« Nous » et « Eux » par défaut) et deux joueurs par Équipe
 **And** on choisit la fin : score cible (1000 par défaut, modifiable) ou nombre de Manches (10 par défaut, modifiable)
-**And** le premier Donneur est identifié, et l'ordre de table A1, B1, A2, B2 est visible
-**And** la Partie ne peut être lancée qu'avec 4 noms renseignés et une valeur de fin valide
-
-### Story 7.4: Saisie assistée d'une Manche de Belote
-
-En tant qu'utilisateur,
-Je veux saisir une Manche en indiquant seulement le preneur, les points d'une Équipe, la belote et le capot,
-Afin d'obtenir les scores sans calcul ni erreur.
-
-**Acceptance Criteria:**
+**And** l'ordre de table A1, B1, A2, B2 et le premier Donneur sont visibles
+**And** la Partie ne peut être lancée qu'avec 4 noms de joueurs, 2 noms d'Équipes et une valeur de fin valide
 
 **Given** une Partie de Belote en cours
-**When** j'ouvre la saisie d'une Manche
-**Then** je choisis l'Équipe preneuse, je saisis les points de plis d'une Équipe et ceux de l'autre sont déduits sur 162
-**And** je peux attribuer la belote-rebelote à une Équipe et cocher un capot
-**And** l'écran affiche avant validation le résultat (fait, dedans, capot ou litige) et les points de chaque Équipe, réserve comprise
-**And** une valeur hors de 0 à 162 est refusée avec un message
-**And** une Manche validée peut être corrigée depuis le tableau des Manches, avec les mêmes contrôles, et les Manches suivantes sont recalculées (réserve de litige comprise)
-
-### Story 7.5: Partie en cours et clôture de Belote
-
-En tant qu'utilisateur,
-Je veux suivre le score des deux Équipes et voir la Partie se terminer d'elle-même,
-Afin de savoir à tout moment qui mène et qui a gagné.
-
-**Acceptance Criteria:**
-
-**Given** une Partie de Belote en cours
-**When** l'écran de Partie s'affiche
+**When** l'écran de Partie s'affiche (y compris à la reprise au lancement de l'application)
 **Then** les deux Équipes, leurs joueurs et leur score cumulé sont visibles, l'Équipe en tête mise en avant
-**And** la progression vers la fin est affichée (points restants vers la cible, ou Manche n sur N)
+**And** la progression vers la fin est affichée (points restants vers la cible, ou Manche n sur N), ainsi que le Donneur et le rappel de distribution
 **And** une réserve de litige en attente est signalée avec son montant
-**And** le tableau des Manches montre, par Manche, le preneur, le résultat et les points de chaque Équipe
-**And** le rappel de distribution de la Belote est affiché
+**And** le tableau des Manches montre, par Manche, l'Équipe preneuse, le résultat et les points de chaque Équipe
 
-**Given** une Manche validée qui remplit la condition de fin
+**Given** la saisie d'une Manche
+**When** je choisis l'Équipe preneuse et saisis les points de plis d'une Équipe
+**Then** ceux de l'autre sont déduits sur 162, je peux attribuer la belote-rebelote et un capot à une Équipe
+**And** le résultat (fait, dedans, litige, capot) et les points de chaque Équipe, réserve comprise, s'affichent avant validation
+**And** une valeur hors de 0 à 162 est refusée avec un message
+**And** une Manche validée se corrige depuis le tableau des Manches avec les mêmes contrôles ; les Manches suivantes sont recalculées
+
+**Given** une Manche validée ou corrigée qui remplit la condition de fin
 **When** elle est enregistrée
-**Then** la Partie passe à l'état terminé et l'écran des résultats affiche l'Équipe gagnante et les scores finaux
-**And** « Rejouer » relance une Partie avec les mêmes Équipes et la même règle de fin
+**Then** la Partie passe à l'état terminé dans la même transaction et l'écran des résultats affiche l'Équipe gagnante et les scores finaux
+**And** « Rejouer » relance une Partie avec les mêmes Équipes, les mêmes joueurs et la même règle de fin
 
-### Story 7.6: Historique et statistiques de Belote
+### Story 7.4: Historique et statistiques de Belote
 
 En tant qu'utilisateur,
 Je veux retrouver mes Parties de Belote dans l'historique,
@@ -617,3 +601,4 @@ Afin de consulter leurs scores Manche par Manche.
 **Then** chaque ligne montre le Jeu, les noms d'Équipes, le score final et le vainqueur
 **And** le détail affiche les Manches de Belote comme dans la Partie en cours, en lecture seule
 **And** l'écran Statistiques affiche, pour la Belote, la courbe des scores par Équipe, et les cartes propres au Papayoo n'y apparaissent pas
+**And** jusqu'à cette story, l'Historique n'affiche que les Parties de Papayoo (les Parties de Belote terminées y apparaîtront ici)
