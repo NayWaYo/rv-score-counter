@@ -132,7 +132,7 @@ development_status:
   # -------------------------------------------------------
   # Epic 8: Historique par Jeu et preneur de Belote (3 stories)
   # -------------------------------------------------------
-  epic-8: in-progress
+  epic-8: done
 
   8-1-suppression-visible-dans-l-historique: done
   8-2-historique-d-un-jeu-depuis-sa-creation: done
