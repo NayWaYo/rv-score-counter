@@ -95,6 +95,7 @@
     <string name="history_no_round">Aucune manche jouée</string>
     <string name="history_inconsistent">Données incohérentes</string>
     <string name="history_delete_action">Supprimer</string>
+    <string name="history_delete_content_description">Supprimer la partie du %1$s</string>
     <string name="history_delete_cancel">Annuler</string>
     <string name="history_delete_dialog_title">Supprimer cette partie ?</string>
     <string name="history_delete_dialog_message">La partie et toutes ses manches seront définitivement supprimées.</string>

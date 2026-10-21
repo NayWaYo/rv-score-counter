@@ -104,6 +104,7 @@ UX-DR14: Swipe-to-delete dans l'Historique avec dialog de confirmation obligatoi
 - Epic 5 : Clôture & Relance
 - Epic 6 : Historique
 - Epic 7 : Belote classique
+- Epic 8 : Historique par Jeu et preneur de Belote
 
 ---
 
@@ -602,3 +603,65 @@ Afin de consulter leurs scores Manche par Manche.
 **And** le détail affiche les Manches de Belote comme dans la Partie en cours, en lecture seule
 **And** l'écran Statistiques affiche, pour la Belote, la courbe des scores par Équipe, et les cartes propres au Papayoo n'y apparaissent pas
 **And** jusqu'à cette story, l'Historique n'affiche que les Parties de Papayoo (les Parties de Belote terminées y apparaîtront ici)
+
+---
+
+## Epic 8: Historique par Jeu et preneur de Belote
+
+Retours d'usage après l'epic 7 (2026-10-21) : rendre la suppression visible, ouvrir l'historique d'un Jeu depuis sa création de Partie, et noter quel joueur prend à la Belote pour le classer.
+
+### Story 8.1: Suppression visible dans l'Historique
+
+En tant qu'utilisateur,
+Je veux voir comment supprimer une Partie de l'Historique,
+Afin de ne pas dépendre d'un geste caché.
+
+**Acceptance Criteria:**
+
+**Given** une ligne de l'Historique
+**When** elle s'affiche
+**Then** une icône corbeille est visible au bout de la ligne, avec la description « Supprimer » pour TalkBack et une cible d'au moins 48dp
+**And** toucher la corbeille ouvre la même confirmation qu'aujourd'hui (« Supprimer cette partie ? »), sans ouvrir le détail
+**And** le balayage de droite à gauche reste possible et mène à la même confirmation
+**And** le comportement est identique pour le Papayoo et la Belote
+
+### Story 8.2: Historique d'un Jeu depuis sa création de Partie
+
+En tant qu'utilisateur,
+Je veux ouvrir l'historique du Jeu que je m'apprête à lancer,
+Afin de retrouver ses Parties sans celles des autres Jeux.
+
+**Acceptance Criteria:**
+
+**Given** l'écran de création d'une Partie de Papayoo ou de Belote
+**When** il s'affiche
+**Then** une icône Historique (la même horloge que sur l'Accueil) est visible dans l'en-tête, à côté du bouton de thème
+**And** la toucher ouvre l'Historique limité à ce Jeu, titré avec le nom du Jeu, avec sa suppression (Story 8.1) et son ouverture du détail
+**And** un Historique de Jeu vide affiche son propre message ; l'Historique de l'Accueil reste celui de tous les Jeux
+**And** la liste « Parties précédentes » en bas de la création du Papayoo est retirée, le même modèle valant pour tous les Jeux
+**And** la saisie en cours sur l'écran de création est conservée au retour de l'Historique
+
+### Story 8.3: Preneur par joueur et classement « 🗿 Chad de la game »
+
+En tant qu'utilisateur,
+Je veux indiquer quel joueur a pris à chaque Manche de Belote,
+Afin de classer les joueurs selon le nombre de fois où ils ont pris.
+
+**Acceptance Criteria:**
+
+**Given** la saisie ou la correction d'une Manche de Belote
+**When** je choisis qui a pris
+**Then** les 4 joueurs sont proposés, regroupés par Équipe, et l'Équipe preneuse en est déduite ; le calcul des points ne change pas
+**And** une nouvelle Manche ne peut être validée sans joueur preneur ; la correction d'une Manche jouée avant cette story demande aussi de le choisir
+
+**Given** le schéma Room en version 3
+**When** l'application passe en version 4
+**Then** `belote_rounds` mémorise le joueur preneur (nul pour les Manches déjà jouées), par une `AutoMigration` 3 → 4 testée, sans perte
+**And** un joueur preneur qui n'appartient pas à l'Équipe preneuse est refusé
+
+**Given** les Statistiques d'une Partie de Belote
+**When** au moins une Manche a un joueur preneur
+**Then** une carte « 🗿 Chad de la game » à cadre lagon (sombre : fond #10302B, encre #7FCBB8 ; une variante claire de même teinte) met en avant le joueur qui a pris le plus souvent
+**And** la carte liste les 4 joueurs, du plus grand nombre de prises au plus petit, avec « N prises · M faites » (fait ou capot du preneur) ; à égalité de prises, le plus de contrats faits passe devant, puis l'ordre de table
+**And** les Manches sans joueur preneur ne comptent pas, et la carte n'apparaît pas si aucune n'en a
+**And** le tableau des Manches indique le joueur preneur quand il est connu (« Pris par Alice »), l'Équipe sinon

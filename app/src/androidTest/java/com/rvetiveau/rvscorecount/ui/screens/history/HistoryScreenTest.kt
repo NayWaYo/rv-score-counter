@@ -1,6 +1,10 @@
 package com.rvetiveau.rvscorecount.ui.screens.history
 
-import androidx.compose.ui.semantics.SemanticsActions
+import androidx.compose.ui.test.assert
+import androidx.compose.ui.test.assertHeightIsAtLeast
+import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.assertWidthIsAtLeast
+import androidx.compose.ui.test.hasContentDescription
 import androidx.compose.ui.test.assertTextContains
 import androidx.compose.ui.test.assertTextEquals
 import androidx.compose.ui.test.junit4.v2.createComposeRule
@@ -11,9 +15,12 @@ import androidx.compose.ui.test.performTouchInput
 import androidx.compose.ui.test.swipeLeft
 import com.rvetiveau.rvscorecount.R
 import com.rvetiveau.rvscorecount.domain.model.PartySummary
+import com.rvetiveau.rvscorecount.ui.components.PartySummaryRow
 import com.rvetiveau.rvscorecount.ui.theme.RvScoreCounterTheme
+import androidx.compose.ui.unit.dp
 import java.util.UUID
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
@@ -83,15 +90,29 @@ class HistoryScreenTest {
     }
 
     @Test
-    fun theDeleteAccessibilityActionAsksForDeletion() {
+    fun theVisibleTrashAsksForDeletionWithoutOpeningTheParty() {
         var requested: UUID? = null
-        setContent(HistoryUiState.Loaded(listOf(played)), onDeleteRequested = { requested = it })
+        var opened: UUID? = null
+        setContent(HistoryUiState.Loaded(listOf(played)), onDeleteRequested = { requested = it }, onEntrySelected = { opened = it })
 
-        val actions = composeTestRule.onNodeWithTag("history_entry_${played.partyId}")
-            .fetchSemanticsNode().config[SemanticsActions.CustomActions]
-        composeTestRule.runOnUiThread { actions.single { it.label == "Supprimer" }.action() }
+        composeTestRule.onNodeWithTag("history_delete_${played.partyId}")
+            .assertIsDisplayed()
+            .assertHeightIsAtLeast(48.dp)
+            .assertWidthIsAtLeast(48.dp)
+            .assert(hasContentDescription("Supprimer la partie du", substring = true))
+            .performClick()
 
         assertEquals(played.partyId, requested)
+        assertNull(opened)
+    }
+
+    @Test
+    fun aRowWithoutDeletionHasNoTrash() {
+        composeTestRule.setContent {
+            RvScoreCounterTheme { PartySummaryRow(entry = played, onSelected = {}) }
+        }
+
+        composeTestRule.onNodeWithTag("history_delete_${played.partyId}").assertDoesNotExist()
     }
 
     @Test
