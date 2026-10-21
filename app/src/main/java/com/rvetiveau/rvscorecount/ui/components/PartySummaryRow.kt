@@ -42,6 +42,14 @@ fun PartySummaryRow(
     val deleteLabel = stringResource(R.string.history_delete_action)
     val outcome = when {
         !entry.isConsistent -> stringResource(R.string.history_inconsistent)
+        entry.teamScores.size == 2 -> stringResource(
+            R.string.belote_history_outcome,
+            entry.teamScores[0].name,
+            entry.teamScores[0].points,
+            entry.teamScores[1].name,
+            entry.teamScores[1].points,
+            entry.winners.joinToString(", ")
+        )
         entry.winningScore == null -> stringResource(R.string.history_no_round)
         else -> stringResource(
             R.string.history_winner,

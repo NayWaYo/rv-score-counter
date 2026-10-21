@@ -32,6 +32,7 @@ fun BelotePartyRoute(
         onRetry = viewModel::retry,
         onPlayRound = viewModel::onPlayRound,
         onRoundSelected = viewModel::onRoundSelected,
+        onShowStats = viewModel::onShowStats,
         modifier = modifier
     )
 }

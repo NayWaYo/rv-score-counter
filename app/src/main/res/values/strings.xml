@@ -246,4 +246,9 @@
     <!-- Belote : résultats -->
     <string name="belote_results_winner">🏆 %1$s gagne</string>
     <string name="belote_results_team_score">%1$d points</string>
+
+    <!-- Belote : historique, détail et statistiques (Story 7.4) -->
+    <string name="belote_history_outcome">%1$s %2$d · %3$s %4$d — %5$s gagne</string>
+    <string name="belote_stats_curve_title">Scores cumulés par équipe</string>
+    <string name="belote_stats_no_round">Aucune manche jouée pour l\'instant.</string>
 </resources>

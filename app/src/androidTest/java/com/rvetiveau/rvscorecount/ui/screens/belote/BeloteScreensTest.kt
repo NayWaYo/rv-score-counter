@@ -1,6 +1,7 @@
 package com.rvetiveau.rvscorecount.ui.screens.belote
 
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.test.assertHasNoClickAction
 import androidx.compose.ui.test.assertIsEnabled
 import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.assertTextContains
@@ -12,9 +13,15 @@ import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
 import com.rvetiveau.rvscorecount.domain.model.BeloteOutcome
 import com.rvetiveau.rvscorecount.domain.model.BeloteRoundResult
+import com.rvetiveau.rvscorecount.domain.model.PartySummary
 import com.rvetiveau.rvscorecount.domain.model.TeamPoints
+import com.rvetiveau.rvscorecount.domain.model.TeamScore
 import com.rvetiveau.rvscorecount.domain.model.TeamSide
+import com.rvetiveau.rvscorecount.ui.components.PartySummaryRow
+import com.rvetiveau.rvscorecount.ui.components.RoundTablePlayer
+import com.rvetiveau.rvscorecount.ui.components.ScoreSeries
 import com.rvetiveau.rvscorecount.ui.theme.RvScoreCounterTheme
+import java.util.UUID
 import org.junit.Assert.assertEquals
 import org.junit.Rule
 import org.junit.Test
@@ -170,6 +177,62 @@ class BeloteScreensTest {
         composeTestRule.onNodeWithTag("belote_round_validate").performScrollTo().assertTextContains("Enregistrer la correction")
     }
 
+    // Historique, détail et statistiques (Story 7.4)
+
+    @Test
+    fun historyRowShowsBothTeamsAndTheWinner() {
+        val entry = PartySummary(
+            partyId = UUID.randomUUID(),
+            gameId = "belote",
+            createdAt = 0L,
+            roundCount = 12,
+            winners = listOf("Eux"),
+            winningScore = 1012,
+            teamScores = listOf(TeamScore("Nous", 840), TeamScore("Eux", 1012))
+        )
+        setContent { PartySummaryRow(entry = entry, onSelected = {}) }
+
+        composeTestRule.onNodeWithText("Nous 840 · Eux 1012 — Eux gagne").assertExists()
+        composeTestRule.onNodeWithText("Belote", substring = true).assertExists()
+    }
+
+    @Test
+    fun detailIsReadOnlyAndReplays() {
+        var replayed = false
+        val state = BelotePartyDetailUiState.Loaded(
+            createdAt = 0L,
+            teams = loadedParty.teams.map { it.copy(isLeader = it.side == TeamSide.SECOND) },
+            rounds = loadedParty.rounds
+        )
+        setContent { BelotePartyDetailScreen(state, onReplay = { replayed = true }) }
+
+        composeTestRule.onNodeWithTag("belote_detail_subtitle").assertTextContains("Belote", substring = true)
+        composeTestRule.onNodeWithTag("belote_round_row_1").assertHasNoClickAction()
+        composeTestRule.onNodeWithTag("belote_detail_replay").performClick()
+
+        assertEquals(true, replayed)
+    }
+
+    @Test
+    fun statsDrawTheChartOnceARoundIsPlayed() {
+        val series = listOf("Nous" to listOf(0, 100, 181), "Eux" to listOf(0, 62, 62)).map { (name, points) ->
+            ScoreSeries(RoundTablePlayer(UUID.randomUUID(), name), points)
+        }
+        setContent { BeloteStatsScreen(BeloteStatsUiState.Loaded(series)) }
+
+        composeTestRule.onNodeWithTag("score_chart_plot").assertExists()
+        composeTestRule.onNodeWithTag("belote_stats_no_round").assertDoesNotExist()
+    }
+
+    @Test
+    fun statsWithoutRoundSaySo() {
+        val series = listOf("Nous", "Eux").map { ScoreSeries(RoundTablePlayer(UUID.randomUUID(), it), listOf(0)) }
+        setContent { BeloteStatsScreen(BeloteStatsUiState.Loaded(series)) }
+
+        composeTestRule.onNodeWithTag("belote_stats_no_round").assertExists()
+        composeTestRule.onNodeWithTag("score_chart_plot").assertDoesNotExist()
+    }
+
     // Results
 
     @Test
@@ -179,12 +242,14 @@ class BeloteScreensTest {
             teams = listOf(
                 BeloteTeamUiModel(TeamSide.SECOND, "Eux", listOf("Bob", "David"), 1012, isLeader = true),
                 BeloteTeamUiModel(TeamSide.FIRST, "Nous", listOf("Alice", "Chloé"), 840, isLeader = false)
-            )
+            ),
+            roundCount = 12
         )
         setContent { BeloteResultsScreen(state, onReplay = { replayed = true }) }
 
         composeTestRule.onNodeWithTag("belote_results_winner").assertTextContains("Eux gagne", substring = true)
         composeTestRule.onNodeWithText("1012 points").assertExists()
+        composeTestRule.onNodeWithTag("belote_results_stats").assertTextContains("Statistiques (12)")
         composeTestRule.onNodeWithTag("belote_results_replay").performClick()
 
         assertEquals(true, replayed)

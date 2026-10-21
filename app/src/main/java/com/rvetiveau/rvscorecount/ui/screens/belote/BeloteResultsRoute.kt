@@ -31,6 +31,7 @@ fun BeloteResultsRoute(
         state = state,
         onReplay = viewModel::onReplay,
         onBackToHome = viewModel::onBackToHome,
+        onShowStats = viewModel::onShowStats,
         modifier = modifier
     )
 }

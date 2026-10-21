@@ -7,10 +7,12 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.toRoute
+import com.rvetiveau.rvscorecount.ui.screens.belote.BelotePartyDetailRoute
 import com.rvetiveau.rvscorecount.ui.screens.belote.BelotePartyRoute
 import com.rvetiveau.rvscorecount.ui.screens.belote.BeloteResultsRoute
 import com.rvetiveau.rvscorecount.ui.screens.belote.BeloteRoundRoute
 import com.rvetiveau.rvscorecount.ui.screens.belote.BeloteSetupRoute
+import com.rvetiveau.rvscorecount.ui.screens.belote.BeloteStatsRoute
 import com.rvetiveau.rvscorecount.ui.screens.history.HistoryRoute
 import com.rvetiveau.rvscorecount.ui.screens.home.HomeRoute
 import com.rvetiveau.rvscorecount.ui.screens.party.PartyRoute
@@ -103,6 +105,17 @@ fun RvScoreCounterNavHost(
                 partyId = UUID.fromString(route.partyId),
                 onNavigate = { event -> navController.dispatch(event) }
             )
+        }
+        composable<Routes.BelotePartyDetail> { backStackEntry ->
+            val route: Routes.BelotePartyDetail = backStackEntry.toRoute()
+            BelotePartyDetailRoute(
+                partyId = UUID.fromString(route.partyId),
+                onNavigate = { event -> navController.dispatch(event) }
+            )
+        }
+        composable<Routes.BeloteStats> { backStackEntry ->
+            val route: Routes.BeloteStats = backStackEntry.toRoute()
+            BeloteStatsRoute(partyId = UUID.fromString(route.partyId))
         }
         composable<Routes.Stats> { backStackEntry ->
             val route: Routes.Stats = backStackEntry.toRoute()

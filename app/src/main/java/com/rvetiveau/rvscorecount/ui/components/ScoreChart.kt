@@ -107,8 +107,18 @@ private const val DIRECT_LABEL_MAX_SERIES = 4
 @Composable
 fun ScoreChart(table: RoundTable, modifier: Modifier = Modifier) {
     val series = remember(table) { table.cumulativeSeries() }
-    if (series.isEmpty() || table.rows.isEmpty()) return
-    val roundCount = table.rows.size
+    if (table.rows.isEmpty()) return
+    ScoreChart(series, modifier)
+}
+
+/**
+ * The same chart for cumulated [series] already built, one point per Manche after a starting 0
+ * (the Belote draws one line per Équipe).
+ */
+@Composable
+fun ScoreChart(series: List<ScoreSeries>, modifier: Modifier = Modifier) {
+    val roundCount = (series.maxOfOrNull { it.points.size } ?: 0) - 1
+    if (series.isEmpty() || roundCount < 1) return
     val summary = stringResource(
         R.string.score_chart_content_description,
         roundCount,
@@ -123,7 +133,7 @@ fun ScoreChart(table: RoundTable, modifier: Modifier = Modifier) {
     val axisStyle = MaterialTheme.typography.labelSmall.copy(color = mutedInk)
     val valueStyle = MaterialTheme.typography.labelMedium.copy(color = ink)
     val textMeasurer = rememberTextMeasurer()
-    var selected by remember(table) { mutableStateOf<Int?>(null) }
+    var selected by remember(series) { mutableStateOf<Int?>(null) }
     val selectedDescription = selected?.let { round ->
         val scores = series.mapNotNull { s -> s.points[round]?.let { s.player.name to it } }
             .sortedBy { it.second }
@@ -154,13 +164,13 @@ fun ScoreChart(table: RoundTable, modifier: Modifier = Modifier) {
             Canvas(
                 modifier = Modifier
                     .matchParentSize()
-                    .pointerInput(table) {
+                    .pointerInput(series) {
                         detectTapGestures { offset ->
                             val round = geometry.current?.roundAt(offset.x)
                             selected = if (round == selected) null else round
                         }
                     }
-                    .pointerInput(table) {
+                    .pointerInput(series) {
                         detectHorizontalDragGestures(
                             onDragStart = { offset -> selected = geometry.current?.roundAt(offset.x) },
                             onHorizontalDrag = { change, _ -> selected = geometry.current?.roundAt(change.position.x) }

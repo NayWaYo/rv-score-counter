@@ -6,6 +6,7 @@ import com.rvetiveau.rvscorecount.domain.model.BelotePartyStatus
 import com.rvetiveau.rvscorecount.domain.model.BeloteRoundInput
 import com.rvetiveau.rvscorecount.domain.model.PartyState
 import com.rvetiveau.rvscorecount.domain.model.TeamPoints
+import com.rvetiveau.rvscorecount.domain.model.TeamScore
 import com.rvetiveau.rvscorecount.domain.model.TeamSide.FIRST
 import com.rvetiveau.rvscorecount.domain.model.TeamSide.SECOND
 import com.rvetiveau.rvscorecount.game.belote.BeloteEngine
@@ -189,6 +190,46 @@ class BeloteUseCasesTest {
         val party = store.seedParty()
 
         assertTrue(correct(party.id, 1, BeloteRoundInput(FIRST, 100)).exceptionOrNull() is InvalidBeloteRoundException)
+    }
+
+    // Historique (Story 7.4)
+
+    private val history = ObservePartyHistoryUseCase(store, store, rules)
+
+    @Test
+    fun `a finished Belote party is summarized by team with its winning team`() = runTest {
+        val party = store.seedParty(BeloteEndRule.RoundCount(2))
+        play(party.id, BeloteRoundInput(FIRST, 100)).getOrThrow()
+        play(party.id, BeloteRoundInput(SECOND, 120)).getOrThrow()
+
+        val summary = history().first().single()
+
+        assertEquals("belote", summary.gameId)
+        assertEquals(2, summary.roundCount)
+        assertEquals(listOf(TeamScore("Nous", 142), TeamScore("Eux", 182)), summary.teamScores)
+        assertEquals(listOf("Eux"), summary.winners)
+        assertEquals(182, summary.winningScore)
+        assertTrue(summary.isConsistent)
+    }
+
+    @Test
+    fun `a finished Belote party without a winner or with broken data is incoherent`() = runTest {
+        store.seedParty(status = PartyState.FINISHED)
+        val broken = store.seedParty(status = PartyState.FINISHED)
+        store.teams.value = store.teams.value.filterNot { it.partyId == broken.id && it.side == SECOND }
+
+        val summaries = history().first()
+
+        assertEquals(2, summaries.size)
+        assertTrue(summaries.none { it.isConsistent })
+        assertTrue(summaries.all { it.winners.isEmpty() })
+    }
+
+    @Test
+    fun `the history can still be limited to the Papayoo`() = runTest {
+        store.seedParty(status = PartyState.FINISHED)
+
+        assertTrue(history("papayoo").first().isEmpty())
     }
 
     // Observing

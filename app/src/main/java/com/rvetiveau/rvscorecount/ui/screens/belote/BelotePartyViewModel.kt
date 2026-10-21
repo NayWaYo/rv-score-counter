@@ -49,6 +49,8 @@ class BelotePartyViewModel @Inject constructor(
 
     fun onRoundSelected(roundNumber: Int) = navigate { Routes.BeloteRound(it.toString(), roundNumber) }
 
+    fun onShowStats() = navigate { Routes.BeloteStats(it.toString()) }
+
     private fun navigate(route: (UUID) -> Routes) {
         val id = partyId ?: return
         viewModelScope.launch { _navigationEvents.send(NavigationEvent.NavigateTo(route(id))) }

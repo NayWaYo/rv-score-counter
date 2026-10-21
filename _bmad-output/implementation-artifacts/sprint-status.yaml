@@ -120,12 +120,12 @@ development_status:
   # -------------------------------------------------------
   # Epic 7: Belote classique (4 stories, 7.3-7.5 fusionnées le 2026-10-21)
   # -------------------------------------------------------
-  epic-7: in-progress
+  epic-7: done
 
   7-1-moteur-belote-calcul-manche-et-fin-de-partie: done
   7-2-donnees-equipes-mode-de-fin-et-manches-belote: done
   7-3-partie-belote-creation-saisie-et-suivi: done
-  7-4-historique-et-statistiques-belote: backlog
+  7-4-historique-et-statistiques-belote: done
 
   epic-7-retrospective: optional
 

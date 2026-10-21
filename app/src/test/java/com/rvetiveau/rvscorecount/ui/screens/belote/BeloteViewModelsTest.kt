@@ -10,12 +10,15 @@ import com.rvetiveau.rvscorecount.domain.model.TeamSide.FIRST
 import com.rvetiveau.rvscorecount.domain.model.TeamSide.SECOND
 import com.rvetiveau.rvscorecount.domain.usecase.CorrectBeloteRoundUseCase
 import com.rvetiveau.rvscorecount.domain.usecase.CreateBelotePartyUseCase
+import com.rvetiveau.rvscorecount.domain.usecase.DeletePartyUseCase
 import com.rvetiveau.rvscorecount.domain.usecase.FakeBeloteStore
 import com.rvetiveau.rvscorecount.domain.usecase.ObserveBelotePartyUseCase
+import com.rvetiveau.rvscorecount.domain.usecase.ObservePartyHistoryUseCase
 import com.rvetiveau.rvscorecount.domain.usecase.PlayBeloteRoundUseCase
 import com.rvetiveau.rvscorecount.game.belote.BeloteEngine
 import com.rvetiveau.rvscorecount.ui.navigation.NavigationEvent
 import com.rvetiveau.rvscorecount.ui.navigation.Routes
+import com.rvetiveau.rvscorecount.ui.screens.history.HistoryViewModel
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.first
@@ -330,6 +333,81 @@ class BeloteViewModelsTest {
         val newParty = store.parties.value.values.single { it.id != party.id }
         assertEquals(NavigationEvent.ReplaceAll(Routes.BeloteParty(newParty.id.toString())), viewModel.navigationEvents.first())
         assertEquals(BeloteEndRule.RoundCount(1), newParty.endRule)
+    }
+
+    @Test
+    fun `the results open the statistics`() = runTest {
+        val party = store.seedParty(BeloteEndRule.RoundCount(1))
+        play(party.id, BeloteRoundInput(SECOND, 100))
+        val viewModel = BeloteResultsViewModel(observe, create).apply { initialize(party.id) }
+
+        assertEquals(1, (viewModel.uiState.value as BeloteResultsUiState.Loaded).roundCount)
+        viewModel.onShowStats()
+        assertEquals(NavigationEvent.NavigateTo(Routes.BeloteStats(party.id.toString())), viewModel.navigationEvents.first())
+    }
+
+    // Historique, détail et statistiques (Story 7.4)
+
+    @Test
+    fun `the history opens the Belote detail for a Belote party`() = runTest {
+        val party = store.seedParty(BeloteEndRule.RoundCount(1))
+        play(party.id, BeloteRoundInput(FIRST, 100))
+        val viewModel = HistoryViewModel(ObservePartyHistoryUseCase(store, store, rules), DeletePartyUseCase(store))
+
+        viewModel.onEntrySelected(party.id)
+
+        assertEquals(NavigationEvent.NavigateTo(Routes.BelotePartyDetail(party.id.toString())), viewModel.navigationEvents.first())
+    }
+
+    @Test
+    fun `the detail shows both teams and the rounds, and replays the party`() = runTest {
+        val party = store.seedParty(BeloteEndRule.RoundCount(2))
+        play(party.id, BeloteRoundInput(FIRST, 81))
+        play(party.id, BeloteRoundInput(SECOND, 100))
+        val viewModel = BelotePartyDetailViewModel(observe, create).apply { initialize(party.id) }
+
+        val state = viewModel.uiState.value as BelotePartyDetailUiState.Loaded
+        assertEquals(listOf("Nous", "Eux"), state.teams.map { it.name })
+        assertEquals(listOf(62, 262), state.teams.map { it.total })
+        assertEquals(listOf(false, true), state.teams.map { it.isLeader })
+        assertEquals(listOf(BeloteOutcome.DISPUTED, BeloteOutcome.MADE), state.rounds.map { it.outcome })
+
+        viewModel.onReplay()
+        val newParty = store.parties.value.values.single { it.id != party.id }
+        assertEquals(NavigationEvent.ReplaceAll(Routes.BeloteParty(newParty.id.toString())), viewModel.navigationEvents.first())
+    }
+
+    @Test
+    fun `a party in progress has no detail`() {
+        val party = store.seedParty()
+
+        val viewModel = BelotePartyDetailViewModel(observe, create).apply { initialize(party.id) }
+
+        assertEquals(BelotePartyDetailUiState.Unavailable, viewModel.uiState.value)
+    }
+
+    @Test
+    fun `the statistics follow the cumulated score of each team, live`() = runTest {
+        val party = store.seedParty()
+        play(party.id, BeloteRoundInput(FIRST, 100))
+        val viewModel = BeloteStatsViewModel(observe).apply { initialize(party.id) }
+
+        play(party.id, BeloteRoundInput(SECOND, 81))
+
+        val state = viewModel.uiState.value as BeloteStatsUiState.Loaded
+        assertEquals(2, state.roundCount)
+        assertEquals(listOf("Nous", "Eux"), state.series.map { it.player.name })
+        assertEquals(listOf(listOf(0, 100, 181), listOf(0, 62, 62)), state.series.map { it.points })
+    }
+
+    @Test
+    fun `the party screen opens the statistics`() = runTest {
+        val party = store.seedParty()
+        val viewModel = BelotePartyViewModel(observe).apply { initialize(party.id) }
+
+        viewModel.onShowStats()
+
+        assertEquals(NavigationEvent.NavigateTo(Routes.BeloteStats(party.id.toString())), viewModel.navigationEvents.first())
     }
 
     @Test

@@ -31,7 +31,8 @@ fun BeloteResultsScreen(
     state: BeloteResultsUiState,
     modifier: Modifier = Modifier,
     onReplay: () -> Unit = {},
-    onBackToHome: () -> Unit = {}
+    onBackToHome: () -> Unit = {},
+    onShowStats: () -> Unit = {}
 ) {
     when (state) {
         BeloteResultsUiState.Loading -> Centered(modifier) {
@@ -82,21 +83,34 @@ fun BeloteResultsScreen(
             ) {
                 Text(text = stringResource(R.string.results_replay))
             }
-            OutlinedButton(
-                onClick = onBackToHome,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .heightIn(min = 56.dp)
-                    .testTag("belote_results_home")
-            ) {
-                Text(text = stringResource(R.string.results_home_short))
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {
+                if (state.roundCount > 0) {
+                    OutlinedButton(
+                        onClick = onShowStats,
+                        modifier = Modifier
+                            .weight(1f)
+                            .heightIn(min = 56.dp)
+                            .testTag("belote_results_stats")
+                    ) {
+                        Text(text = stringResource(R.string.stats_short_link, state.roundCount))
+                    }
+                }
+                OutlinedButton(
+                    onClick = onBackToHome,
+                    modifier = Modifier
+                        .weight(1f)
+                        .heightIn(min = 56.dp)
+                        .testTag("belote_results_home")
+                ) {
+                    Text(text = stringResource(R.string.results_home_short))
+                }
             }
         }
     }
 }
 
 @Composable
-private fun ResultCard(team: BeloteTeamUiModel) {
+internal fun ResultCard(team: BeloteTeamUiModel) {
     Card(
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
         border = if (team.isLeader) BorderStroke(2.dp, MaterialTheme.colorScheme.primary) else null,

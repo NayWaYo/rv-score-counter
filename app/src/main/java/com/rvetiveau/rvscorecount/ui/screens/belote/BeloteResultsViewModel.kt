@@ -31,6 +31,7 @@ sealed interface BeloteResultsUiState {
     /** [teams]: the winner first. */
     data class Loaded(
         val teams: List<BeloteTeamUiModel>,
+        val roundCount: Int,
         val isReplaying: Boolean = false,
         @StringRes val replayErrorRes: Int? = null
     ) : BeloteResultsUiState
@@ -71,7 +72,8 @@ class BeloteResultsViewModel @Inject constructor(
                                 total = totals[side],
                                 isLeader = side == winner
                             )
-                        }
+                        },
+                        roundCount = state.rounds.size
                     )
                 }
             } catch (cancellation: CancellationException) {
@@ -97,6 +99,11 @@ class BeloteResultsViewModel @Inject constructor(
                 }
             )
         }
+    }
+
+    fun onShowStats() {
+        val id = partyId ?: return
+        viewModelScope.launch { _navigationEvents.send(NavigationEvent.NavigateTo(Routes.BeloteStats(id.toString()))) }
     }
 
     fun onBackToHome() {

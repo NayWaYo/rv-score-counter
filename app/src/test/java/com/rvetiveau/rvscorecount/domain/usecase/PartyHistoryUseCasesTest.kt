@@ -13,6 +13,7 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.runTest
+import com.rvetiveau.rvscorecount.game.belote.BeloteEngine
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
@@ -80,7 +81,7 @@ class PartyHistoryUseCasesTest {
             )
         )
 
-        val summary = ObservePartyHistoryUseCase(repository)().first().single()
+        val summary = ObservePartyHistoryUseCase(repository, FakeBeloteStore(), BeloteEngine())().first().single()
 
         assertEquals(PartySummary(party.id, "papayoo", 10L, roundCount = 2, winners = listOf("Alice", "Bob"), winningScore = 150), summary)
     }
@@ -97,7 +98,7 @@ class PartyHistoryUseCasesTest {
             listOf(RoundScore(round.id, UUID.randomUUID(), 250))
         )
 
-        val (emptySummary, brokenSummary) = ObservePartyHistoryUseCase(repository)().first()
+        val (emptySummary, brokenSummary) = ObservePartyHistoryUseCase(repository, FakeBeloteStore(), BeloteEngine())().first()
 
         assertEquals(0, emptySummary.roundCount)
         assertTrue(emptySummary.winners.isEmpty())
@@ -115,7 +116,7 @@ class PartyHistoryUseCasesTest {
 
         assertTrue(result.isSuccess)
         assertEquals(party.id, repository.deletedId)
-        assertTrue(ObservePartyHistoryUseCase(repository)().first().isEmpty())
+        assertTrue(ObservePartyHistoryUseCase(repository, FakeBeloteStore(), BeloteEngine())().first().isEmpty())
     }
 
     @Test

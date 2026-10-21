@@ -13,6 +13,7 @@ import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyListScope
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
@@ -21,6 +22,7 @@ import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -49,7 +51,8 @@ fun BelotePartyScreen(
     modifier: Modifier = Modifier,
     onRetry: () -> Unit = {},
     onPlayRound: () -> Unit = {},
-    onRoundSelected: (Int) -> Unit = {}
+    onRoundSelected: (Int) -> Unit = {},
+    onShowStats: () -> Unit = {}
 ) {
     when (state) {
         BelotePartyUiState.Loading -> Centered(modifier) {
@@ -66,7 +69,7 @@ fun BelotePartyScreen(
         BelotePartyUiState.NotFound -> Centered(modifier) {
             Text(text = stringResource(R.string.party_not_found), modifier = Modifier.testTag("belote_party_not_found"))
         }
-        is BelotePartyUiState.Loaded -> LoadedParty(state, modifier, onPlayRound, onRoundSelected)
+        is BelotePartyUiState.Loaded -> LoadedParty(state, modifier, onPlayRound, onRoundSelected, onShowStats)
     }
 }
 
@@ -75,7 +78,8 @@ private fun LoadedParty(
     state: BelotePartyUiState.Loaded,
     modifier: Modifier,
     onPlayRound: () -> Unit,
-    onRoundSelected: (Int) -> Unit
+    onRoundSelected: (Int) -> Unit,
+    onShowStats: () -> Unit
 ) {
     Column(
         modifier = modifier
@@ -130,34 +134,7 @@ private fun LoadedParty(
                     color = MaterialTheme.colorScheme.outline
                 )
             }
-            item {
-                Text(
-                    text = stringResource(R.string.party_rounds_title),
-                    style = MaterialTheme.typography.titleMedium,
-                    modifier = Modifier.padding(top = 8.dp)
-                )
-            }
-            if (state.rounds.isEmpty()) {
-                item {
-                    Text(
-                        text = stringResource(R.string.belote_party_no_round),
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.outline,
-                        modifier = Modifier.testTag("belote_party_no_round")
-                    )
-                }
-            } else {
-                item { RoundsHeader(state.teams[0].name, state.teams[1].name) }
-                items(state.rounds, key = { it.roundNumber }) { row ->
-                    RoundRow(
-                        row = row,
-                        firstTeamName = state.teams[0].name,
-                        secondTeamName = state.teams[1].name,
-                        onClick = { onRoundSelected(row.roundNumber) }
-                    )
-                    HorizontalDivider()
-                }
-            }
+            beloteRoundsSection(state.teams, state.rounds, onShowStats, onRoundSelected)
         }
         Button(
             onClick = onPlayRound,
@@ -173,7 +150,7 @@ private fun LoadedParty(
 }
 
 @Composable
-private fun TeamScoreCard(team: BeloteTeamUiModel, modifier: Modifier = Modifier) {
+internal fun TeamScoreCard(team: BeloteTeamUiModel, modifier: Modifier = Modifier) {
     val description = if (team.isLeader) {
         stringResource(R.string.belote_party_leader_content_description, team.name)
     } else {
@@ -214,6 +191,53 @@ private fun TeamScoreCard(team: BeloteTeamUiModel, modifier: Modifier = Modifier
     }
 }
 
+/**
+ * « Manches jouées » with the link to the Statistiques once a Manche is played, then the table of
+ * the Manches, each one correctable when [onRoundSelected] is given (read-only otherwise).
+ */
+internal fun LazyListScope.beloteRoundsSection(
+    teams: List<BeloteTeamUiModel>,
+    rounds: List<BeloteRoundRowUiModel>,
+    onShowStats: () -> Unit,
+    onRoundSelected: ((Int) -> Unit)?
+) {
+    item {
+        Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(top = 8.dp)) {
+            Text(
+                text = stringResource(R.string.party_rounds_title),
+                style = MaterialTheme.typography.titleMedium,
+                modifier = Modifier.weight(1f)
+            )
+            if (rounds.isNotEmpty()) {
+                TextButton(onClick = onShowStats, modifier = Modifier.testTag("belote_stats_link")) {
+                    Text(text = stringResource(R.string.stats_short_link, rounds.size))
+                }
+            }
+        }
+    }
+    if (rounds.isEmpty()) {
+        item {
+            Text(
+                text = stringResource(R.string.belote_party_no_round),
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.outline,
+                modifier = Modifier.testTag("belote_party_no_round")
+            )
+        }
+    } else {
+        item { RoundsHeader(teams[0].name, teams[1].name) }
+        items(rounds, key = { it.roundNumber }) { row ->
+            RoundRow(
+                row = row,
+                firstTeamName = teams[0].name,
+                secondTeamName = teams[1].name,
+                onClick = onRoundSelected?.let { select -> { select(row.roundNumber) } }
+            )
+            HorizontalDivider()
+        }
+    }
+}
+
 /** Names the points columns of [RoundRow]; decorative for TalkBack, each row describing itself. */
 @Composable
 private fun RoundsHeader(firstTeamName: String, secondTeamName: String) {
@@ -244,7 +268,7 @@ private fun RoundRow(
     row: BeloteRoundRowUiModel,
     firstTeamName: String,
     secondTeamName: String,
-    onClick: () -> Unit
+    onClick: (() -> Unit)?
 ) {
     val outcome = stringResource(row.outcome.labelRes)
     val description = stringResource(
@@ -256,12 +280,12 @@ private fun RoundRow(
         modifier = Modifier
             .fillMaxWidth()
             .heightIn(min = 48.dp)
-            .clickable(onClick = onClick)
+            .then(if (onClick != null) Modifier.clickable(onClick = onClick) else Modifier)
+            .testTag("belote_round_row_${row.roundNumber}")
             .clearAndSetSemantics {
                 contentDescription = description
-                role = Role.Button
+                if (onClick != null) role = Role.Button
             }
-            .testTag("belote_round_row_${row.roundNumber}")
             .padding(vertical = 8.dp)
     ) {
         Text(

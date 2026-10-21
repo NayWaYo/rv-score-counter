@@ -61,6 +61,15 @@ sealed interface Routes {
     @SerialName("beloteResults")
     data class BeloteResults(val partyId: String) : Routes
 
+    @Serializable
+    @SerialName("belotePartyDetail")
+    data class BelotePartyDetail(val partyId: String) : Routes
+
+    /** Statistiques of a Partie of Belote, in progress or finished. */
+    @Serializable
+    @SerialName("beloteStats")
+    data class BeloteStats(val partyId: String) : Routes
+
     /** Statistiques of a Partie, in progress or finished. */
     @Serializable
     @SerialName("stats")

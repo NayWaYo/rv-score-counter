@@ -29,6 +29,8 @@ import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import kotlinx.coroutines.test.resetMain
 import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.test.setMain
+import com.rvetiveau.rvscorecount.domain.usecase.FakeBeloteStore
+import com.rvetiveau.rvscorecount.game.belote.BeloteEngine
 import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
@@ -112,7 +114,7 @@ class SetupViewModelTest {
         SetupViewModel(
             GetAvailableGamesUseCase(mapOf(engine.gameId to engine)),
             createPartyUseCase(engine, partyRepository),
-            ObservePartyHistoryUseCase(partyRepository)
+            ObservePartyHistoryUseCase(partyRepository, FakeBeloteStore(), BeloteEngine())
         ).also { it.initialize(engine.gameId) }
 
     private fun SetupViewModel.addName(name: String) {
@@ -123,7 +125,7 @@ class SetupViewModelTest {
     @Test
     fun `default state before initialize disables start and add`() {
         val engine = FakeGameEngine("papayoo")
-        val vm = SetupViewModel(GetAvailableGamesUseCase(mapOf("papayoo" to engine)), createPartyUseCase(engine), ObservePartyHistoryUseCase(FakePartyRepository()))
+        val vm = SetupViewModel(GetAvailableGamesUseCase(mapOf("papayoo" to engine)), createPartyUseCase(engine), ObservePartyHistoryUseCase(FakePartyRepository(), FakeBeloteStore(), BeloteEngine()))
 
         val state = vm.uiState.value
         assertFalse(state.isInitialized)
@@ -144,7 +146,7 @@ class SetupViewModelTest {
     @Test
     fun `initialize is idempotent across repeated calls`() {
         val engine = FakeGameEngine("papayoo")
-        val vm = SetupViewModel(GetAvailableGamesUseCase(mapOf("papayoo" to engine)), createPartyUseCase(engine), ObservePartyHistoryUseCase(FakePartyRepository()))
+        val vm = SetupViewModel(GetAvailableGamesUseCase(mapOf("papayoo" to engine)), createPartyUseCase(engine), ObservePartyHistoryUseCase(FakePartyRepository(), FakeBeloteStore(), BeloteEngine()))
         vm.initialize("papayoo")
         vm.addName("Alice")
 
@@ -156,7 +158,7 @@ class SetupViewModelTest {
     @Test
     fun `fails fast when no engine is registered for the requested gameId`() {
         val engine = FakeGameEngine("belote")
-        val vm = SetupViewModel(GetAvailableGamesUseCase(mapOf("belote" to engine)), createPartyUseCase(engine), ObservePartyHistoryUseCase(FakePartyRepository()))
+        val vm = SetupViewModel(GetAvailableGamesUseCase(mapOf("belote" to engine)), createPartyUseCase(engine), ObservePartyHistoryUseCase(FakePartyRepository(), FakeBeloteStore(), BeloteEngine()))
 
         assertThrows(IllegalStateException::class.java) { vm.initialize("papayoo") }
     }

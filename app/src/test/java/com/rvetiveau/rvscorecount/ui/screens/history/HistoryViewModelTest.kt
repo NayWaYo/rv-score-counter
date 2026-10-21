@@ -23,6 +23,8 @@ import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import kotlinx.coroutines.test.resetMain
 import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.test.setMain
+import com.rvetiveau.rvscorecount.domain.usecase.FakeBeloteStore
+import com.rvetiveau.rvscorecount.game.belote.BeloteEngine
 import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
@@ -75,7 +77,7 @@ class HistoryViewModelTest {
         Party(id = UUID.randomUUID(), gameId = "papayoo", status = PartyState.FINISHED, currentDealerIndex = 0, createdAt = createdAt)
 
     private fun viewModel(repository: PartyRepository) =
-        HistoryViewModel(ObservePartyHistoryUseCase(repository), DeletePartyUseCase(repository))
+        HistoryViewModel(ObservePartyHistoryUseCase(repository, FakeBeloteStore(), BeloteEngine()), DeletePartyUseCase(repository))
 
     @Test
     fun `lists the finished parties in the order given by Room`() = runTest {

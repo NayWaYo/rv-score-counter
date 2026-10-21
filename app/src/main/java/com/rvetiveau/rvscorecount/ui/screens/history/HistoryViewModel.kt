@@ -48,8 +48,7 @@ class HistoryViewModel @Inject constructor(
         _uiState.value = HistoryUiState.Loading
         observation = viewModelScope.launch {
             try {
-                // Papayoo only until the Belote history (Story 7.4)
-                observePartyHistoryUseCase(GameIds.PAPAYOO).collect { entries ->
+                observePartyHistoryUseCase().collect { entries ->
                     val current = _uiState.value as? HistoryUiState.Loaded
                     _uiState.value = when {
                         entries.isEmpty() -> HistoryUiState.Empty
@@ -69,10 +68,14 @@ class HistoryViewModel @Inject constructor(
         if (_uiState.value is HistoryUiState.LoadError) observe()
     }
 
+    /** Each Jeu has its own detail: the Belote one is by Équipe. */
     fun onEntrySelected(partyId: UUID) {
-        viewModelScope.launch {
-            _navigationEvents.send(NavigationEvent.NavigateTo(Routes.PartyDetail(partyId.toString())))
+        val gameId = (_uiState.value as? HistoryUiState.Loaded)?.entries?.firstOrNull { it.partyId == partyId }?.gameId
+        val route = when (gameId) {
+            GameIds.BELOTE -> Routes.BelotePartyDetail(partyId.toString())
+            else -> Routes.PartyDetail(partyId.toString())
         }
+        viewModelScope.launch { _navigationEvents.send(NavigationEvent.NavigateTo(route)) }
     }
 
     fun onDeleteRequested(partyId: UUID) {

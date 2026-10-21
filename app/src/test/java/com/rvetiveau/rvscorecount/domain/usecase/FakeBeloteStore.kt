@@ -84,12 +84,13 @@ class FakeBeloteStore : PartyRepository, BeloteRepository {
         participants.value.filter { it.partyId == partyId }.sortedBy { it.listPosition }
     override fun observeParticipants(partyId: UUID): Flow<List<Participant>> =
         participants.map { list -> list.filter { it.partyId == partyId }.sortedBy { it.listPosition } }
+    override fun observeFinishedParties(): Flow<List<Party>> =
+        parties.map { all -> all.values.filter { it.status == PartyState.FINISHED }.sortedByDescending { it.createdAt } }
 
     override suspend fun createParty(party: Party) = error("not used by the Belote")
     override suspend fun updateParty(party: Party) = error("not used by the Belote")
     override suspend fun createPartyWithParticipants(party: Party, participants: List<Participant>) = error("not used by the Belote")
     override suspend fun getPartyInProgress(): Party? = error("not used by the Belote")
-    override fun observeFinishedParties(): Flow<List<Party>> = error("not used by the Belote")
     override suspend fun deleteParty(id: UUID) = error("not used by the Belote")
     override suspend fun addParticipant(participant: Participant, updatedParty: Party) = error("not used by the Belote")
     override suspend fun saveRound(round: Round, scores: Map<UUID, Int>, updatedParty: Party) = error("not used by the Belote")
