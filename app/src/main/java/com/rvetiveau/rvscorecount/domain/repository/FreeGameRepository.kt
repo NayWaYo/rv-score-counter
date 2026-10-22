@@ -2,6 +2,7 @@ package com.rvetiveau.rvscorecount.domain.repository
 
 import com.rvetiveau.rvscorecount.domain.model.FreeRound
 import com.rvetiveau.rvscorecount.domain.model.Party
+import com.rvetiveau.rvscorecount.domain.model.PlayedGameName
 import java.util.UUID
 import kotlinx.coroutines.flow.Flow
 
@@ -23,4 +24,7 @@ interface FreeGameRepository {
     suspend fun getRounds(partyId: UUID): List<FreeRound>
 
     fun observeRounds(partyId: UUID): Flow<List<FreeRound>>
+
+    /** The game name of every stored Partie of Jeu libre, once per exact spelling. */
+    fun observeGameNames(): Flow<List<PlayedGameName>>
 }

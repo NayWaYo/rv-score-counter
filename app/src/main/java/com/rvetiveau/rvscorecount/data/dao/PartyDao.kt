@@ -31,4 +31,11 @@ interface PartyDao {
     /** Participants, rounds and round scores follow through the CASCADE foreign keys. */
     @Query("DELETE FROM parties WHERE id = :id")
     suspend fun deleteById(id: String)
+
+    /** One row per exact game name of the Jeu libre (Story 11.2), with the creation time of its latest Partie. */
+    @Query(
+        "SELECT gameName AS name, MAX(createdAt) AS lastPlayedAt FROM parties " +
+            "WHERE gameId = :gameId AND gameName IS NOT NULL GROUP BY gameName"
+    )
+    fun observeGameNames(gameId: String): Flow<List<KnownNameRow>>
 }

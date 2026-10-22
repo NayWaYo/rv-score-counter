@@ -104,6 +104,14 @@ class RootViewModelTest {
     }
 
     @Test
+    fun `emits Ready with the free party route when a Jeu libre party is in progress`() = runTest {
+        val party = aParty().copy(gameId = "free")
+        val viewModel = RootViewModel(ResumePartyUseCase(FakePartyRepository(partyInProgress = party)))
+
+        assertEquals(RootUiState.Ready(Routes.FreeParty(party.id.toString())), viewModel.uiState.value)
+    }
+
+    @Test
     fun `emits Error when the repository fails, and retry recovers once fixed`() = runTest {
         val repository = FakePartyRepository(failure = IllegalStateException("Room read failed"))
         val viewModel = RootViewModel(ResumePartyUseCase(repository))

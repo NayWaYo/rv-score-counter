@@ -80,6 +80,16 @@ sealed interface Routes {
     @SerialName("belotePartyDetail")
     data class BelotePartyDetail(val partyId: String) : Routes
 
+    // Jeu libre (Story 11.2, AD-9).
+
+    @Serializable
+    @SerialName("freeSetup")
+    data object FreeSetup : Routes
+
+    @Serializable
+    @SerialName("freeParty")
+    data class FreeParty(val partyId: String) : Routes
+
     /** Statistiques of a Partie of Belote, in progress or finished. */
     @Serializable
     @SerialName("beloteStats")

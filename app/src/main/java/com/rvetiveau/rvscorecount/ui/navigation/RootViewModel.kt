@@ -40,6 +40,7 @@ class RootViewModel @Inject constructor(
                 val startDestination = when {
                     party == null -> Routes.Home
                     party.gameId == GameIds.BELOTE -> Routes.BeloteParty(party.id.toString())
+                    party.gameId == GameIds.FREE -> Routes.FreeParty(party.id.toString())
                     else -> Routes.Party(party.id.toString())
                 }
                 RootUiState.Ready(startDestination)

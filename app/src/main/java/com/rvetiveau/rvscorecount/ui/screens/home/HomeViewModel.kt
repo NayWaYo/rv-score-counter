@@ -34,7 +34,11 @@ class HomeViewModel @Inject constructor(
     }
 
     fun onGameSelected(gameId: String) {
-        val route = if (gameId == GameIds.BELOTE) Routes.BeloteSetup else Routes.Setup(gameId)
+        val route = when (gameId) {
+            GameIds.BELOTE -> Routes.BeloteSetup
+            GameIds.FREE -> Routes.FreeSetup
+            else -> Routes.Setup(gameId)
+        }
         viewModelScope.launch { _navigationEvents.send(NavigationEvent.NavigateTo(route)) }
     }
 

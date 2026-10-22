@@ -26,6 +26,19 @@ data class FreeStanding(
     val rank: Int
 )
 
+/** A game name already played in Jeu libre, with the creation time of its latest Partie (Story 11.2). */
+data class PlayedGameName(val name: String, val lastPlayedAt: Long)
+
+/**
+ * Game names to suggest at creation, the most recently played first, once each: names that differ
+ * only by case or surrounding spaces are the same game, shown with the spelling of its latest Partie.
+ */
+fun List<PlayedGameName>.distinctGameNames(): List<String> =
+    filter { it.name.isNotBlank() }
+        .sortedByDescending { it.lastPlayedAt }
+        .distinctBy { playerNameKey(it.name) }
+        .map { it.name.trim() }
+
 sealed interface FreePartyStatus {
     /** The end rule is not reached, or there is none: the Partie ends by hand. */
     data object InProgress : FreePartyStatus

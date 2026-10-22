@@ -9,6 +9,7 @@ import com.rvetiveau.rvscorecount.domain.model.FreeRound
 import com.rvetiveau.rvscorecount.domain.model.Participant
 import com.rvetiveau.rvscorecount.domain.model.Party
 import com.rvetiveau.rvscorecount.domain.model.PartyState
+import com.rvetiveau.rvscorecount.domain.model.PlayedGameName
 import com.rvetiveau.rvscorecount.domain.model.WinDirection
 import java.util.UUID
 import kotlinx.coroutines.flow.first
@@ -108,6 +109,17 @@ class FreeGameRepositoryImplTest {
         assertEquals(mapOf(alice.id to -4, bob.id to 7), repository.getRounds(party.id).single().scores)
         val stranger = first.copy(scores = mapOf(alice.id to 1, UUID.randomUUID() to 2))
         assertTrue(runCatching { repository.correctRound(stranger) }.isFailure)
+    }
+
+    @Test
+    fun theGameNamesOfTheJeuLibreAreReadOncePerSpellingWithTheirLatestPartie() = runTest {
+        parties.createPartyWithParticipants(party.copy(id = UUID.randomUUID(), createdAt = 30), emptyList())
+        parties.createPartyWithParticipants(party.copy(id = UUID.randomUUID(), gameName = "Uno", createdAt = 20), emptyList())
+        parties.createPartyWithParticipants(Party(UUID.randomUUID(), GameIds.PAPAYOO, PartyState.FINISHED, 0, 40), emptyList())
+
+        val names = repository.observeGameNames().first().sortedBy { it.name }
+
+        assertEquals(listOf(PlayedGameName("Skyjo", 30), PlayedGameName("Uno", 20)), names)
     }
 
     @Test

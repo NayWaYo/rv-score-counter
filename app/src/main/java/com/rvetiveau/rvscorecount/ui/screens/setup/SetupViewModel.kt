@@ -5,7 +5,6 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.rvetiveau.rvscorecount.R
 import com.rvetiveau.rvscorecount.domain.model.ParticipantCreationData
-import com.rvetiveau.rvscorecount.domain.model.duplicatePlayerName
 import com.rvetiveau.rvscorecount.domain.usecase.CreatePartyUseCase
 import com.rvetiveau.rvscorecount.domain.usecase.GetAvailableGamesUseCase
 import com.rvetiveau.rvscorecount.domain.usecase.InvalidPartyConfigurationException
@@ -80,20 +79,10 @@ class SetupViewModel @Inject constructor(
     fun onSuggestionSelected(name: String) = addParticipant(name)
 
     private fun addParticipant(name: String) {
-        val state = _uiState.value
-        val trimmedName = name.trim()
-        when {
-            trimmedName.isEmpty() -> setMessage(R.string.setup_error_empty_name)
-            duplicatePlayerName(state.participants.map { it.name } + trimmedName) != null ->
-                setMessage(R.string.setup_error_duplicate_name)
-            !state.canAdd -> setMessage(R.string.setup_max_players_reached)
-            else -> _uiState.update {
-                it.copy(
-                    participants = it.participants + ParticipantDraft(name = trimmedName),
-                    nameInput = "",
-                    messageRes = null,
-                    creationErrorRes = null
-                )
+        when (val addition = _uiState.value.participants.withAdded(name, _uiState.value.maxPlayers)) {
+            is DraftAddition.Refused -> setMessage(addition.messageRes)
+            is DraftAddition.Added -> _uiState.update {
+                it.copy(participants = addition.participants, nameInput = "", messageRes = null, creationErrorRes = null)
             }
         }
     }
@@ -112,12 +101,7 @@ class SetupViewModel @Inject constructor(
     /** Moves the Participant at [fromIndex] to [toIndex]; no-op or out-of-range moves are ignored. */
     fun onMoveParticipant(fromIndex: Int, toIndex: Int) {
         _uiState.update { state ->
-            val participants = state.participants
-            if (fromIndex == toIndex || fromIndex !in participants.indices || toIndex !in participants.indices) {
-                return@update state
-            }
-            val reordered = participants.toMutableList().apply { add(toIndex, removeAt(fromIndex)) }
-            state.copy(participants = reordered, creationErrorRes = null)
+            state.participants.moved(fromIndex, toIndex)?.let { state.copy(participants = it, creationErrorRes = null) } ?: state
         }
     }
 

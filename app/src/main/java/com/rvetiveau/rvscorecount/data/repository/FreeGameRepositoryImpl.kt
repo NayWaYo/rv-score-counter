@@ -12,12 +12,14 @@ import com.rvetiveau.rvscorecount.data.entity.toEntity
 import com.rvetiveau.rvscorecount.domain.engine.GameIds
 import com.rvetiveau.rvscorecount.domain.model.FreeRound
 import com.rvetiveau.rvscorecount.domain.model.Party
+import com.rvetiveau.rvscorecount.domain.model.PlayedGameName
 import com.rvetiveau.rvscorecount.domain.repository.FreeGameRepository
 import java.util.UUID
 import javax.inject.Inject
 import javax.inject.Singleton
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.map
 
 /** Manches of the Jeu libre (AD-9) in `rounds` without a 7's suit, their scores in `round_scores`. */
 @Singleton
@@ -70,6 +72,11 @@ class FreeGameRepositoryImpl @Inject constructor(
     override fun observeRounds(partyId: UUID): Flow<List<FreeRound>> =
         combine(roundDao.observeByPartyId(partyId.toString()), roundScoreDao.observeByPartyId(partyId.toString())) { rounds, scores ->
             assemble(rounds, scores)
+        }
+
+    override fun observeGameNames(): Flow<List<PlayedGameName>> =
+        partyDao.observeGameNames(GameIds.FREE).map { rows ->
+            rows.map { PlayedGameName(it.name, checkNotNull(it.lastPlayedAt) { "A Partie always has a creation time" }) }
         }
 
     private fun assemble(rounds: List<RoundEntity>, scores: List<RoundScoreEntity>): List<FreeRound> {

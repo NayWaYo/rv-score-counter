@@ -39,7 +39,12 @@ abstract class EngineModule {
     @StringKey(BeloteEngine.GAME_ID)
     abstract fun bindBeloteGame(engine: BeloteEngine): Game
 
-    // Not in the Accueil catalogue until its creation screen exists (AD-9, Story 11.2).
+    // In the Accueil catalogue with its creation screen (AD-9, Story 11.2).
     @Binds
     abstract fun bindFreeGameRules(engine: FreeGameEngine): FreeGameRules
+
+    @Binds
+    @IntoMap
+    @StringKey(FreeGameEngine.GAME_ID)
+    abstract fun bindFreeGame(engine: FreeGameEngine): Game
 }

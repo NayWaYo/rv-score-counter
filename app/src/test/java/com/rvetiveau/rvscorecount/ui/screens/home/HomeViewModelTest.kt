@@ -96,6 +96,17 @@ class HomeViewModelTest {
     }
 
     @Test
+    fun `the Jeu libre comes last and opens its own creation`() = runTest {
+        val viewModel = HomeViewModel(
+            GetGameCatalogUseCase(mapOf("free" to FakeGame("free"), "papayoo" to FakeGame("papayoo"), "belote" to FakeGame("belote")))
+        )
+
+        assertEquals(R.string.game_name_free, viewModel.uiState.value.tiles.last().nameRes)
+        viewModel.onGameSelected("free")
+        assertEquals(NavigationEvent.NavigateTo(Routes.FreeSetup), viewModel.navigationEvents.first())
+    }
+
+    @Test
     fun `fails fast when a registered engine has no Home presentation`() {
         val useCase = GetGameCatalogUseCase(mapOf("unknown-game" to FakeGame("unknown-game")))
 
