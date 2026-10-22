@@ -143,7 +143,7 @@ development_status:
   # -------------------------------------------------------
   # Epic 9: Comptage par la caméra (1 story)
   # -------------------------------------------------------
-  epic-9: in-progress
+  epic-9: done
 
   9-1-scanner-les-atouts-du-papayoo: done
 
