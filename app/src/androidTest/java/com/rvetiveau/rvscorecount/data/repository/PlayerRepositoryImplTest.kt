@@ -120,6 +120,35 @@ class PlayerRepositoryImplTest {
         assertEquals(2, players.size)
     }
 
+    // --- Fusion (Story 10.4) ---
+
+    @Test
+    fun mergingMovesEverySeatToTheKeptJoueurUnderTheirNameAndDeletesTheOther() = runTest {
+        val first = createParty("papayoo", createdAt = 10, "Val", "Bob")
+        val second = createParty("papayoo", createdAt = 20, "Valentin", "Bob")
+        val summaries = repository.observePlayers().first().associateBy { it.name }
+
+        repository.mergePlayers(keptId = summaries.getValue("Val").id, absorbedId = summaries.getValue("Valentin").id)
+
+        assertEquals(listOf("Val", "Bob"), parties.getParticipantsByPartyId(second).map { it.name })
+        assertEquals(setOf(first, second), repository.getSeats(summaries.getValue("Val").id).map { it.partyId }.toSet())
+        assertEquals(setOf("Val", "Bob"), database.playerDao().getAll().map { it.name }.toSet())
+    }
+
+    @Test
+    fun aJoueurWithASeatCannotBeDeletedButOneWithoutCan() = runTest {
+        val deleted = createParty("papayoo", createdAt = 10, "Alice", "Alcie")
+        parties.deleteParty(deleted)
+        createParty("papayoo", createdAt = 20, "Alice")
+        val summaries = repository.observePlayers().first().associateBy { it.name }
+
+        val refused = runCatching { repository.deletePlayer(summaries.getValue("Alice").id) }
+        assertEquals(true, refused.isFailure)
+        assertEquals(true, repository.deletePlayer(summaries.getValue("Alcie").id))
+
+        assertEquals(listOf("Alice"), database.playerDao().getAll().map { it.name })
+    }
+
     @Test
     fun renamingAnUnknownJoueurChangesNothing() = runTest {
         createParty("papayoo", createdAt = 10, "Alice")

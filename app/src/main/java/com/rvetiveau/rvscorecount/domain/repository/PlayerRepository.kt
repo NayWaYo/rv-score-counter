@@ -26,4 +26,13 @@ interface PlayerRepository {
 
     /** The Joueur of each Participant of [partyId], keyed by participant id. */
     suspend fun getPlayerIdsBySeat(partyId: UUID): Map<UUID, UUID>
+
+    /**
+     * Every seat of [absorbedId] moves to [keptId] under its name, then [absorbedId] is deleted,
+     * together or not at all (Story 10.4). The caller has checked they never sat at the same Partie.
+     */
+    suspend fun mergePlayers(keptId: UUID, absorbedId: UUID)
+
+    /** Deletes the Joueur [id], who has no seat left; false when no Joueur has this id. */
+    suspend fun deletePlayer(id: UUID): Boolean
 }

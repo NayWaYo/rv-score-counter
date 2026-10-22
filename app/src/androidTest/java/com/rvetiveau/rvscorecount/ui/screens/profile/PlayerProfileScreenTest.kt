@@ -1,9 +1,12 @@
 package com.rvetiveau.rvscorecount.ui.screens.profile
 
+import androidx.compose.ui.semantics.SemanticsProperties
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertTextEquals
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onNodeWithTag
+import androidx.compose.ui.test.onNodeWithText
+import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
 import com.rvetiveau.rvscorecount.domain.model.BeloteRecords
 import com.rvetiveau.rvscorecount.domain.model.PapayooRecords
@@ -14,6 +17,8 @@ import com.rvetiveau.rvscorecount.domain.model.WinRecord
 import com.rvetiveau.rvscorecount.domain.model.WorstRound
 import com.rvetiveau.rvscorecount.ui.theme.RvScoreCounterTheme
 import java.util.UUID
+import org.junit.Assert.assertEquals
+import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
 
@@ -36,8 +41,8 @@ class PlayerProfileScreenTest {
         fullRoundPoints = 250
     )
 
-    private fun setContent(state: PlayerProfileUiState) {
-        composeTestRule.setContent { RvScoreCounterTheme { PlayerProfileScreen(state = state) } }
+    private fun setContent(state: PlayerProfileUiState, actions: ProfileActions = ProfileActions()) {
+        composeTestRule.setContent { RvScoreCounterTheme { PlayerProfileScreen(state = state, actions = actions) } }
     }
 
     @Test
@@ -67,6 +72,66 @@ class PlayerProfileScreenTest {
         composeTestRule.onNodeWithTag("profile_belote_worst_teammate_value").performScrollTo()
             .assertTextEquals("Chloé · 0 % de victoires (1 partie ensemble)")
         composeTestRule.onNodeWithTag("profile_papayoo").assertDoesNotExist()
+    }
+
+    // --- Story 10.4 ---
+
+    private val noParty = PlayerSummary(UUID.randomUUID(), "Alcie", finishedParties = 0, lastPlayedAt = null)
+
+    @Test
+    fun mergeIsOfferedWhenOthersExistAndDeleteOnlyWithoutAnyParty() {
+        val calls = mutableListOf<String>()
+        setContent(
+            PlayerProfileUiState.Loaded(PlayerRecords(noParty, papayoo = null, belote = null), otherPlayers = listOf(alice)),
+            ProfileActions(onMergeRequested = { calls += "merge" }, onDeleteRequested = { calls += "delete" })
+        )
+
+        composeTestRule.onNodeWithTag("profile_merge_button").performScrollTo().performClick()
+        composeTestRule.onNodeWithTag("profile_delete_button").performScrollTo().performClick()
+
+        assertEquals(listOf("merge", "delete"), calls)
+    }
+
+    @Test
+    fun aPlayerWithPartiesAndNoOtherPlayerHasNeitherAction() {
+        setContent(PlayerProfileUiState.Loaded(PlayerRecords(alice, papayoo, belote = null)))
+
+        composeTestRule.onNodeWithTag("profile_merge_button").assertDoesNotExist()
+        composeTestRule.onNodeWithTag("profile_delete_button").assertDoesNotExist()
+    }
+
+    @Test
+    fun theMergeConfirmationNamesBothPlayersAndRelaysTheChoice() {
+        var confirmed = false
+        setContent(
+            PlayerProfileUiState.Loaded(
+                PlayerRecords(alice, papayoo, belote = null),
+                otherPlayers = listOf(noParty),
+                dialog = ProfileDialog.ConfirmMerge(noParty, failed = true)
+            ),
+            ProfileActions(onMergeConfirmed = { confirmed = true })
+        )
+
+        composeTestRule.onNodeWithText("Fusionner Alcie dans Alice ?").assertIsDisplayed()
+        composeTestRule.onNodeWithTag("profile_action_failed").assertIsDisplayed()
+        composeTestRule.onNodeWithTag("profile_confirm").performClick()
+
+        assertTrue(confirmed)
+    }
+
+    @Test
+    fun aRefusedMergeNamesTheGameOfTheSharedParty() {
+        setContent(
+            PlayerProfileUiState.Loaded(
+                PlayerRecords(alice, papayoo, belote = null),
+                otherPlayers = listOf(noParty),
+                dialog = ProfileDialog.MergeRefused(noParty, "papayoo", 1_760_000_000_000)
+            )
+        )
+
+        val text = composeTestRule.onNodeWithTag("profile_merge_refused").fetchSemanticsNode()
+            .config[SemanticsProperties.Text].single().text
+        assertTrue(text, text.startsWith("Alice et Alcie ont joué ensemble la partie de Papayoo du "))
     }
 
     @Test

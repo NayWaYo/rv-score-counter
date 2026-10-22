@@ -55,6 +55,13 @@ interface PlayerDao {
 
     @Query("SELECT id AS participantId, playerId FROM participants WHERE partyId = :partyId")
     suspend fun getPlayersOfParty(partyId: String): List<SeatPlayerRow>
+
+    @Query("SELECT * FROM players WHERE id = :id")
+    suspend fun getById(id: String): PlayerEntity?
+
+    /** Number of rows deleted: 0 when no Joueur has [id]. Fails while a Participant still points at them. */
+    @Query("DELETE FROM players WHERE id = :id")
+    suspend fun deleteById(id: String): Int
 }
 
 data class SeatRow(val partyId: String, val participantId: String)

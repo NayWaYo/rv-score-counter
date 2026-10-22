@@ -45,7 +45,8 @@ import kotlin.math.roundToInt
 @Composable
 fun PlayerProfileScreen(
     state: PlayerProfileUiState,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    actions: ProfileActions = ProfileActions()
 ) {
     Column(
         modifier = modifier
@@ -64,7 +65,11 @@ fun PlayerProfileScreen(
             PlayerProfileUiState.Loading -> Centered { CircularProgressIndicator(modifier = Modifier.testTag("profile_loading")) }
             PlayerProfileUiState.NotFound -> Centered { Message(stringResource(R.string.profile_not_found), "profile_not_found") }
             PlayerProfileUiState.LoadError -> Centered { Message(stringResource(R.string.profile_load_error), "profile_load_error") }
-            is PlayerProfileUiState.Loaded -> Records(state.records)
+            is PlayerProfileUiState.Loaded -> {
+                Records(state.records)
+                ProfileButtons(state, actions)
+                ProfileDialogHost(state, actions)
+            }
         }
     }
 }

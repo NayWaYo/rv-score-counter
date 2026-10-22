@@ -43,4 +43,14 @@ class PlayerRepositoryImpl @Inject constructor(
 
     override suspend fun getPlayerIdsBySeat(partyId: UUID): Map<UUID, UUID> =
         playerDao.getPlayersOfParty(partyId.toString()).associate { UUID.fromString(it.participantId) to UUID.fromString(it.playerId) }
+
+    override suspend fun mergePlayers(keptId: UUID, absorbedId: UUID) {
+        appDatabase.withTransaction {
+            val kept = checkNotNull(playerDao.getById(keptId.toString())) { "No Joueur $keptId to keep" }
+            participantDao.movePlayerSeats(absorbedId.toString(), keptId.toString(), kept.name)
+            check(playerDao.deleteById(absorbedId.toString()) == 1) { "No Joueur $absorbedId to absorb" }
+        }
+    }
+
+    override suspend fun deletePlayer(id: UUID): Boolean = playerDao.deleteById(id.toString()) > 0
 }

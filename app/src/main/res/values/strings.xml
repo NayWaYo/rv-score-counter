@@ -64,6 +64,20 @@
         <item quantity="many">%1$d parties ensemble</item>
         <item quantity="other">%1$d parties ensemble</item>
     </plurals>
+    <string name="profile_merge_button">Fusionner avec…</string>
+    <string name="profile_delete_button">Supprimer ce joueur</string>
+    <string name="profile_cancel">Annuler</string>
+    <string name="profile_merge_choose_title">Fusionner %1$s avec…</string>
+    <string name="profile_merge_confirm_title">Fusionner %2$s dans %1$s ?</string>
+    <string name="profile_merge_confirm_message">Les parties de %2$s passeront à %1$s, sous ce prénom, et %2$s disparaîtra de la liste des joueurs. C\'est définitif.</string>
+    <string name="profile_merge_confirm">Fusionner</string>
+    <string name="profile_merge_refused_title">Fusion impossible</string>
+    <string name="profile_merge_refused_message">%1$s et %2$s ont joué ensemble la partie de %3$s du %4$s : ce sont deux personnes différentes.</string>
+    <string name="profile_merge_refused_ok">Compris</string>
+    <string name="profile_delete_confirm_title">Supprimer %1$s ?</string>
+    <string name="profile_delete_confirm_message">%1$s n\'a plus aucune partie : ce prénom disparaîtra de la liste des joueurs et des suggestions.</string>
+    <string name="profile_delete_confirm">Supprimer</string>
+    <string name="profile_action_failed">Impossible d\'enregistrer. Réessayez.</string>
     <string name="game_tile_content_description">Créer une partie de %1$s</string>
 
     <!-- Création de Partie : ajout et réordonnancement des Participants -->

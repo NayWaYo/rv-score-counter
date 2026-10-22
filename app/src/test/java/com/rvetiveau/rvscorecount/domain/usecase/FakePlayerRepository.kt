@@ -38,4 +38,22 @@ class FakePlayerRepository(
     override suspend fun getSeats(playerId: UUID): List<PlayerSeat> = seats[playerId].orEmpty()
 
     override suspend fun getPlayerIdsBySeat(partyId: UUID): Map<UUID, UUID> = playerIdsBySeat[partyId].orEmpty()
+
+    var writeFailure: Throwable? = null
+    val merges = mutableListOf<Pair<UUID, UUID>>()
+
+    override suspend fun mergePlayers(keptId: UUID, absorbedId: UUID) {
+        writeFailure?.let { throw it }
+        merges += keptId to absorbedId
+        seats[keptId] = seats[keptId].orEmpty() + seats[absorbedId].orEmpty()
+        seats.remove(absorbedId)
+        players.value = players.value.filterNot { it.id == absorbedId }
+    }
+
+    override suspend fun deletePlayer(id: UUID): Boolean {
+        writeFailure?.let { throw it }
+        if (players.value.none { it.id == id }) return false
+        players.value = players.value.filterNot { it.id == id }
+        return true
+    }
 }
