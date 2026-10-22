@@ -13,6 +13,24 @@
     <string name="game_name_papayoo">Papayoo</string>
     <string name="game_name_belote">Belote</string>
     <string name="history_content_description">Historique</string>
+    <string name="players_content_description">Joueurs</string>
+    <string name="players_title">Joueurs</string>
+    <string name="players_empty">Aucun joueur pour l\'instant : ils apparaissent avec votre première partie.</string>
+    <string name="players_load_error">Impossible de charger les joueurs.</string>
+    <plurals name="players_finished_parties">
+        <item quantity="one">%d partie terminée</item>
+        <item quantity="many">%d parties terminées</item>
+        <item quantity="other">%d parties terminées</item>
+    </plurals>
+    <string name="players_last_played">dernière partie le %1$s</string>
+    <string name="players_no_party">Aucune partie</string>
+    <string name="players_rename_content_description">Renommer %1$s</string>
+    <string name="players_rename_title">Renommer %1$s</string>
+    <string name="players_rename_label">Prénom</string>
+    <string name="players_rename_confirm">Renommer</string>
+    <string name="players_rename_cancel">Annuler</string>
+    <string name="players_rename_taken">%1$s existe déjà</string>
+    <string name="players_rename_failed">Impossible de renommer ce joueur. Réessayez.</string>
     <string name="game_tile_content_description">Créer une partie de %1$s</string>
 
     <!-- Création de Partie : ajout et réordonnancement des Participants -->

@@ -67,6 +67,15 @@ class HomeViewModelTest {
     }
 
     @Test
+    fun `emits NavigateTo Players on players selection`() = runTest {
+        val viewModel = papayooViewModel()
+
+        viewModel.onPlayersSelected()
+
+        assertEquals(NavigationEvent.NavigateTo(Routes.Players), viewModel.navigationEvents.first())
+    }
+
+    @Test
     fun `shows the Papayoo first, then the Belote`() {
         val viewModel = HomeViewModel(
             GetGameCatalogUseCase(mapOf("belote" to FakeGame("belote"), "papayoo" to FakeGame("papayoo")))

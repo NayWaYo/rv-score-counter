@@ -24,4 +24,8 @@ interface ParticipantDao {
 
     @Query("SELECT * FROM participants WHERE partyId = :partyId ORDER BY listPosition ASC")
     fun observeByPartyId(partyId: String): Flow<List<ParticipantEntity>>
+
+    /** Every seat of the Joueur [playerId] takes their new name (Story 10.2). */
+    @Query("UPDATE participants SET name = :name WHERE playerId = :playerId")
+    suspend fun renamePlayer(playerId: String, name: String)
 }

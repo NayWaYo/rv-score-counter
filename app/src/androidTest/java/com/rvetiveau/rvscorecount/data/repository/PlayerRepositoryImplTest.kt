@@ -34,7 +34,7 @@ class PlayerRepositoryImplTest {
             roundScoreDao = database.roundScoreDao(),
             playerDao = database.playerDao()
         )
-        repository = PlayerRepositoryImpl(database.playerDao())
+        repository = PlayerRepositoryImpl(database, database.playerDao(), database.participantDao())
     }
 
     @After
@@ -42,8 +42,13 @@ class PlayerRepositoryImplTest {
         database.close()
     }
 
-    private suspend fun createParty(gameId: String, createdAt: Long, vararg names: String): UUID {
-        val party = Party(UUID.randomUUID(), gameId, PartyState.FINISHED, 0, createdAt)
+    private suspend fun createParty(
+        gameId: String,
+        createdAt: Long,
+        vararg names: String,
+        status: PartyState = PartyState.FINISHED
+    ): UUID {
+        val party = Party(UUID.randomUUID(), gameId, status, 0, createdAt)
         parties.createPartyWithParticipants(
             party,
             names.mapIndexed { index, name -> Participant(UUID.randomUUID(), party.id, name, index) }
@@ -62,6 +67,49 @@ class PlayerRepositoryImplTest {
             listOf(KnownPlayer("Alice", 20), KnownPlayer("Bob", 10), KnownPlayer("Chloé", 10), KnownPlayer("David", 20)),
             known
         )
+    }
+
+    // --- « Joueurs » (Story 10.2) ---
+
+    @Test
+    fun summariesCountFinishedPartiesOnlyButDateTheLatestPartieOfAnyStatus() = runTest {
+        createParty("papayoo", createdAt = 10, "Alice", "Bob")
+        createParty("belote", createdAt = 20, "Alice", "Chloé")
+        createParty("papayoo", createdAt = 30, "Alice", status = PartyState.IN_PROGRESS)
+        val deleted = createParty("papayoo", createdAt = 40, "Denis")
+        parties.deleteParty(deleted)
+
+        val summaries = repository.observePlayers().first().associate { it.name to (it.finishedParties to it.lastPlayedAt) }
+
+        assertEquals(
+            mapOf("Alice" to (2 to 30L), "Bob" to (1 to 10L), "Chloé" to (1 to 20L), "Denis" to (0 to null)),
+            summaries
+        )
+    }
+
+    @Test
+    fun renamingAJoueurRenamesEveryOneOfTheirSeats() = runTest {
+        val first = createParty("papayoo", createdAt = 10, "Alice", "Bob")
+        val second = createParty("papayoo", createdAt = 20, "alice", status = PartyState.IN_PROGRESS)
+        val alice = repository.observePlayers().first().single { it.name == "Alice" }
+
+        assertEquals(true, repository.renamePlayer(alice.id, "Alicia"))
+
+        assertEquals(listOf("Alicia", "Bob"), parties.getParticipantsByPartyId(first).map { it.name })
+        assertEquals(listOf("Alicia"), parties.getParticipantsByPartyId(second).map { it.name })
+        assertEquals(setOf("Alicia", "Bob"), repository.observePlayers().first().map { it.name }.toSet())
+        // The new name is the Joueur's key: a new seat named « alicia » is the same Joueur.
+        val third = createParty("papayoo", createdAt = 30, "ALICIA")
+        assertEquals(2, database.playerDao().getAll().size)
+        assertEquals(alice.id.toString(), database.participantDao().getByPartyId(third.toString()).single().playerId)
+    }
+
+    @Test
+    fun renamingAnUnknownJoueurChangesNothing() = runTest {
+        createParty("papayoo", createdAt = 10, "Alice")
+
+        assertEquals(false, repository.renamePlayer(UUID.randomUUID(), "Zoé"))
+        assertEquals(listOf("Alice"), database.playerDao().getAll().map { it.name })
     }
 
     @Test

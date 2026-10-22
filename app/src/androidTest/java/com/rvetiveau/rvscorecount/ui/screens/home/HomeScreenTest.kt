@@ -95,6 +95,16 @@ class HomeScreenTest {
     }
 
     @Test
+    fun thePlayersActionIsDescribedAndInvokesItsCallback() {
+        var playersSelected = false
+        setContent(threeTiles, onPlayersSelected = { playersSelected = true })
+
+        composeTestRule.onNodeWithContentDescription("Joueurs").performClick()
+
+        assertTrue(playersSelected)
+    }
+
+    @Test
     fun tileExposesButtonRoleAndAnExplicitContentDescription() {
         setContent(threeTiles)
 
@@ -127,14 +137,16 @@ class HomeScreenTest {
     private fun setContent(
         tiles: List<GameTileUiModel>,
         onGameSelected: (String) -> Unit = {},
-        onHistorySelected: () -> Unit = {}
+        onHistorySelected: () -> Unit = {},
+        onPlayersSelected: () -> Unit = {}
     ) {
         composeTestRule.setContent {
             RvScoreCounterTheme {
                 HomeScreen(
                     state = HomeUiState(tiles = tiles),
                     onGameSelected = onGameSelected,
-                    onHistorySelected = onHistorySelected
+                    onHistorySelected = onHistorySelected,
+                    onPlayersSelected = onPlayersSelected
                 )
             }
         }

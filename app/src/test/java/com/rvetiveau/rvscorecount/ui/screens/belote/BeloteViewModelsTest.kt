@@ -6,17 +6,16 @@ import com.rvetiveau.rvscorecount.domain.model.BeloteEndRule
 import com.rvetiveau.rvscorecount.domain.model.BeloteOutcome
 import com.rvetiveau.rvscorecount.domain.model.BeloteRound
 import com.rvetiveau.rvscorecount.domain.model.BeloteRoundInput
-import com.rvetiveau.rvscorecount.domain.model.KnownPlayer
 import com.rvetiveau.rvscorecount.domain.model.PartyState
 import com.rvetiveau.rvscorecount.domain.model.TeamPoints
 import com.rvetiveau.rvscorecount.domain.model.TeamSide.FIRST
 import com.rvetiveau.rvscorecount.domain.model.TeamSide.SECOND
-import com.rvetiveau.rvscorecount.domain.repository.PlayerRepository
 import com.rvetiveau.rvscorecount.domain.usecase.CorrectBeloteRoundUseCase
 import com.rvetiveau.rvscorecount.domain.usecase.CreateBelotePartyUseCase
 import com.rvetiveau.rvscorecount.domain.usecase.DeletePartyUseCase
 import com.rvetiveau.rvscorecount.domain.usecase.FakeBeloteStore
 import com.rvetiveau.rvscorecount.domain.usecase.ObserveBelotePartyUseCase
+import com.rvetiveau.rvscorecount.domain.usecase.FakePlayerRepository
 import com.rvetiveau.rvscorecount.domain.usecase.ObserveKnownPlayerNamesUseCase
 import com.rvetiveau.rvscorecount.domain.usecase.ObservePartyHistoryUseCase
 import com.rvetiveau.rvscorecount.domain.usecase.PlayBeloteRoundUseCase
@@ -26,9 +25,7 @@ import com.rvetiveau.rvscorecount.ui.navigation.Routes
 import com.rvetiveau.rvscorecount.ui.screens.history.HistoryViewModel
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
-import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.first
-import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import kotlinx.coroutines.test.resetMain
 import kotlinx.coroutines.test.runTest
@@ -71,10 +68,7 @@ class BeloteViewModelsTest {
 
     /** [knownNames] are listed from the most to the least recently played. */
     private fun setupViewModel(knownNames: List<String> = emptyList()): BeloteSetupViewModel {
-        val players = object : PlayerRepository {
-            override fun observeKnownPlayers(): Flow<List<KnownPlayer>> =
-                flowOf(knownNames.mapIndexed { index, name -> KnownPlayer(name, (knownNames.size - index).toLong()) })
-        }
+        val players = FakePlayerRepository(*knownNames.toTypedArray())
         return BeloteSetupViewModel(create, ObserveKnownPlayerNamesUseCase(players))
             .apply { initialize(listOf("Nous", "Eux")) }
     }

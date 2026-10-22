@@ -38,6 +38,10 @@ class HomeViewModel @Inject constructor(
         viewModelScope.launch { _navigationEvents.send(NavigationEvent.NavigateTo(route)) }
     }
 
+    fun onPlayersSelected() {
+        viewModelScope.launch { _navigationEvents.send(NavigationEvent.NavigateTo(Routes.Players)) }
+    }
+
     fun onHistorySelected() {
         viewModelScope.launch { _navigationEvents.send(NavigationEvent.NavigateTo(Routes.History)) }
     }

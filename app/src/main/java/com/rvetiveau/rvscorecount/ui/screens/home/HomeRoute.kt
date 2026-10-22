@@ -30,6 +30,7 @@ fun HomeRoute(
         state = state,
         onGameSelected = viewModel::onGameSelected,
         onHistorySelected = viewModel::onHistorySelected,
+        onPlayersSelected = viewModel::onPlayersSelected,
         modifier = modifier
     )
 }

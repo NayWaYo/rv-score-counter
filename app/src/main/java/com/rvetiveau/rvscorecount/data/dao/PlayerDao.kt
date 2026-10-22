@@ -31,10 +31,35 @@ interface PlayerDao {
         """
     )
     fun observeKnownNames(): Flow<List<KnownNameRow>>
+
+    /** Every Joueur with their FINISHED Parties and the creation time of their latest Partie of any status. */
+    @Query(
+        """
+        SELECT players.id AS id, players.name AS name,
+            COUNT(DISTINCT CASE WHEN parties.status = 'FINISHED' THEN parties.id END) AS finishedParties,
+            MAX(parties.createdAt) AS lastPlayedAt
+        FROM players
+        LEFT JOIN participants ON participants.playerId = players.id
+        LEFT JOIN parties ON parties.id = participants.partyId
+        GROUP BY players.id
+        """
+    )
+    fun observeSummaries(): Flow<List<PlayerSummaryRow>>
+
+    /** Number of rows changed: 0 when no Joueur has [id]. */
+    @Query("UPDATE players SET name = :name, nameKey = :nameKey WHERE id = :id")
+    suspend fun rename(id: String, name: String, nameKey: String): Int
 }
 
 data class KnownNameRow(
     val name: String,
+    val lastPlayedAt: Long?
+)
+
+data class PlayerSummaryRow(
+    val id: String,
+    val name: String,
+    val finishedParties: Int,
     val lastPlayedAt: Long?
 )
 

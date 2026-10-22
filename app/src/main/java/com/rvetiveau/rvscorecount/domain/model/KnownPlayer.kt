@@ -19,7 +19,7 @@ data class KnownPlayer(
  */
 fun List<KnownPlayer>.distinctPlayerNames(): List<String> =
     filter { it.name.isNotBlank() }
-        .sortedWith(compareBy<KnownPlayer, Long?>(nullsLast(reverseOrder())) { it.lastPlayedAt }.thenBy { playerNameKey(it.name) })
+        .sortedWith(lastPlayedFirst({ it.lastPlayedAt }, { it.name }))
         .distinctBy { playerNameKey(it.name) }
         .map { it.name.trim() }
 

@@ -16,6 +16,7 @@ import com.rvetiveau.rvscorecount.ui.screens.belote.BeloteStatsRoute
 import com.rvetiveau.rvscorecount.ui.screens.history.HistoryRoute
 import com.rvetiveau.rvscorecount.ui.screens.home.HomeRoute
 import com.rvetiveau.rvscorecount.ui.screens.party.PartyRoute
+import com.rvetiveau.rvscorecount.ui.screens.players.PlayersRoute
 import com.rvetiveau.rvscorecount.ui.screens.partydetail.PartyDetailRoute
 import com.rvetiveau.rvscorecount.ui.screens.results.ResultsRoute
 import com.rvetiveau.rvscorecount.ui.screens.round.RoundEntryRoute
@@ -73,6 +74,9 @@ fun RvScoreCounterNavHost(
         }
         composable<Routes.History> {
             HistoryRoute(onNavigate = { event -> navController.dispatch(event) })
+        }
+        composable<Routes.Players> {
+            PlayersRoute()
         }
         composable<Routes.GameHistory> {
             HistoryRoute(onNavigate = { event -> navController.dispatch(event) })

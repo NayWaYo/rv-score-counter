@@ -34,6 +34,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.rvetiveau.rvscorecount.R
 import com.rvetiveau.rvscorecount.ui.components.HistoryButton
+import com.rvetiveau.rvscorecount.ui.components.PlayersButton
 import com.rvetiveau.rvscorecount.ui.components.ScreenHeader
 import com.rvetiveau.rvscorecount.ui.theme.OnAccent
 
@@ -48,6 +49,7 @@ fun HomeScreen(
     state: HomeUiState,
     onGameSelected: (String) -> Unit,
     onHistorySelected: () -> Unit,
+    onPlayersSelected: () -> Unit = {},
     modifier: Modifier = Modifier
 ) {
     Column(
@@ -55,7 +57,7 @@ fun HomeScreen(
             .fillMaxSize()
             .background(MaterialTheme.colorScheme.background)
     ) {
-        HomeTopBar(onHistorySelected = onHistorySelected)
+        HomeTopBar(onHistorySelected = onHistorySelected, onPlayersSelected = onPlayersSelected)
         LazyVerticalGrid(
             columns = GridCells.Fixed(2),
             modifier = Modifier
@@ -73,7 +75,7 @@ fun HomeScreen(
 }
 
 @Composable
-private fun HomeTopBar(onHistorySelected: () -> Unit, modifier: Modifier = Modifier) {
+private fun HomeTopBar(onHistorySelected: () -> Unit, onPlayersSelected: () -> Unit, modifier: Modifier = Modifier) {
     ScreenHeader(
         title = stringResource(R.string.home_title),
         titleTag = "home_title",
@@ -81,6 +83,7 @@ private fun HomeTopBar(onHistorySelected: () -> Unit, modifier: Modifier = Modif
             .heightIn(min = 56.dp)
             .padding(horizontal = 16.dp)
     ) {
+        PlayersButton(onClick = onPlayersSelected, modifier = Modifier.testTag("home_players_action"))
         HistoryButton(onClick = onHistorySelected, modifier = Modifier.testTag("home_history_action"))
     }
 }

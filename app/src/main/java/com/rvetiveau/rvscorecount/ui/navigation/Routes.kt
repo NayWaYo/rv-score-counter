@@ -43,6 +43,11 @@ sealed interface Routes {
     @SerialName("gameHistory")
     data class GameHistory(val gameId: String) : Routes
 
+    /** The Joueurs of every Jeu, from the Accueil (Story 10.2). */
+    @Serializable
+    @SerialName("players")
+    data object Players : Routes
+
     @Serializable
     @SerialName("partyDetail")
     data class PartyDetail(val partyId: String) : Routes

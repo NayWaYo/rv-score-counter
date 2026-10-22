@@ -3,7 +3,6 @@ package com.rvetiveau.rvscorecount.ui.screens.setup
 import com.rvetiveau.rvscorecount.R
 import com.rvetiveau.rvscorecount.domain.engine.GameEngine
 import com.rvetiveau.rvscorecount.domain.engine.RoundValidation
-import com.rvetiveau.rvscorecount.domain.model.KnownPlayer
 import com.rvetiveau.rvscorecount.domain.model.Participant
 import com.rvetiveau.rvscorecount.domain.model.ParticipantId
 import com.rvetiveau.rvscorecount.domain.model.Party
@@ -11,9 +10,9 @@ import com.rvetiveau.rvscorecount.domain.model.PartyState
 import com.rvetiveau.rvscorecount.domain.model.Round
 import com.rvetiveau.rvscorecount.domain.model.RoundScore
 import com.rvetiveau.rvscorecount.domain.repository.PartyRepository
-import com.rvetiveau.rvscorecount.domain.repository.PlayerRepository
 import com.rvetiveau.rvscorecount.domain.usecase.CreatePartyUseCase
 import com.rvetiveau.rvscorecount.domain.usecase.GetAvailableGamesUseCase
+import com.rvetiveau.rvscorecount.domain.usecase.FakePlayerRepository
 import com.rvetiveau.rvscorecount.domain.usecase.ObserveKnownPlayerNamesUseCase
 import com.rvetiveau.rvscorecount.ui.navigation.NavigationEvent
 import com.rvetiveau.rvscorecount.ui.navigation.Routes
@@ -108,12 +107,8 @@ class SetupViewModelTest {
         CreatePartyUseCase(repository, mapOf(engine.gameId to engine))
 
     /** [names] are listed from the most to the least recently played. */
-    private fun knownPlayerNames(names: List<String> = emptyList()) = ObserveKnownPlayerNamesUseCase(
-        object : PlayerRepository {
-            override fun observeKnownPlayers(): Flow<List<KnownPlayer>> =
-                flowOf(names.mapIndexed { index, name -> KnownPlayer(name, lastPlayedAt = (names.size - index).toLong()) })
-        }
-    )
+    private fun knownPlayerNames(names: List<String> = emptyList()) =
+        ObserveKnownPlayerNamesUseCase(FakePlayerRepository(*names.toTypedArray()))
 
     private fun viewModel(
         engine: GameEngine = FakeGameEngine("papayoo"),
