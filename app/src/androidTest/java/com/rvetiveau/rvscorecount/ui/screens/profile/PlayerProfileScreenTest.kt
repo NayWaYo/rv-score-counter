@@ -50,12 +50,27 @@ class PlayerProfileScreenTest {
         setContent(PlayerProfileUiState.Loaded(PlayerRecords(alice, papayoo, belote = null)))
 
         composeTestRule.onNodeWithTag("profile_title").assertTextEquals("Alice")
-        composeTestRule.onNodeWithTag("profile_papayoo_win_rate").assertTextEquals("40 %")
-        composeTestRule.onNodeWithTag("profile_papayoo_wins").assertTextEquals("2 victoires sur 5 parties")
-        composeTestRule.onNodeWithTag("profile_papayoo_sevens_value").assertTextEquals("6 · 20 % des manches")
-        composeTestRule.onNodeWithTag("profile_papayoo_zeros_value").assertTextEquals("25 % (10)")
-        composeTestRule.onNodeWithTag("profile_papayoo_full_value").assertTextEquals("0")
+        assertText("profile_papayoo_win_rate", "40 %")
+        assertText("profile_papayoo_wins", "2 victoires sur 5 parties")
+        assertText("profile_papayoo_sevens_value", "6")
+        assertText("profile_papayoo_sevens_caption", "20 % des manches")
+        assertText("profile_papayoo_zeros_value", "25 %")
+        assertText("profile_papayoo_zeros_caption", "10 manches")
+        assertText("profile_papayoo_worst_value", "160 pts")
+        assertText("profile_papayoo_full_value", "0")
         composeTestRule.onNodeWithTag("profile_belote").assertDoesNotExist()
+    }
+
+    /** The figures sit inside tiles that TalkBack reads as one: their own nodes are in the unmerged tree. */
+    private fun assertText(tag: String, text: String) {
+        composeTestRule.onNodeWithTag(tag, useUnmergedTree = true).assertTextEquals(text)
+    }
+
+    @Test
+    fun aTileIsReadAsOneByTalkBack() {
+        setContent(PlayerProfileUiState.Loaded(PlayerRecords(alice, papayoo, belote = null)))
+
+        composeTestRule.onNodeWithTag("profile_papayoo_sevens").assertTextEquals("40 pris", "6", "20 % des manches")
     }
 
     @Test
@@ -65,12 +80,14 @@ class PlayerProfileScreenTest {
         val belote = BeloteRecords(WinRecord(3, 5), takes = 12, made = 9, bestTeammate = bob, worstTeammate = chloe)
         setContent(PlayerProfileUiState.Loaded(PlayerRecords(alice, papayoo = null, belote = belote)))
 
-        composeTestRule.onNodeWithTag("profile_belote_win_rate").assertTextEquals("60 %")
-        composeTestRule.onNodeWithTag("profile_belote_takes_value").assertTextEquals("2,4 par partie · 75 % de contrats remplis")
-        composeTestRule.onNodeWithTag("profile_belote_best_teammate_value").performScrollTo()
-            .assertTextEquals("Bob · 75 % de victoires (4 parties ensemble)")
-        composeTestRule.onNodeWithTag("profile_belote_worst_teammate_value").performScrollTo()
-            .assertTextEquals("Chloé · 0 % de victoires (1 partie ensemble)")
+        assertText("profile_belote_win_rate", "60 %")
+        assertText("profile_belote_takes_value", "2,4")
+        assertText("profile_belote_contracts_value", "75 %")
+        assertText("profile_belote_contracts_caption", "9 sur 12 prises")
+        composeTestRule.onNodeWithTag("profile_belote_best_teammate").performScrollTo()
+            .assertTextEquals("🤝 Meilleur coéquipier", "Bob", "75 %", "4 parties ensemble")
+        composeTestRule.onNodeWithTag("profile_belote_worst_teammate").performScrollTo()
+            .assertTextEquals("💔 Pire coéquipier", "Chloé", "0 %", "1 partie ensemble")
         composeTestRule.onNodeWithTag("profile_papayoo").assertDoesNotExist()
     }
 

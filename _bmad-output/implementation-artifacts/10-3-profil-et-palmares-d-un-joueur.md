@@ -82,3 +82,4 @@ Afin de savoir qui gagne le plus et de chambrer les autres.
 ### Change Log
 
 - 2026-10-22 : story créée et implémentée (profil et palmarès d'un Joueur).
+- 2026-10-22 : mise en page refaite après retour de l'utilisateur (valeurs coupées, peu lisible) : pastilles de résumé, logo du Jeu, taux de victoire avec barre, tuiles de statistiques en grille de deux, lignes de coéquipiers ; tests Compose adaptés (8/8 sur API 36).

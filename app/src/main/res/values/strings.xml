@@ -46,19 +46,32 @@
         <item quantity="many">sur %1$d parties</item>
         <item quantity="other">sur %1$d parties</item>
     </plurals>
+    <string name="profile_last_played">Dernière partie : %1$s</string>
     <string name="profile_sevens_label">40 pris</string>
-    <string name="profile_sevens_value">%1$d · %2$d %% des manches</string>
+    <string name="profile_sevens_caption">%1$d %% des manches</string>
+    <string name="profile_sevens_caption_unknown">7 jamais noté</string>
     <string name="profile_zero_label">Manches à 0</string>
-    <string name="profile_zero_value">%1$d %% (%2$d)</string>
+    <plurals name="profile_rounds">
+        <item quantity="one">%1$d manche</item>
+        <item quantity="many">%1$d manches</item>
+        <item quantity="other">%1$d manches</item>
+    </plurals>
     <string name="profile_worst_label">Pire manche</string>
-    <string name="profile_worst_value">%1$d points, le %2$s</string>
+    <string name="profile_points">%1$d pts</string>
     <string name="profile_full_label">Manches à %1$d</string>
+    <string name="profile_full_caption">tous les points</string>
     <string name="profile_takes_label">Prises</string>
-    <string name="profile_takes_value">%1$s par partie · %2$d %% de contrats remplis</string>
-    <string name="profile_takes_value_no_rate">%1$s par partie</string>
-    <string name="profile_best_teammate_label">Meilleur coéquipier</string>
-    <string name="profile_worst_teammate_label">Pire coéquipier</string>
-    <string name="profile_teammate_value">%1$s · %2$d %% de victoires (%3$s)</string>
+    <string name="profile_takes_caption">par partie</string>
+    <string name="profile_contracts_label">Contrats remplis</string>
+    <plurals name="profile_contracts_caption">
+        <item quantity="one">%2$d sur %1$d prise</item>
+        <item quantity="many">%2$d sur %1$d prises</item>
+        <item quantity="other">%2$d sur %1$d prises</item>
+    </plurals>
+    <string name="profile_contracts_unknown">aucune prise notée</string>
+    <string name="profile_no_value">—</string>
+    <string name="profile_best_teammate_label">🤝 Meilleur coéquipier</string>
+    <string name="profile_worst_teammate_label">💔 Pire coéquipier</string>
     <plurals name="profile_parties_together">
         <item quantity="one">%1$d partie ensemble</item>
         <item quantity="many">%1$d parties ensemble</item>
