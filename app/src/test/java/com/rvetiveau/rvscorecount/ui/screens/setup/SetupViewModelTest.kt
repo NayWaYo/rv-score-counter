@@ -3,6 +3,7 @@ package com.rvetiveau.rvscorecount.ui.screens.setup
 import com.rvetiveau.rvscorecount.R
 import com.rvetiveau.rvscorecount.domain.engine.GameEngine
 import com.rvetiveau.rvscorecount.domain.engine.RoundValidation
+import com.rvetiveau.rvscorecount.domain.model.KnownPlayer
 import com.rvetiveau.rvscorecount.domain.model.Participant
 import com.rvetiveau.rvscorecount.domain.model.ParticipantId
 import com.rvetiveau.rvscorecount.domain.model.Party
@@ -10,8 +11,10 @@ import com.rvetiveau.rvscorecount.domain.model.PartyState
 import com.rvetiveau.rvscorecount.domain.model.Round
 import com.rvetiveau.rvscorecount.domain.model.RoundScore
 import com.rvetiveau.rvscorecount.domain.repository.PartyRepository
+import com.rvetiveau.rvscorecount.domain.repository.PlayerRepository
 import com.rvetiveau.rvscorecount.domain.usecase.CreatePartyUseCase
 import com.rvetiveau.rvscorecount.domain.usecase.GetAvailableGamesUseCase
+import com.rvetiveau.rvscorecount.domain.usecase.ObserveKnownPlayerNamesUseCase
 import com.rvetiveau.rvscorecount.ui.navigation.NavigationEvent
 import com.rvetiveau.rvscorecount.ui.navigation.Routes
 import java.util.UUID
@@ -104,13 +107,23 @@ class SetupViewModelTest {
     private fun createPartyUseCase(engine: GameEngine, repository: PartyRepository = FakePartyRepository()): CreatePartyUseCase =
         CreatePartyUseCase(repository, mapOf(engine.gameId to engine))
 
+    /** [names] are listed from the most to the least recently played. */
+    private fun knownPlayerNames(names: List<String> = emptyList()) = ObserveKnownPlayerNamesUseCase(
+        object : PlayerRepository {
+            override fun observeKnownPlayers(): Flow<List<KnownPlayer>> =
+                flowOf(names.mapIndexed { index, name -> KnownPlayer(name, lastPlayedAt = (names.size - index).toLong()) })
+        }
+    )
+
     private fun viewModel(
         engine: GameEngine = FakeGameEngine("papayoo"),
-        partyRepository: PartyRepository = FakePartyRepository()
+        partyRepository: PartyRepository = FakePartyRepository(),
+        knownNames: List<String> = emptyList()
     ): SetupViewModel =
         SetupViewModel(
             GetAvailableGamesUseCase(mapOf(engine.gameId to engine)),
-            createPartyUseCase(engine, partyRepository)
+            createPartyUseCase(engine, partyRepository),
+            knownPlayerNames(knownNames)
         ).also { it.initialize(engine.gameId) }
 
     private fun SetupViewModel.addName(name: String) {
@@ -121,7 +134,7 @@ class SetupViewModelTest {
     @Test
     fun `default state before initialize disables start and add`() {
         val engine = FakeGameEngine("papayoo")
-        val vm = SetupViewModel(GetAvailableGamesUseCase(mapOf("papayoo" to engine)), createPartyUseCase(engine))
+        val vm = SetupViewModel(GetAvailableGamesUseCase(mapOf("papayoo" to engine)), createPartyUseCase(engine), knownPlayerNames())
 
         val state = vm.uiState.value
         assertFalse(state.isInitialized)
@@ -142,7 +155,7 @@ class SetupViewModelTest {
     @Test
     fun `initialize is idempotent across repeated calls`() {
         val engine = FakeGameEngine("papayoo")
-        val vm = SetupViewModel(GetAvailableGamesUseCase(mapOf("papayoo" to engine)), createPartyUseCase(engine))
+        val vm = SetupViewModel(GetAvailableGamesUseCase(mapOf("papayoo" to engine)), createPartyUseCase(engine), knownPlayerNames())
         vm.initialize("papayoo")
         vm.addName("Alice")
 
@@ -154,7 +167,7 @@ class SetupViewModelTest {
     @Test
     fun `fails fast when no engine is registered for the requested gameId`() {
         val engine = FakeGameEngine("belote")
-        val vm = SetupViewModel(GetAvailableGamesUseCase(mapOf("belote" to engine)), createPartyUseCase(engine))
+        val vm = SetupViewModel(GetAvailableGamesUseCase(mapOf("belote" to engine)), createPartyUseCase(engine), knownPlayerNames())
 
         assertThrows(IllegalStateException::class.java) { vm.initialize("papayoo") }
     }
@@ -418,5 +431,40 @@ class SetupViewModelTest {
 
         assertEquals(NavigationEvent.NavigateTo(Routes.GameHistory("papayoo")), vm.navigationEvents.first())
         assertEquals(listOf("Alice"), vm.uiState.value.participants.map { it.name })
+    }
+
+    @Test
+    fun `suggests known names, filtered by the typed name and the draft`() = runTest {
+        val vm = viewModel(knownNames = listOf("Alice", "Hélène", "Bob", "Henri"))
+        assertEquals(listOf("Alice", "Hélène", "Bob", "Henri"), vm.uiState.value.nameSuggestions)
+
+        vm.addName("bob")
+        vm.onNameChanged("he")
+
+        assertEquals(listOf("Hélène", "Henri"), vm.uiState.value.nameSuggestions)
+    }
+
+    @Test
+    fun `a selected suggestion joins the draft and clears the typed name`() = runTest {
+        val vm = viewModel(knownNames = listOf("Alice", "Bob"))
+        vm.onNameChanged("B")
+
+        vm.onSuggestionSelected("Bob")
+
+        val state = vm.uiState.value
+        assertEquals(listOf("Bob"), state.participants.map { it.name })
+        assertEquals("", state.nameInput)
+        assertEquals(listOf("Alice"), state.nameSuggestions)
+    }
+
+    @Test
+    fun `no suggestion once the maximum is reached`() = runTest {
+        val vm = viewModel(engine = FakeGameEngine("papayoo", minPlayers = 1, maxPlayers = 1), knownNames = listOf("Alice", "Bob"))
+
+        vm.onSuggestionSelected("Alice")
+        vm.onSuggestionSelected("Bob")
+
+        assertEquals(listOf("Alice"), vm.uiState.value.participants.map { it.name })
+        assertEquals(emptyList<String>(), vm.uiState.value.nameSuggestions)
     }
 }

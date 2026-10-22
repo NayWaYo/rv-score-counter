@@ -60,7 +60,8 @@ class SetupScreenTest {
         onAddParticipant: () -> Unit = {},
         onRemoveParticipant: (UUID) -> Unit = {},
         onMoveParticipant: (Int, Int) -> Unit = { _, _ -> },
-        onStartParty: () -> Unit = {}
+        onStartParty: () -> Unit = {},
+        onSuggestionSelected: (String) -> Unit = {}
     ) {
         composeTestRule.setContent {
             RvScoreCounterTheme {
@@ -70,10 +71,35 @@ class SetupScreenTest {
                     onAddParticipant = onAddParticipant,
                     onRemoveParticipant = onRemoveParticipant,
                     onMoveParticipant = onMoveParticipant,
-                    onStartParty = onStartParty
+                    onStartParty = onStartParty,
+                    onSuggestionSelected = onSuggestionSelected
                 )
             }
         }
+    }
+
+    @Test
+    fun showsKnownNamesNotInTheDraftAndRelaysTheTappedOne() {
+        val selected = mutableListOf<String>()
+        setContent(
+            stateWith(participants = listOf(draft("Alice"))).copy(knownPlayerNames = listOf("Alice", "Bob")),
+            onSuggestionSelected = { selected += it }
+        )
+
+        composeTestRule.onNodeWithTag("player_suggestion_Alice").assertDoesNotExist()
+        composeTestRule.onNodeWithTag("player_suggestion_Bob")
+            .assertHeightIsAtLeast(48.dp)
+            .performClick()
+
+        assertEquals(listOf("Bob"), selected)
+    }
+
+    @Test
+    fun showsNoSuggestionWhenTheMaximumIsReached() {
+        val eightParticipants = (1..8).map { draft("P$it") }
+        setContent(stateWith(participants = eightParticipants).copy(knownPlayerNames = listOf("Zoé")))
+
+        composeTestRule.onNodeWithTag("player_suggestions").assertDoesNotExist()
     }
 
     @Test

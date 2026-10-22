@@ -6,6 +6,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.keepScreenOn
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.Lifecycle
@@ -56,6 +57,6 @@ fun PartyRoute(
         onEndPartyClick = viewModel::onEndPartyClick,
         onEndPartyConfirmed = viewModel::onEndPartyConfirmed,
         onEndPartyDismissed = viewModel::onEndPartyDismissed,
-        modifier = modifier
+        modifier = modifier.keepScreenOn()
     )
 }

@@ -8,6 +8,7 @@ import com.rvetiveau.rvscorecount.domain.model.ParticipantCreationData
 import com.rvetiveau.rvscorecount.domain.usecase.CreatePartyUseCase
 import com.rvetiveau.rvscorecount.domain.usecase.GetAvailableGamesUseCase
 import com.rvetiveau.rvscorecount.domain.usecase.InvalidPartyConfigurationException
+import com.rvetiveau.rvscorecount.domain.usecase.ObserveKnownPlayerNamesUseCase
 import com.rvetiveau.rvscorecount.ui.navigation.NavigationEvent
 import com.rvetiveau.rvscorecount.ui.navigation.Routes
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -29,7 +30,8 @@ import kotlinx.coroutines.launch
 @HiltViewModel
 class SetupViewModel @Inject constructor(
     private val getAvailableGamesUseCase: GetAvailableGamesUseCase,
-    private val createPartyUseCase: CreatePartyUseCase
+    private val createPartyUseCase: CreatePartyUseCase,
+    observeKnownPlayerNamesUseCase: ObserveKnownPlayerNamesUseCase
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(SetupUiState())
@@ -37,6 +39,14 @@ class SetupViewModel @Inject constructor(
 
     private val _navigationEvents = Channel<NavigationEvent>(Channel.BUFFERED)
     val navigationEvents: Flow<NavigationEvent> = _navigationEvents.receiveAsFlow()
+
+    init {
+        viewModelScope.launch {
+            observeKnownPlayerNamesUseCase().collect { names ->
+                _uiState.update { it.copy(knownPlayerNames = names) }
+            }
+        }
+    }
 
     /** Idempotent: a recomposition or a duplicate call for the same gameId never resets the draft. */
     fun initialize(gameId: String) {
@@ -63,9 +73,14 @@ class SetupViewModel @Inject constructor(
         _uiState.update { it.copy(nameInput = name, messageRes = null, creationErrorRes = null) }
     }
 
-    fun onAddParticipant() {
+    fun onAddParticipant() = addParticipant(_uiState.value.nameInput)
+
+    /** A tapped known name joins the draft at once, whatever was being typed. */
+    fun onSuggestionSelected(name: String) = addParticipant(name)
+
+    private fun addParticipant(name: String) {
         val state = _uiState.value
-        val trimmedName = state.nameInput.trim()
+        val trimmedName = name.trim()
         when {
             trimmedName.isEmpty() -> setMessage(R.string.setup_error_empty_name)
             !state.canAdd -> setMessage(R.string.setup_max_players_reached)

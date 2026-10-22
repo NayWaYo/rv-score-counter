@@ -3,9 +3,11 @@ package com.rvetiveau.rvscorecount.di
 import com.rvetiveau.rvscorecount.data.repository.AppearanceRepositoryImpl
 import com.rvetiveau.rvscorecount.data.repository.BeloteRepositoryImpl
 import com.rvetiveau.rvscorecount.data.repository.PartyRepositoryImpl
+import com.rvetiveau.rvscorecount.data.repository.PlayerRepositoryImpl
 import com.rvetiveau.rvscorecount.domain.repository.AppearanceRepository
 import com.rvetiveau.rvscorecount.domain.repository.BeloteRepository
 import com.rvetiveau.rvscorecount.domain.repository.PartyRepository
+import com.rvetiveau.rvscorecount.domain.repository.PlayerRepository
 import dagger.Binds
 import dagger.Module
 import dagger.hilt.InstallIn
@@ -26,4 +28,8 @@ abstract class RepositoryModule {
     @Binds
     @Singleton
     abstract fun bindBeloteRepository(impl: BeloteRepositoryImpl): BeloteRepository
+
+    @Binds
+    @Singleton
+    abstract fun bindPlayerRepository(impl: PlayerRepositoryImpl): PlayerRepository
 }

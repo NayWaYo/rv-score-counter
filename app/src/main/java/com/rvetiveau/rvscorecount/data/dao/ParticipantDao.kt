@@ -24,4 +24,19 @@ interface ParticipantDao {
 
     @Query("SELECT * FROM participants WHERE partyId = :partyId ORDER BY listPosition ASC")
     fun observeByPartyId(partyId: String): Flow<List<ParticipantEntity>>
+
+    /** One row per exact name across every Partie, with the creation time of its latest Partie. */
+    @Query(
+        """
+        SELECT participants.name AS name, MAX(parties.createdAt) AS lastPlayedAt
+        FROM participants INNER JOIN parties ON parties.id = participants.partyId
+        GROUP BY participants.name
+        """
+    )
+    fun observeKnownNames(): Flow<List<KnownNameRow>>
 }
+
+data class KnownNameRow(
+    val name: String,
+    val lastPlayedAt: Long
+)

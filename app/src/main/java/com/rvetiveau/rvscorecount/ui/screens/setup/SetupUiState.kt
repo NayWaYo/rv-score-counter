@@ -1,6 +1,7 @@
 package com.rvetiveau.rvscorecount.ui.screens.setup
 
 import androidx.annotation.StringRes
+import com.rvetiveau.rvscorecount.domain.model.suggestPlayerNames
 import java.util.UUID
 
 /**
@@ -16,6 +17,8 @@ data class SetupUiState(
     val isInitialized: Boolean = false,
     val nameInput: String = "",
     val participants: List<ParticipantDraft> = emptyList(),
+    /** Names of earlier Parties, the most recently played first. */
+    val knownPlayerNames: List<String> = emptyList(),
     @StringRes val messageRes: Int? = null,
     val isCreatingParty: Boolean = false,
     val creationCompleted: Boolean = false,
@@ -25,6 +28,10 @@ data class SetupUiState(
     val canStart: Boolean
         get() = isInitialized && participants.size >= minPlayers && !isCreatingParty && !creationCompleted
     val isMaxReached: Boolean get() = isInitialized && !canAdd
+
+    /** Known names matching the name being typed, minus those already in the draft. */
+    val nameSuggestions: List<String>
+        get() = if (canAdd) suggestPlayerNames(knownPlayerNames, nameInput, participants.map { it.name }) else emptyList()
 }
 
 /** Pre-confirmation Participant row; distinct from the persistable [com.rvetiveau.rvscorecount.domain.model.Participant]. */

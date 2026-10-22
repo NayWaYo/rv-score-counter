@@ -5,6 +5,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.keepScreenOn
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.rvetiveau.rvscorecount.ui.navigation.NavigationEvent
@@ -33,6 +34,6 @@ fun BelotePartyRoute(
         onPlayRound = viewModel::onPlayRound,
         onRoundSelected = viewModel::onRoundSelected,
         onShowStats = viewModel::onShowStats,
-        modifier = modifier
+        modifier = modifier.keepScreenOn()
     )
 }

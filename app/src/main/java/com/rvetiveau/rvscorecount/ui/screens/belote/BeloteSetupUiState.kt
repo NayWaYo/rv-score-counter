@@ -2,6 +2,7 @@ package com.rvetiveau.rvscorecount.ui.screens.belote
 
 import androidx.annotation.StringRes
 import com.rvetiveau.rvscorecount.domain.model.BeloteEndRule
+import com.rvetiveau.rvscorecount.domain.model.suggestPlayerNames
 
 enum class BeloteEndMode { TARGET_SCORE, ROUND_COUNT }
 
@@ -13,6 +14,8 @@ data class BeloteSetupUiState(
     val isInitialized: Boolean = false,
     val teamNames: List<String> = listOf("", ""),
     val playerNames: List<List<String>> = listOf(listOf("", ""), listOf("", "")),
+    /** Names of earlier Parties, the most recently played first. */
+    val knownPlayerNames: List<String> = emptyList(),
     val endMode: BeloteEndMode = BeloteEndMode.TARGET_SCORE,
     val targetScoreInput: String = BeloteEndRule.DEFAULT_TARGET_SCORE.toString(),
     val roundCountInput: String = BeloteEndRule.DEFAULT_ROUND_COUNT.toString(),
@@ -38,6 +41,14 @@ data class BeloteSetupUiState(
     /** Players around the table, the Équipes alternating: A1, B1, A2, B2. The first one deals. */
     val tableOrder: List<String>
         get() = listOf(playerNames[0][0], playerNames[1][0], playerNames[0][1], playerNames[1][1])
+
+    /** Known names not yet seated, offered while a player field is still empty. */
+    val playerSuggestions: List<String>
+        get() = if (playerNames.flatten().any(String::isBlank)) {
+            suggestPlayerNames(knownPlayerNames, typed = "", taken = playerNames.flatten())
+        } else {
+            emptyList()
+        }
 
     val canStart: Boolean
         get() = isInitialized &&

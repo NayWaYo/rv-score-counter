@@ -7,6 +7,7 @@ import com.rvetiveau.rvscorecount.domain.engine.GameIds
 import com.rvetiveau.rvscorecount.domain.usecase.BeloteTeamDraft
 import com.rvetiveau.rvscorecount.domain.usecase.CreateBelotePartyUseCase
 import com.rvetiveau.rvscorecount.domain.usecase.InvalidPartyConfigurationException
+import com.rvetiveau.rvscorecount.domain.usecase.ObserveKnownPlayerNamesUseCase
 import com.rvetiveau.rvscorecount.ui.navigation.NavigationEvent
 import com.rvetiveau.rvscorecount.ui.navigation.Routes
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -23,7 +24,8 @@ import javax.inject.Inject
 /** Owns the draft of a Partie of Belote and turns it into a persisted Partie. */
 @HiltViewModel
 class BeloteSetupViewModel @Inject constructor(
-    private val createBelotePartyUseCase: CreateBelotePartyUseCase
+    private val createBelotePartyUseCase: CreateBelotePartyUseCase,
+    observeKnownPlayerNamesUseCase: ObserveKnownPlayerNamesUseCase
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(BeloteSetupUiState())
@@ -31,6 +33,14 @@ class BeloteSetupViewModel @Inject constructor(
 
     private val _navigationEvents = Channel<NavigationEvent>(Channel.BUFFERED)
     val navigationEvents: Flow<NavigationEvent> = _navigationEvents.receiveAsFlow()
+
+    init {
+        viewModelScope.launch {
+            observeKnownPlayerNamesUseCase().collect { names ->
+                _uiState.update { it.copy(knownPlayerNames = names) }
+            }
+        }
+    }
 
     /** Prefills the localized default Équipe names once; later calls never reset the draft. */
     fun initialize(defaultTeamNames: List<String>) {
@@ -47,6 +57,17 @@ class BeloteSetupViewModel @Inject constructor(
 
     fun onPlayerNameChanged(team: Int, seat: Int, name: String) {
         _uiState.update { state ->
+            val players = state.playerNames.replaced(team, state.playerNames[team].replaced(seat, name))
+            state.copy(playerNames = players, creationErrorRes = null)
+        }
+    }
+
+    /** A tapped known name takes the first empty player field, Équipe 1 first, in reading order. */
+    fun onSuggestionSelected(name: String) {
+        _uiState.update { state ->
+            val team = state.playerNames.indexOfFirst { players -> players.any(String::isBlank) }
+            if (team < 0) return@update state
+            val seat = state.playerNames[team].indexOfFirst(String::isBlank)
             val players = state.playerNames.replaced(team, state.playerNames[team].replaced(seat, name))
             state.copy(playerNames = players, creationErrorRes = null)
         }

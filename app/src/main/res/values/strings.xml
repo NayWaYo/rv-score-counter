@@ -18,6 +18,7 @@
     <!-- Création de Partie : ajout et réordonnancement des Participants -->
     <string name="setup_title">Créer une partie</string>
     <string name="setup_name_hint">Prénom du joueur</string>
+    <string name="player_suggestion_content_description">Ajouter %1$s</string>
     <string name="setup_add_button">Ajouter</string>
     <string name="setup_error_empty_name">Veuillez entrer un prénom</string>
     <string name="setup_participant_count">%1$d/%2$d à %3$d</string>

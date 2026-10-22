@@ -6,15 +6,18 @@ import com.rvetiveau.rvscorecount.domain.model.BeloteEndRule
 import com.rvetiveau.rvscorecount.domain.model.BeloteOutcome
 import com.rvetiveau.rvscorecount.domain.model.BeloteRound
 import com.rvetiveau.rvscorecount.domain.model.BeloteRoundInput
+import com.rvetiveau.rvscorecount.domain.model.KnownPlayer
 import com.rvetiveau.rvscorecount.domain.model.PartyState
 import com.rvetiveau.rvscorecount.domain.model.TeamPoints
 import com.rvetiveau.rvscorecount.domain.model.TeamSide.FIRST
 import com.rvetiveau.rvscorecount.domain.model.TeamSide.SECOND
+import com.rvetiveau.rvscorecount.domain.repository.PlayerRepository
 import com.rvetiveau.rvscorecount.domain.usecase.CorrectBeloteRoundUseCase
 import com.rvetiveau.rvscorecount.domain.usecase.CreateBelotePartyUseCase
 import com.rvetiveau.rvscorecount.domain.usecase.DeletePartyUseCase
 import com.rvetiveau.rvscorecount.domain.usecase.FakeBeloteStore
 import com.rvetiveau.rvscorecount.domain.usecase.ObserveBelotePartyUseCase
+import com.rvetiveau.rvscorecount.domain.usecase.ObserveKnownPlayerNamesUseCase
 import com.rvetiveau.rvscorecount.domain.usecase.ObservePartyHistoryUseCase
 import com.rvetiveau.rvscorecount.domain.usecase.PlayBeloteRoundUseCase
 import com.rvetiveau.rvscorecount.game.belote.BeloteEngine
@@ -23,7 +26,9 @@ import com.rvetiveau.rvscorecount.ui.navigation.Routes
 import com.rvetiveau.rvscorecount.ui.screens.history.HistoryViewModel
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import kotlinx.coroutines.test.resetMain
 import kotlinx.coroutines.test.runTest
@@ -64,7 +69,15 @@ class BeloteViewModelsTest {
 
     // Setup
 
-    private fun setupViewModel() = BeloteSetupViewModel(create).apply { initialize(listOf("Nous", "Eux")) }
+    /** [knownNames] are listed from the most to the least recently played. */
+    private fun setupViewModel(knownNames: List<String> = emptyList()): BeloteSetupViewModel {
+        val players = object : PlayerRepository {
+            override fun observeKnownPlayers(): Flow<List<KnownPlayer>> =
+                flowOf(knownNames.mapIndexed { index, name -> KnownPlayer(name, (knownNames.size - index).toLong()) })
+        }
+        return BeloteSetupViewModel(create, ObserveKnownPlayerNamesUseCase(players))
+            .apply { initialize(listOf("Nous", "Eux")) }
+    }
 
     private fun BeloteSetupViewModel.fillPlayers() {
         listOf("Alice", "Chloé", "Bob", "David").forEachIndexed { index, name ->
@@ -82,6 +95,21 @@ class BeloteViewModelsTest {
         assertEquals(BeloteEndRule.TargetScore(1000), state.endRule)
         assertEquals(listOf("Alice", "Bob", "Chloé", "David"), state.tableOrder)
         assertTrue(state.canStart)
+    }
+
+    @Test
+    fun `a selected suggestion fills the first empty player field until all four are seated`() {
+        val viewModel = setupViewModel(knownNames = listOf("Alice", "Bob", "Chloé", "David", "Émile"))
+        viewModel.onPlayerNameChanged(team = 0, seat = 0, name = "alice")
+        assertEquals(listOf("Bob", "Chloé", "David", "Émile"), viewModel.uiState.value.playerSuggestions)
+
+        listOf("Chloé", "Bob", "David").forEach(viewModel::onSuggestionSelected)
+
+        val state = viewModel.uiState.value
+        assertEquals(listOf(listOf("alice", "Chloé"), listOf("Bob", "David")), state.playerNames)
+        assertEquals(emptyList<String>(), state.playerSuggestions)
+        viewModel.onSuggestionSelected("Émile")
+        assertEquals(state.playerNames, viewModel.uiState.value.playerNames)
     }
 
     @Test

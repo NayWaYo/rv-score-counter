@@ -46,6 +46,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.zIndex
 import com.rvetiveau.rvscorecount.R
 import com.rvetiveau.rvscorecount.ui.components.HistoryButton
+import com.rvetiveau.rvscorecount.ui.components.PlayerSuggestionChips
 import com.rvetiveau.rvscorecount.ui.components.ScreenHeader
 import java.util.UUID
 
@@ -63,7 +64,8 @@ fun SetupScreen(
     onMoveParticipant: (Int, Int) -> Unit,
     onStartParty: () -> Unit,
     modifier: Modifier = Modifier,
-    onHistorySelected: () -> Unit = {}
+    onHistorySelected: () -> Unit = {},
+    onSuggestionSelected: (String) -> Unit = {}
 ) {
     Column(
         modifier = modifier
@@ -85,6 +87,12 @@ fun SetupScreen(
             isError = state.messageRes == R.string.setup_error_empty_name,
             onNameChanged = onNameChanged,
             onAddParticipant = onAddParticipant
+        )
+
+        PlayerSuggestionChips(
+            names = state.nameSuggestions,
+            onNameSelected = onSuggestionSelected,
+            modifier = Modifier.padding(top = 8.dp)
         )
 
         val messageRes = state.messageRes ?: R.string.setup_max_players_reached.takeIf { state.isMaxReached }

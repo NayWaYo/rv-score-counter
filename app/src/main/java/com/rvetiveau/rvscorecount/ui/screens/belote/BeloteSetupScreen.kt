@@ -29,6 +29,7 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import com.rvetiveau.rvscorecount.R
 import com.rvetiveau.rvscorecount.ui.components.HistoryButton
+import com.rvetiveau.rvscorecount.ui.components.PlayerSuggestionChips
 import com.rvetiveau.rvscorecount.ui.components.ScreenHeader
 
 /**
@@ -44,7 +45,8 @@ fun BeloteSetupScreen(
     onEndModeChanged: (BeloteEndMode) -> Unit = {},
     onEndValueChanged: (String) -> Unit = {},
     onStartParty: () -> Unit = {},
-    onHistorySelected: () -> Unit = {}
+    onHistorySelected: () -> Unit = {},
+    onSuggestionSelected: (String) -> Unit = {}
 ) {
     Column(
         verticalArrangement = Arrangement.spacedBy(16.dp),
@@ -61,6 +63,7 @@ fun BeloteSetupScreen(
         ) {
             HistoryButton(onClick = onHistorySelected, modifier = Modifier.testTag("belote_setup_history_action"))
         }
+        PlayerSuggestionChips(names = state.playerSuggestions, onNameSelected = onSuggestionSelected)
         state.teamNames.indices.forEach { team ->
             TeamCard(
                 team = team,
