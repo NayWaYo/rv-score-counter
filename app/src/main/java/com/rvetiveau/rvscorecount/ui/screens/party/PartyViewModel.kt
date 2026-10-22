@@ -13,6 +13,7 @@ import com.rvetiveau.rvscorecount.domain.usecase.AddParticipantUseCase
 import com.rvetiveau.rvscorecount.domain.usecase.ClosePartyUseCase
 import com.rvetiveau.rvscorecount.domain.usecase.GetAvailableGamesUseCase
 import com.rvetiveau.rvscorecount.domain.usecase.nextDealerIndexAfterInsertion
+import com.rvetiveau.rvscorecount.domain.model.duplicatePlayerName
 import com.rvetiveau.rvscorecount.ui.components.toStandingRows
 import com.rvetiveau.rvscorecount.ui.navigation.NavigationEvent
 import com.rvetiveau.rvscorecount.ui.navigation.Routes
@@ -232,6 +233,8 @@ class PartyViewModel @Inject constructor(
         val draft = addition ?: return
         if (draft.nameInput.isBlank()) {
             addition = draft.copy(errorRes = R.string.party_add_error_empty_name)
+        } else if (duplicatePlayerName(seating.map { it.name } + draft.nameInput) != null) {
+            addition = draft.copy(errorRes = R.string.setup_error_duplicate_name)
         } else {
             val options = seating.map { participant ->
                 val position = participant.listPosition + 1

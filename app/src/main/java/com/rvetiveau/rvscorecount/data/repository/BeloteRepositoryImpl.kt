@@ -4,6 +4,8 @@ import androidx.room.withTransaction
 import com.rvetiveau.rvscorecount.data.dao.BeloteRoundDao
 import com.rvetiveau.rvscorecount.data.dao.ParticipantDao
 import com.rvetiveau.rvscorecount.data.dao.PartyDao
+import com.rvetiveau.rvscorecount.data.dao.PlayerDao
+import com.rvetiveau.rvscorecount.data.dao.playerIdFor
 import com.rvetiveau.rvscorecount.data.dao.TeamDao
 import com.rvetiveau.rvscorecount.data.db.AppDatabase
 import com.rvetiveau.rvscorecount.data.entity.toDomain
@@ -27,7 +29,8 @@ class BeloteRepositoryImpl @Inject constructor(
     private val partyDao: PartyDao,
     private val participantDao: ParticipantDao,
     private val teamDao: TeamDao,
-    private val beloteRoundDao: BeloteRoundDao
+    private val beloteRoundDao: BeloteRoundDao,
+    private val playerDao: PlayerDao
 ) : BeloteRepository {
 
     override suspend fun createParty(party: Party, teams: List<Team>, participants: List<Participant>) {
@@ -41,7 +44,7 @@ class BeloteRepositoryImpl @Inject constructor(
         appDatabase.withTransaction {
             partyDao.insert(party.toEntity())
             teamDao.insertAll(teams.map { it.toEntity() })
-            participantDao.insertAll(participants.map { it.toEntity() })
+            participantDao.insertAll(participants.map { it.toEntity(playerDao.playerIdFor(it.name)) })
         }
     }
 

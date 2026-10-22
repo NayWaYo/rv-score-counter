@@ -78,12 +78,13 @@ class BeloteUseCasesTest {
     }
 
     @Test
-    fun `refuses blank names or teams that are not two pairs`() = runTest {
+    fun `refuses blank or repeated names or teams that are not two pairs`() = runTest {
         val blankPlayer = drafts.mapIndexed { i, team -> if (i == 0) team.copy(playerNames = listOf("Alice", " ")) else team }
         val blankTeam = drafts.mapIndexed { i, team -> if (i == 1) team.copy(name = "") else team }
         val threePlayers = drafts.mapIndexed { i, team -> if (i == 0) team.copy(playerNames = team.playerNames + "Eve") else team }
+        val samePlayerTwice = drafts.mapIndexed { i, team -> if (i == 1) team.copy(playerNames = listOf("ALICE", "Bob")) else team }
 
-        listOf(blankPlayer, blankTeam, threePlayers, drafts.take(1)).forEach { teams ->
+        listOf(blankPlayer, blankTeam, threePlayers, samePlayerTwice, drafts.take(1)).forEach { teams ->
             assertTrue(create(teams, BeloteEndRule.TargetScore(1000)).exceptionOrNull() is InvalidPartyConfigurationException)
         }
         assertTrue(store.parties.value.isEmpty())

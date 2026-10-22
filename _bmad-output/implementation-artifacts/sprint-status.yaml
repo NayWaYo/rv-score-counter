@@ -149,6 +149,18 @@ development_status:
 
   epic-9-retrospective: optional
 
+  # -------------------------------------------------------
+  # Epic 10: Profils de joueurs et palmarès (4 stories)
+  # -------------------------------------------------------
+  epic-10: in-progress
+
+  10-1-joueurs-enregistres: done
+  10-2-ecran-joueurs: backlog
+  10-3-profil-et-palmares-d-un-joueur: backlog
+  10-4-fusionner-deux-joueurs: backlog
+
+  epic-10-retrospective: optional
+
 action_items:
   - epic: 1
     action: "Appliquer un préflight de compatibilité avant toute implémentation fonctionnelle d'une story modifiant la stack."

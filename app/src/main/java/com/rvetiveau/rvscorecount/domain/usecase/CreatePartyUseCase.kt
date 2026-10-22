@@ -5,6 +5,7 @@ import com.rvetiveau.rvscorecount.domain.model.Participant
 import com.rvetiveau.rvscorecount.domain.model.ParticipantCreationData
 import com.rvetiveau.rvscorecount.domain.model.Party
 import com.rvetiveau.rvscorecount.domain.model.PartyState
+import com.rvetiveau.rvscorecount.domain.model.duplicatePlayerName
 import com.rvetiveau.rvscorecount.domain.repository.PartyRepository
 import java.util.UUID
 import javax.inject.Inject
@@ -46,6 +47,9 @@ class CreatePartyUseCase @Inject constructor(
             }
             if (normalized.any { it.name.isBlank() }) {
                 throw InvalidPartyConfigurationException("Participant names must not be blank")
+            }
+            duplicatePlayerName(normalized.map { it.name })?.let { name ->
+                throw InvalidPartyConfigurationException("'$name' is already in the party")
             }
             if (normalized.map { it.id }.toSet().size != normalized.size) {
                 throw InvalidPartyConfigurationException("Participant ids must be unique")

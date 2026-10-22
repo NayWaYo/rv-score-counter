@@ -3,9 +3,10 @@ package com.rvetiveau.rvscorecount.data.repository
 import androidx.room.Room
 import androidx.test.platform.app.InstrumentationRegistry
 import com.rvetiveau.rvscorecount.data.db.AppDatabase
-import com.rvetiveau.rvscorecount.data.entity.ParticipantEntity
-import com.rvetiveau.rvscorecount.data.entity.PartyEntity
 import com.rvetiveau.rvscorecount.domain.model.KnownPlayer
+import com.rvetiveau.rvscorecount.domain.model.Participant
+import com.rvetiveau.rvscorecount.domain.model.Party
+import com.rvetiveau.rvscorecount.domain.model.PartyState
 import java.util.UUID
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.runTest
@@ -14,17 +15,26 @@ import org.junit.Assert.assertEquals
 import org.junit.Before
 import org.junit.Test
 
-/** The known names query groups real Participant rows across Parties of every Jeu. */
+/** The suggested names are the Joueurs (Story 10.1) of every Jeu, kept when their Parties are deleted. */
 class PlayerRepositoryImplTest {
 
     private lateinit var database: AppDatabase
+    private lateinit var parties: PartyRepositoryImpl
     private lateinit var repository: PlayerRepositoryImpl
 
     @Before
     fun setUp() {
         val context = InstrumentationRegistry.getInstrumentation().targetContext
         database = Room.inMemoryDatabaseBuilder(context, AppDatabase::class.java).build()
-        repository = PlayerRepositoryImpl(database.participantDao())
+        parties = PartyRepositoryImpl(
+            appDatabase = database,
+            partyDao = database.partyDao(),
+            participantDao = database.participantDao(),
+            roundDao = database.roundDao(),
+            roundScoreDao = database.roundScoreDao(),
+            playerDao = database.playerDao()
+        )
+        repository = PlayerRepositoryImpl(database.playerDao())
     }
 
     @After
@@ -32,46 +42,38 @@ class PlayerRepositoryImplTest {
         database.close()
     }
 
-    private suspend fun insertParty(gameId: String, createdAt: Long, vararg names: String): String {
-        val partyId = UUID.randomUUID().toString()
-        database.partyDao().insert(
-            PartyEntity(id = partyId, gameId = gameId, status = "FINISHED", currentDealerIndex = 0, createdAt = createdAt)
+    private suspend fun createParty(gameId: String, createdAt: Long, vararg names: String): UUID {
+        val party = Party(UUID.randomUUID(), gameId, PartyState.FINISHED, 0, createdAt)
+        parties.createPartyWithParticipants(
+            party,
+            names.mapIndexed { index, name -> Participant(UUID.randomUUID(), party.id, name, index) }
         )
-        database.participantDao().insertAll(
-            names.mapIndexed { index, name ->
-                ParticipantEntity(id = UUID.randomUUID().toString(), partyId = partyId, name = name, listPosition = index)
-            }
-        )
-        return partyId
+        return party.id
     }
 
     @Test
-    fun listsEachExactNameOnceWithItsLatestParty() = runTest {
-        insertParty("papayoo", createdAt = 10, "Alice", "Bob", "Chloé")
-        insertParty("belote", createdAt = 20, "Alice", "David", "Émile", "alice")
+    fun listsEachJoueurOnceWithTheirLatestPartie() = runTest {
+        createParty("papayoo", createdAt = 10, "Alice", "Bob", "Chloé")
+        createParty("belote", createdAt = 20, "alice", "David")
 
         val known = repository.observeKnownPlayers().first().sortedBy { it.name }
 
         assertEquals(
-            listOf(
-                KnownPlayer("Alice", 20),
-                KnownPlayer("Bob", 10),
-                KnownPlayer("Chloé", 10),
-                KnownPlayer("David", 20),
-                KnownPlayer("alice", 20),
-                KnownPlayer("Émile", 20)
-            ),
+            listOf(KnownPlayer("Alice", 20), KnownPlayer("Bob", 10), KnownPlayer("Chloé", 10), KnownPlayer("David", 20)),
             known
         )
     }
 
     @Test
-    fun forgetsTheNamesOfADeletedParty() = runTest {
-        insertParty("papayoo", createdAt = 10, "Alice")
-        val deleted = insertParty("papayoo", createdAt = 20, "Bob")
+    fun aJoueurWithoutAnyPartieLeftIsStillKnownWithoutADate() = runTest {
+        createParty("papayoo", createdAt = 10, "Alice")
+        val deleted = createParty("papayoo", createdAt = 20, "Bob")
 
-        database.partyDao().deleteById(deleted)
+        parties.deleteParty(deleted)
 
-        assertEquals(listOf(KnownPlayer("Alice", 10)), repository.observeKnownPlayers().first())
+        assertEquals(
+            listOf(KnownPlayer("Alice", 10), KnownPlayer("Bob", null)),
+            repository.observeKnownPlayers().first().sortedBy { it.name }
+        )
     }
 }

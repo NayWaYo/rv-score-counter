@@ -110,14 +110,15 @@ class AddParticipantUseCaseTest {
     }
 
     @Test
-    fun `rejects a blank name, a full party, a finished party and an out-of-range position without writing`() = runTest {
+    fun `rejects a blank or already seated name, a full party, a finished party and an out-of-range position without writing`() = runTest {
         val cases = listOf(
             Triple(FakePartyRepository(aParty(), players(3)), "   ", 1),
             Triple(FakePartyRepository(aParty(), players(8)), "Zoé", 1),
             Triple(FakePartyRepository(aParty(status = PartyState.FINISHED), players(3)), "Zoé", 1),
             Triple(FakePartyRepository(aParty(), players(3)), "Zoé", 4),
             Triple(FakePartyRepository(aParty(), players(3)), "Zoé", -1),
-            Triple(FakePartyRepository(null, players(3)), "Zoé", 1)
+            Triple(FakePartyRepository(null, players(3)), "Zoé", 1),
+            Triple(FakePartyRepository(aParty(), players(3)), " p1 ", 1)
         )
 
         cases.forEach { (repository, name, position) ->

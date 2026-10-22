@@ -80,7 +80,7 @@ L'application est conçue usage-first pour un groupe d'amis précis, mais avec u
 - **Partie** — Session de jeu complète entre un groupe de Participants sur un seul Jeu. Une Partie comprend une ou plusieurs Manches et se termine sur décision des joueurs.
 - **Jeu** — Type de jeu de cartes supporté par l'application (V1 : Papayoo uniquement). Chaque Jeu a ses propres règles de calcul des points et son propre nombre de Participants autorisés.
 - **Manche** — Tour de jeu au sein d'une Partie. Pour le Papayoo, chaque Manche distribue exactement 250 points entre tous les Participants.
-- **Participant** — Joueur humain enregistré pour une Partie donnée, identifié par son prénom. Le même prénom peut apparaître dans des Parties distinctes sans lien entre elles.
+- **Participant** — Joueur humain enregistré pour une Partie donnée, identifié par son prénom. Depuis l'epic 10 (2026-10-22), un même prénom (casse et espaces ignorés) désigne le même **Joueur** d'une Partie à l'autre, et ne figure qu'une fois dans une Partie.
 - **Donneur** — Participant désigné comme distributeur des cartes pour une Manche donnée. Pour le Papayoo, le Donneur de la Manche 1 est le premier Participant de la liste ; la rotation suit l'ordre de la liste pour les Manches suivantes.
 - **Score de Manche** — Points attribués à un Participant pour une Manche précise (valeur positive ou nulle pour le Papayoo).
 - **Score Cumulé** — Somme des Scores de Manche d'un Participant depuis le début de la Partie.

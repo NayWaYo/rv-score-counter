@@ -11,13 +11,21 @@ import java.util.UUID
 
 @Entity(
     tableName = "participants",
-    foreignKeys = [ForeignKey(
-        entity = PartyEntity::class,
-        parentColumns = ["id"],
-        childColumns = ["partyId"],
-        onDelete = ForeignKey.CASCADE
-    )],
-    indices = [Index("partyId")]
+    foreignKeys = [
+        ForeignKey(
+            entity = PartyEntity::class,
+            parentColumns = ["id"],
+            childColumns = ["partyId"],
+            onDelete = ForeignKey.CASCADE
+        ),
+        // A Joueur outlives their Parties: deleting one keeps them (Story 10.1).
+        ForeignKey(
+            entity = PlayerEntity::class,
+            parentColumns = ["id"],
+            childColumns = ["playerId"]
+        )
+    ],
+    indices = [Index("partyId"), Index("playerId")]
 )
 data class ParticipantEntity(
     @PrimaryKey val id: String,
@@ -25,7 +33,9 @@ data class ParticipantEntity(
     val name: String,
     val listPosition: Int,
     /** Équipe in a team game (schema v3), a [TeamSide] name; null for the Papayoo. */
-    @ColumnInfo(defaultValue = "NULL") val teamSide: String? = null
+    @ColumnInfo(defaultValue = "NULL") val teamSide: String? = null,
+    /** The Joueur this seat belongs to (schema v5). */
+    val playerId: String
 )
 
 fun ParticipantEntity.toDomain() = Participant(
@@ -36,10 +46,11 @@ fun ParticipantEntity.toDomain() = Participant(
     teamSide = teamSide?.let(TeamSide::valueOf)
 )
 
-fun Participant.toEntity() = ParticipantEntity(
+fun Participant.toEntity(playerId: String) = ParticipantEntity(
     id = id.toString(),
     partyId = partyId.toString(),
     name = name,
     listPosition = listPosition,
-    teamSide = teamSide?.name
+    teamSide = teamSide?.name,
+    playerId = playerId
 )

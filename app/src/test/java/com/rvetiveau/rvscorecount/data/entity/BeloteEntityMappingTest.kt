@@ -69,13 +69,13 @@ class BeloteEntityMappingTest {
     fun `a participant keeps its team both ways`() {
         listOf(TeamSide.FIRST, TeamSide.SECOND, null).forEach { side ->
             val participant = Participant(UUID.randomUUID(), partyId, "Alice", 0, side)
-            assertEquals(participant, participant.toEntity().toDomain())
+            assertEquals(participant, participant.toEntity(playerId = "p1").toDomain())
         }
     }
 
     @Test
     fun `an unknown participant team fails`() {
-        val entity = ParticipantEntity(UUID.randomUUID().toString(), partyId.toString(), "Alice", 0, teamSide = "THIRD")
+        val entity = ParticipantEntity(UUID.randomUUID().toString(), partyId.toString(), "Alice", 0, teamSide = "THIRD", playerId = "p1")
 
         assertThrows(IllegalArgumentException::class.java) { entity.toDomain() }
     }

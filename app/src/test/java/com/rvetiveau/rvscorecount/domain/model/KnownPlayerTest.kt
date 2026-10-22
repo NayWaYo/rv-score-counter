@@ -19,6 +19,18 @@ class KnownPlayerTest {
     }
 
     @Test
+    fun `players without any partie left come last, by name`() {
+        val known = listOf(
+            KnownPlayer("zoé", lastPlayedAt = null),
+            KnownPlayer("Bob", lastPlayedAt = 10),
+            KnownPlayer("Denis", lastPlayedAt = null),
+            KnownPlayer("Alice", lastPlayedAt = 20)
+        )
+
+        assertEquals(listOf("Alice", "Bob", "Denis", "zoé"), known.distinctPlayerNames())
+    }
+
+    @Test
     fun `suggestions start with the typed text, ignoring case and accents`() {
         val known = listOf("Hélène", "Henri", "Théo", "Éric")
 
@@ -32,6 +44,14 @@ class KnownPlayerTest {
         val known = listOf("Alice", "Bob", "Chloé")
 
         assertEquals(listOf("Chloé"), suggestPlayerNames(known, typed = "", taken = listOf("alice", " BOB ")))
+    }
+
+    @Test
+    fun `a player is known by their name without case or surrounding spaces, accents kept`() {
+        assertEquals(playerNameKey(" Alice "), playerNameKey("ALICE"))
+        assertEquals("hélène", playerNameKey("Hélène"))
+        assertEquals(null, duplicatePlayerName(listOf("Alice", "Bob", "Helene", "Hélène")))
+        assertEquals(" alice", duplicatePlayerName(listOf("Alice", "Bob", " alice", "BOB")))
     }
 
     @Test

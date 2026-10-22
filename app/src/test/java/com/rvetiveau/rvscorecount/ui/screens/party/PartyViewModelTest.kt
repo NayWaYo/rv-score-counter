@@ -510,6 +510,21 @@ class PartyViewModelTest {
     }
 
     @Test
+    fun `a name already at the table shows an error without opening the seat picker`() = runTest {
+        val partyId = UUID.randomUUID()
+        val vm = viewModel(FakePartyRepository(party = aParty(partyId), participants = listOf(aParticipant(partyId, "Alice", 0))))
+        vm.initialize(partyId)
+        vm.onAddParticipantClick()
+        vm.onAdditionNameChanged(" ALICE")
+
+        vm.onAdditionNameConfirmed()
+
+        val addition = loadedState(vm).addition!!
+        assertEquals(R.string.setup_error_duplicate_name, addition.errorRes)
+        assertTrue(!addition.isChoosingPosition)
+    }
+
+    @Test
     fun `a failed insertion keeps the seat picker open with an error`() = runTest {
         val partyId = UUID.randomUUID()
         val repository = FakePartyRepository(party = aParty(partyId), participants = listOf(aParticipant(partyId, "Alice", 0)))

@@ -5,6 +5,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.rvetiveau.rvscorecount.R
 import com.rvetiveau.rvscorecount.domain.model.ParticipantCreationData
+import com.rvetiveau.rvscorecount.domain.model.duplicatePlayerName
 import com.rvetiveau.rvscorecount.domain.usecase.CreatePartyUseCase
 import com.rvetiveau.rvscorecount.domain.usecase.GetAvailableGamesUseCase
 import com.rvetiveau.rvscorecount.domain.usecase.InvalidPartyConfigurationException
@@ -83,6 +84,8 @@ class SetupViewModel @Inject constructor(
         val trimmedName = name.trim()
         when {
             trimmedName.isEmpty() -> setMessage(R.string.setup_error_empty_name)
+            duplicatePlayerName(state.participants.map { it.name } + trimmedName) != null ->
+                setMessage(R.string.setup_error_duplicate_name)
             !state.canAdd -> setMessage(R.string.setup_max_players_reached)
             else -> _uiState.update {
                 it.copy(

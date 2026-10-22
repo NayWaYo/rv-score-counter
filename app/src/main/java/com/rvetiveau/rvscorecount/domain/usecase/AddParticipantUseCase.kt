@@ -3,6 +3,7 @@ package com.rvetiveau.rvscorecount.domain.usecase
 import com.rvetiveau.rvscorecount.domain.engine.GameEngine
 import com.rvetiveau.rvscorecount.domain.model.Participant
 import com.rvetiveau.rvscorecount.domain.model.PartyState
+import com.rvetiveau.rvscorecount.domain.model.duplicatePlayerName
 import com.rvetiveau.rvscorecount.domain.repository.PartyRepository
 import java.util.UUID
 import javax.inject.Inject
@@ -59,6 +60,9 @@ class AddParticipantUseCase @Inject constructor(
             val participants = partyRepository.getParticipantsByPartyId(partyId)
             if (participants.map { it.listPosition }.sorted() != participants.indices.toList()) {
                 throw InvalidParticipantAdditionException("Participant positions are not continuous")
+            }
+            if (duplicatePlayerName(participants.map { it.name } + trimmed) != null) {
+                throw InvalidParticipantAdditionException("'$trimmed' is already in the party")
             }
             if (participants.size >= engine.maxPlayers) {
                 throw InvalidParticipantAdditionException("Party already has ${engine.maxPlayers} participants")

@@ -7,6 +7,7 @@ import com.rvetiveau.rvscorecount.domain.model.Party
 import com.rvetiveau.rvscorecount.domain.model.PartyState
 import com.rvetiveau.rvscorecount.domain.model.Team
 import com.rvetiveau.rvscorecount.domain.model.TeamSide
+import com.rvetiveau.rvscorecount.domain.model.duplicatePlayerName
 import com.rvetiveau.rvscorecount.domain.repository.BeloteRepository
 import com.rvetiveau.rvscorecount.domain.repository.PartyRepository
 import kotlinx.coroutines.CancellationException
@@ -34,6 +35,9 @@ class CreateBelotePartyUseCase @Inject constructor(
         }
         if (normalized.any { team -> team.name.isBlank() || team.playerNames.any(String::isBlank) }) {
             throw InvalidPartyConfigurationException("Team and player names must not be blank")
+        }
+        duplicatePlayerName(normalized.flatMap { it.playerNames })?.let { name ->
+            throw InvalidPartyConfigurationException("'$name' is already in the party")
         }
 
         val party = Party(

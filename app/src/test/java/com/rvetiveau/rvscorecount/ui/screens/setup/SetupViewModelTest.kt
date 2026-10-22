@@ -206,16 +206,6 @@ class SetupViewModelTest {
     }
 
     @Test
-    fun `accepts duplicate names`() {
-        val vm = viewModel()
-
-        vm.addName("Alice")
-        vm.addName("Alice")
-
-        assertEquals(listOf("Alice", "Alice"), vm.uiState.value.participants.map { it.name })
-    }
-
-    @Test
     fun `canStart toggles exactly at the engine minimum`() {
         val vm = viewModel(FakeGameEngine("papayoo", minPlayers = 2, maxPlayers = 8))
 
@@ -442,6 +432,17 @@ class SetupViewModelTest {
         vm.onNameChanged("he")
 
         assertEquals(listOf("Hélène", "Henri"), vm.uiState.value.nameSuggestions)
+    }
+
+    @Test
+    fun `a name already in the draft is refused with a message`() = runTest {
+        val vm = viewModel()
+        vm.addName("Alice")
+
+        vm.addName(" alice ")
+
+        assertEquals(listOf("Alice"), vm.uiState.value.participants.map { it.name })
+        assertEquals(R.string.setup_error_duplicate_name, vm.uiState.value.messageRes)
     }
 
     @Test

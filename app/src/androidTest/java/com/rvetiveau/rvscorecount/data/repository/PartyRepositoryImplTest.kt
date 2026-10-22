@@ -36,7 +36,8 @@ class PartyRepositoryImplTest {
             partyDao = database.partyDao(),
             participantDao = database.participantDao(),
             roundDao = database.roundDao(),
-            roundScoreDao = database.roundScoreDao()
+            roundScoreDao = database.roundScoreDao(),
+            playerDao = database.playerDao()
         )
     }
 
@@ -98,6 +99,48 @@ class PartyRepositoryImplTest {
         assertTrue(thrown != null)
         assertNull(repository.getPartyById(party.id))
         assertTrue(repository.getParticipantsByPartyId(party.id).isEmpty())
+        // The Joueurs created for this Partie roll back with it (Story 10.1).
+        assertTrue(database.playerDao().getAll().isEmpty())
+    }
+
+    // --- Joueurs (Story 10.1) ---
+
+    private suspend fun playerIdsOf(partyId: UUID): Map<String, String> =
+        database.participantDao().getByPartyId(partyId.toString()).associate { it.name to it.playerId }
+
+    @Test
+    fun eachNameIsLinkedToOneJoueurReusedFromPartieToPartie() = runTest {
+        val first = aParty()
+        repository.createPartyWithParticipants(first, listOf(aParticipant(first.id, "Alice", 0), aParticipant(first.id, "Bob", 1)))
+        val second = aParty()
+        repository.createPartyWithParticipants(second, listOf(aParticipant(second.id, " alice ", 0), aParticipant(second.id, "Chloé", 1)))
+
+        val players = database.playerDao().getAll()
+        assertEquals(setOf("Alice", "Bob", "Chloé"), players.map { it.name }.toSet())
+        assertEquals(playerIdsOf(first.id).getValue("Alice"), playerIdsOf(second.id).getValue(" alice "))
+    }
+
+    @Test
+    fun aLateParticipantIsLinkedToTheirJoueur() = runTest {
+        val earlier = aParty()
+        repository.createPartyWithParticipants(earlier, listOf(aParticipant(earlier.id, "Denis", 0)))
+        val party = aParty()
+        repository.createPartyWithParticipants(party, listOf(aParticipant(party.id, "Alice", 0)))
+
+        repository.addParticipant(aParticipant(party.id, "DENIS", 1), party)
+
+        assertEquals(playerIdsOf(earlier.id).getValue("Denis"), playerIdsOf(party.id).getValue("DENIS"))
+        assertEquals(2, database.playerDao().getAll().size)
+    }
+
+    @Test
+    fun deletingAPartieKeepsItsJoueurs() = runTest {
+        val party = aParty()
+        repository.createPartyWithParticipants(party, listOf(aParticipant(party.id, "Alice", 0)))
+
+        repository.deleteParty(party.id)
+
+        assertEquals(listOf("Alice"), database.playerDao().getAll().map { it.name })
     }
 
     // --- Qui a eu le 40 ---

@@ -39,7 +39,8 @@ class BeloteRepositoryImplTest {
             partyDao = database.partyDao(),
             participantDao = database.participantDao(),
             teamDao = database.teamDao(),
-            beloteRoundDao = database.beloteRoundDao()
+            beloteRoundDao = database.beloteRoundDao(),
+            playerDao = database.playerDao()
         )
     }
 

@@ -21,6 +21,7 @@
     <string name="player_suggestion_content_description">Ajouter %1$s</string>
     <string name="setup_add_button">Ajouter</string>
     <string name="setup_error_empty_name">Veuillez entrer un prénom</string>
+    <string name="setup_error_duplicate_name">Ce prénom est déjà dans la partie</string>
     <string name="setup_participant_count">%1$d/%2$d à %3$d</string>
     <string name="setup_max_players_reached">Maximum %1$d joueurs atteint</string>
     <string name="setup_start_button">Commencer</string>

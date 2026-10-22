@@ -685,3 +685,83 @@ Afin que l'application compte mes points à ma place.
 **And** un atout déjà confirmé pour un autre Participant de la Manche bloque la confirmation
 **And** confirmer écrit la somme des atouts, plus 40 pour le détenteur du 7, dans le champ ; changer le détenteur recalcule ces scores
 **And** les 11 photos de référence donnent exactement leurs atouts dans un test instrumenté
+
+## Epic 10: Profils de joueurs et palmarès
+
+Idée de l'utilisateur, reprise de la proposition n°4 du 2026-10-22 : suivre chaque joueur d'une Partie à l'autre et afficher son palmarès sur tous les Jeux. Aujourd'hui, un Participant n'est qu'un prénom propre à sa Partie, et les prénoms suggérés à la création (commit 65f04ac) se lisent dans les Parties enregistrées : supprimer une Partie fait oublier ses prénoms. Cet epic introduit un Joueur durable, auquel chaque Participant est rattaché.
+
+Choix validés par l'utilisateur le 2026-10-22, avec les statistiques du palmarès (Story 10.3) :
+- deux prénoms qui ne diffèrent que par la casse ou les espaces autour (« Alice », « alice ») sont le même Joueur ; « Val » et « Valentin » restent deux Joueurs, que la story 10.4 permet de fusionner ;
+- renommer un Joueur renomme ses Participants dans toutes ses Parties, Historique compris ;
+- le palmarès ne compte que les Parties terminées ; une Partie en cours n'y entre qu'une fois close.
+
+### Story 10.1: Joueurs enregistrés
+
+En tant qu'utilisateur,
+Je veux que l'application reconnaisse un joueur d'une Partie à l'autre,
+Afin que son historique et ses statistiques le suivent.
+
+**Acceptance Criteria:**
+
+**Given** le schéma Room en version 4
+**When** l'application passe en version 5
+**Then** une table `players` (identifiant UUID, prénom, date de création) apparaît, et `participants.playerId` rattache chaque Participant à un Joueur
+**And** une migration 4 → 5 écrite à la main crée un Joueur par prénom distinct des Parties existantes (casse et espaces ignorés, orthographe de la Partie la plus récente) et y rattache tous les Participants, sans perte, testée sur une base réelle de version 4
+**And** créer une Partie (Papayoo ou Belote) ou ajouter un Participant en cours de Partie rattache chaque prénom au Joueur existant de même prénom, ou crée ce Joueur, dans la même transaction que la Partie
+**And** supprimer une Partie ne supprime aucun Joueur : les prénoms suggérés à la création viennent désormais des Joueurs, du plus récemment joué au plus ancien, ceux sans Partie restante en fin de liste
+
+### Story 10.2: Écran « Joueurs »
+
+En tant qu'utilisateur,
+Je veux voir la liste des joueurs et pouvoir renommer l'un d'eux,
+Afin de garder des prénoms propres d'une soirée à l'autre.
+
+**Acceptance Criteria:**
+
+**Given** l'écran d'accueil
+**When** il s'affiche
+**Then** une icône « Joueurs » dans l'en-tête (à côté de l'Historique) ouvre la liste des Joueurs, avec pour chacun son nombre de Parties terminées et la date de sa dernière Partie, le plus récent d'abord
+**And** une liste vide affiche son propre message
+**And** renommer un Joueur met à jour son prénom et celui de tous ses Participants en une transaction ; un prénom vide ou déjà porté par un autre Joueur (casse et espaces ignorés) est refusé avec un message
+**And** toucher un Joueur ouvre son profil (Story 10.3)
+
+### Story 10.3: Profil et palmarès d'un Joueur
+
+En tant qu'utilisateur,
+Je veux consulter le palmarès d'un joueur sur toutes ses Parties,
+Afin de savoir qui gagne le plus et de chambrer les autres.
+
+**Acceptance Criteria:**
+
+**Given** le profil d'un Joueur
+**When** il s'affiche
+**Then** un résumé indique ses Parties terminées et la date de sa dernière Partie, tous Jeux confondus
+**And** chaque Jeu a sa section, présente seulement si le Joueur y a terminé au moins une Partie, dont la statistique principale, mise en avant, est le **taux de victoire** (victoires / Parties terminées de ce Jeu, avec les deux nombres)
+
+**Given** la section Papayoo
+**Then** une victoire est une Partie terminée au plus petit Score Cumulé, égalités comprises
+**And** les **40 pris** montrent leur total et la part des Manches où le Joueur a pris le 40, en pourcentage ; seules les Manches où le détenteur du 7 est noté comptent
+**And** les **Manches à 0 point** montrent leur part des Manches jouées, en pourcentage, avec leur nombre
+**And** la **pire Manche** montre son score, avec le Jeu et la date de sa Partie ; à égalité, la plus ancienne
+**And** les **Manches à 250** (le Joueur a pris tous les points de la Manche) montrent leur nombre total, 0 compris
+
+**Given** la section Belote
+**Then** une victoire est une Partie terminée gagnée par l'Équipe du Joueur
+**And** les **prises** montrent leur nombre moyen par Partie et le **taux de contrats remplis** (prises faites / prises, même règle que « 🗿 Chad de la game ») ; seules les Manches où le joueur preneur est noté comptent
+**And** le **meilleur et le pire coéquipier** sont les coéquipiers au plus haut et au plus bas taux de victoire avec le Joueur, avec ce taux et le nombre de Parties ensemble ; à égalité de taux, le plus de Parties ensemble passe devant, puis l'ordre alphabétique ; avec un seul coéquipier, seul « meilleur coéquipier » s'affiche
+
+**And** les calculs vivent dans le domaine, réutilisent les statistiques par Partie existantes et sont couverts par des tests JVM (taux sans Partie, égalités, Manches sans 7 ou sans preneur noté)
+
+### Story 10.4: Fusionner deux Joueurs
+
+En tant qu'utilisateur,
+Je veux réunir deux joueurs qui sont la même personne,
+Afin que « Val » et « Valentin » n'aient qu'un seul palmarès.
+
+**Acceptance Criteria:**
+
+**Given** le profil d'un Joueur
+**When** je choisis « Fusionner avec… » puis un autre Joueur, et que je confirme
+**Then** tous les Participants du second sont rattachés au premier, renommés à son prénom, et le second Joueur disparaît, en une transaction
+**And** la fusion est refusée si les deux Joueurs ont joué dans une même Partie, avec un message nommant cette Partie
+**And** un Joueur sans aucune Partie peut être supprimé depuis son profil, après confirmation

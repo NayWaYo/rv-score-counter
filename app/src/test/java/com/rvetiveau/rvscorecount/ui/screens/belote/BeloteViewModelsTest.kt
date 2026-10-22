@@ -113,6 +113,18 @@ class BeloteViewModelsTest {
     }
 
     @Test
+    fun `setup cannot start with the same player twice`() {
+        val viewModel = setupViewModel()
+        viewModel.fillPlayers()
+        assertFalse(viewModel.uiState.value.hasDuplicatePlayer)
+
+        viewModel.onPlayerNameChanged(team = 1, seat = 1, name = "alice ")
+
+        assertTrue(viewModel.uiState.value.hasDuplicatePlayer)
+        assertFalse(viewModel.uiState.value.canStart)
+    }
+
+    @Test
     fun `setup cannot start with a missing name or an invalid end value`() {
         val viewModel = setupViewModel()
         assertFalse(viewModel.uiState.value.canStart)

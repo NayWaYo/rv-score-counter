@@ -73,6 +73,14 @@ fun BeloteSetupScreen(
                 onPlayerNameChanged = onPlayerNameChanged
             )
         }
+        if (state.hasDuplicatePlayer) {
+            Text(
+                text = stringResource(R.string.setup_error_duplicate_name),
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.error,
+                modifier = Modifier.testTag("belote_setup_duplicate_player")
+            )
+        }
         EndRuleSection(state = state, onEndModeChanged = onEndModeChanged, onEndValueChanged = onEndValueChanged)
         TableOrder(state.tableOrder, state.teamNames)
         state.creationErrorRes?.let { errorRes ->

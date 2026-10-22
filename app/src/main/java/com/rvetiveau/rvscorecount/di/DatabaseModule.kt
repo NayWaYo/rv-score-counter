@@ -5,10 +5,12 @@ import androidx.room.Room
 import com.rvetiveau.rvscorecount.data.dao.BeloteRoundDao
 import com.rvetiveau.rvscorecount.data.dao.ParticipantDao
 import com.rvetiveau.rvscorecount.data.dao.PartyDao
+import com.rvetiveau.rvscorecount.data.dao.PlayerDao
 import com.rvetiveau.rvscorecount.data.dao.RoundDao
 import com.rvetiveau.rvscorecount.data.dao.RoundScoreDao
 import com.rvetiveau.rvscorecount.data.dao.TeamDao
 import com.rvetiveau.rvscorecount.data.db.AppDatabase
+import com.rvetiveau.rvscorecount.data.db.MANUAL_MIGRATIONS
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
@@ -24,6 +26,7 @@ object DatabaseModule {
     @Singleton
     fun provideDatabase(@ApplicationContext context: Context): AppDatabase =
         Room.databaseBuilder(context, AppDatabase::class.java, "rv_score_counter.db")
+            .addMigrations(*MANUAL_MIGRATIONS)
             .build()
 
     @Provides
@@ -49,4 +52,8 @@ object DatabaseModule {
     @Provides
     @Singleton
     fun provideBeloteRoundDao(db: AppDatabase): BeloteRoundDao = db.beloteRoundDao()
+
+    @Provides
+    @Singleton
+    fun providePlayerDao(db: AppDatabase): PlayerDao = db.playerDao()
 }

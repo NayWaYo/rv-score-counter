@@ -189,6 +189,17 @@ class CreatePartyUseCaseTest {
     }
 
     @Test
+    fun `fails when two participants share a name, case and spaces ignored`() = runTest {
+        val repository = FakePartyRepository()
+        val engine = FakeGameEngine("papayoo", minPlayers = 1, maxPlayers = 8)
+        val useCase = CreatePartyUseCase(repository, mapOf("papayoo" to engine))
+
+        val result = useCase("papayoo", listOf(draft("Alice"), draft("Bob"), draft(" alice ")))
+
+        assertTrue(result.exceptionOrNull() is InvalidPartyConfigurationException)
+    }
+
+    @Test
     fun `fails when the requested gameId is not registered`() = runTest {
         val repository = FakePartyRepository()
         val useCase = CreatePartyUseCase(repository, mapOf("belote" to FakeGameEngine("belote")))

@@ -2,6 +2,7 @@ package com.rvetiveau.rvscorecount.ui.screens.belote
 
 import androidx.annotation.StringRes
 import com.rvetiveau.rvscorecount.domain.model.BeloteEndRule
+import com.rvetiveau.rvscorecount.domain.model.duplicatePlayerName
 import com.rvetiveau.rvscorecount.domain.model.suggestPlayerNames
 
 enum class BeloteEndMode { TARGET_SCORE, ROUND_COUNT }
@@ -50,10 +51,15 @@ data class BeloteSetupUiState(
             emptyList()
         }
 
+    /** Two seats with the same name (case and spaces ignored): one Joueur cannot sit twice (Story 10.1). */
+    val hasDuplicatePlayer: Boolean
+        get() = duplicatePlayerName(playerNames.flatten().filter(String::isNotBlank)) != null
+
     val canStart: Boolean
         get() = isInitialized &&
             teamNames.all(String::isNotBlank) &&
             playerNames.flatten().all(String::isNotBlank) &&
+            !hasDuplicatePlayer &&
             endRule != null &&
             !isCreatingParty &&
             !creationCompleted

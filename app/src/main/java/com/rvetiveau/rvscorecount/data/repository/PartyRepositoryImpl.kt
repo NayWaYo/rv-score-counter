@@ -3,6 +3,8 @@ package com.rvetiveau.rvscorecount.data.repository
 import androidx.room.withTransaction
 import com.rvetiveau.rvscorecount.data.dao.ParticipantDao
 import com.rvetiveau.rvscorecount.data.dao.PartyDao
+import com.rvetiveau.rvscorecount.data.dao.PlayerDao
+import com.rvetiveau.rvscorecount.data.dao.playerIdFor
 import com.rvetiveau.rvscorecount.data.dao.RoundDao
 import com.rvetiveau.rvscorecount.data.dao.RoundScoreDao
 import com.rvetiveau.rvscorecount.data.db.AppDatabase
@@ -26,7 +28,8 @@ class PartyRepositoryImpl @Inject constructor(
     private val partyDao: PartyDao,
     private val participantDao: ParticipantDao,
     private val roundDao: RoundDao,
-    private val roundScoreDao: RoundScoreDao
+    private val roundScoreDao: RoundScoreDao,
+    private val playerDao: PlayerDao
 ) : PartyRepository {
 
     override suspend fun createParty(party: Party) {
@@ -42,7 +45,7 @@ class PartyRepositoryImpl @Inject constructor(
     override suspend fun createPartyWithParticipants(party: Party, participants: List<Participant>) {
         appDatabase.withTransaction {
             partyDao.insert(party.toEntity())
-            participantDao.insertAll(participants.map { it.toEntity() })
+            participantDao.insertAll(participants.map { it.toEntity(playerDao.playerIdFor(it.name)) })
         }
     }
 
@@ -67,7 +70,7 @@ class PartyRepositoryImpl @Inject constructor(
 
         appDatabase.withTransaction {
             participantDao.shiftPositionsFrom(participant.partyId.toString(), participant.listPosition)
-            participantDao.insert(participant.toEntity())
+            participantDao.insert(participant.toEntity(playerDao.playerIdFor(participant.name)))
             partyDao.update(updatedParty.toEntity())
         }
     }
