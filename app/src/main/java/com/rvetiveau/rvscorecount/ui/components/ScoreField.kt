@@ -54,7 +54,8 @@ fun ScoreField(
     modifier: Modifier = Modifier,
     focusRequester: FocusRequester? = null,
     suggestion: Int? = null,
-    isError: Boolean = false
+    isError: Boolean = false,
+    onScan: (() -> Unit)? = null
 ) {
     val shownSuggestion = suggestion?.takeIf { value.isEmpty() }
     val accessibilityLabel = if (shownSuggestion != null) {
@@ -134,5 +135,20 @@ fun ScoreField(
                 .semantics { contentDescription = accessibilityLabel }
                 .testTag("score_field_$participantId")
         )
+        if (onScan != null) {
+            IconButton(
+                onClick = onScan,
+                modifier = Modifier
+                    .size(48.dp)
+                    .testTag("score_field_scan_$participantId")
+            ) {
+                Icon(
+                    painter = painterResource(R.drawable.ic_photo_camera),
+                    contentDescription = stringResource(R.string.score_field_scan, participantName),
+                    tint = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.size(24.dp)
+                )
+            }
+        }
     }
 }

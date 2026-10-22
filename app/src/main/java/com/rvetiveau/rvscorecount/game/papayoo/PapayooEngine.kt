@@ -14,6 +14,9 @@ class PapayooEngine @Inject constructor() : GameEngine {
     override val totalPointsPerRound: Int = 250
     override val suitSevenPoints: Int = 40
 
+    /** The 20 Payoo, 210 points; with the 7 they make the 250 of a round. */
+    override val faceValueCards: IntRange = 1..20
+
     /** 60 cards; at 7 and 8 players the four suit 1s are taken out (56 cards), the Payoo 1 stays. */
     override fun dealingRules(playerCount: Int): DealingRules? = when (playerCount) {
         3 -> DealingRules(cardsPerPlayer = 20, cardsPassed = 5)

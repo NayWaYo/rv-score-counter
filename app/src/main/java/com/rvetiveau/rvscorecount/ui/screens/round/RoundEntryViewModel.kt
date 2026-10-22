@@ -10,6 +10,7 @@ import com.rvetiveau.rvscorecount.domain.model.PartyState
 import com.rvetiveau.rvscorecount.domain.model.computeStandings
 import com.rvetiveau.rvscorecount.domain.model.sevenChampion
 import com.rvetiveau.rvscorecount.domain.repository.PartyRepository
+import com.rvetiveau.rvscorecount.domain.scan.TrumpReader
 import com.rvetiveau.rvscorecount.domain.usecase.CorrectRoundOutcome
 import com.rvetiveau.rvscorecount.domain.usecase.CorrectRoundUseCase
 import com.rvetiveau.rvscorecount.domain.usecase.GetAvailableGamesUseCase
@@ -22,6 +23,7 @@ import dagger.hilt.android.lifecycle.HiltViewModel
 import java.util.UUID
 import javax.inject.Inject
 import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -48,7 +50,8 @@ class RoundEntryViewModel @Inject constructor(
     private val savedStateHandle: SavedStateHandle,
     private val getAvailableGamesUseCase: GetAvailableGamesUseCase,
     private val validateRoundUseCase: ValidateRoundUseCase,
-    private val correctRoundUseCase: CorrectRoundUseCase
+    private val correctRoundUseCase: CorrectRoundUseCase,
+    private val trumpReader: TrumpReader
 ) : ViewModel() {
 
     private val restoredSuit: CardSuit? = savedStateHandle.get<String>(SUIT_KEY)?.let { name ->
@@ -61,9 +64,17 @@ class RoundEntryViewModel @Inject constructor(
     private val _navigationEvents = Channel<NavigationEvent>(Channel.BUFFERED)
     val navigationEvents: Flow<NavigationEvent> = _navigationEvents.receiveAsFlow()
 
+    /** Each element asks the screen to open the camera for a photo of trumps (Story 9.1). */
+    private val _photoRequests = Channel<Unit>(Channel.BUFFERED)
+    val photoRequests: Flow<Unit> = _photoRequests.receiveAsFlow()
+
     private var initializedPartyId: UUID? = null
     private var initializedRoundNumber: Int? = null
     private var gameEngine: GameEngine? = null
+
+    /** Whose trumps the photo being taken shows; null while the camera is not open for a scan. */
+    private var photoParticipantId: UUID? = null
+    private var readingJob: Job? = null
 
     /** Idempotent: a recomposition never re-triggers the Room read for the same partyId and Manche.
      * With [correctedRoundNumber], the form reopens that validated Manche with its stored scores,
@@ -126,7 +137,8 @@ class RoundEntryViewModel @Inject constructor(
                     totalPointsPerRound = engine.totalPointsPerRound,
                     sevenPoints = engine.suitSevenPoints,
                     sevenHolderId = restoredSevenHolderId(ordered).takeIf { engine.suitSevenPoints != null },
-                    summary = loadSummary(partyId, participants, party.currentDealerIndex)
+                    summary = loadSummary(partyId, participants, party.currentDealerIndex),
+                    faceValueCards = engine.faceValueCards
                 )
                 val content = withSuggestion(restoredContent, engine)
 
@@ -179,7 +191,8 @@ class RoundEntryViewModel @Inject constructor(
             totalPointsPerRound = engine.totalPointsPerRound,
             sevenPoints = engine.suitSevenPoints,
             sevenHolderId = (restoredSevenHolderId(players) ?: round.sevenHolderId)
-                .takeIf { engine.suitSevenPoints != null }
+                .takeIf { engine.suitSevenPoints != null },
+            faceValueCards = engine.faceValueCards
         )
         _uiState.value = _uiState.value.copy(
             suit = round.suit,
@@ -225,18 +238,29 @@ class RoundEntryViewModel @Inject constructor(
         _uiState.value = _uiState.value.copy(panel = next)
     }
 
-    /** Records who took the 7 of the die's suit; ignored when the game has none or the id is unknown. */
+    /** Records who took the 7 of the die's suit; ignored when the game has none or the id is unknown.
+     * The scores that come from a scan follow: the 7's points move to the new holder (Story 9.1). */
     fun onSevenHolderSelected(participantId: UUID) {
         if (_uiState.value.isSaving) return
         val content = _uiState.value.content ?: return
         if (content.sevenPoints == null || content.participants.none { it.id == participantId }) return
         _uiState.value = _uiState.value.copy(content = content.copy(sevenHolderId = participantId), saveError = false)
         savedStateHandle[SEVEN_HOLDER_KEY] = participantId.toString()
+
+        val engine = gameEngine ?: return
+        content.scannedTrumps.forEach { (scannedId, trumps) ->
+            val score = engine.scoreOfCards(trumps, tookSuitSeven = scannedId == participantId)
+            setScore(scannedId, score.toString(), scannedTrumps = trumps)
+        }
+        _uiState.value.scan?.let { scan -> _uiState.value = _uiState.value.copy(scan = withScore(scan)) }
     }
 
     /** Updates only the targeted Participant's draft (AC 3, 4); unknown ids and invalid raw
-     * values (signs, letters, decimals, Int overflow) are ignored rather than transformed. */
-    fun onScoreChanged(participantId: UUID, rawValue: String) {
+     * values (signs, letters, decimals, Int overflow) are ignored rather than transformed. A score
+     * typed by hand no longer comes from a scan: its trumps are forgotten (Story 9.1). */
+    fun onScoreChanged(participantId: UUID, rawValue: String) = setScore(participantId, rawValue, scannedTrumps = null)
+
+    private fun setScore(participantId: UUID, rawValue: String, scannedTrumps: Set<Int>?) {
         if (_uiState.value.isSaving) return
         val content = _uiState.value.content ?: return
         val engine = gameEngine ?: return
@@ -244,11 +268,92 @@ class RoundEntryViewModel @Inject constructor(
         val isValid = rawValue.isEmpty() || (rawValue.all(Char::isDigit) && rawValue.toIntOrNull() != null)
         if (!isValid) return
 
-        val nextContent = withSuggestion(content.copy(scores = content.scores + (participantId to rawValue)), engine)
+        val trumps = if (scannedTrumps == null) {
+            content.scannedTrumps - participantId
+        } else {
+            content.scannedTrumps + (participantId to scannedTrumps)
+        }
+        val nextContent = withSuggestion(
+            content.copy(scores = content.scores + (participantId to rawValue), scannedTrumps = trumps),
+            engine
+        )
         _uiState.value = _uiState.value.copy(content = nextContent, saveError = false)
 
         val key = "$SCORE_KEY_PREFIX$participantId"
         if (rawValue.isEmpty()) savedStateHandle.remove<String>(key) else savedStateHandle[key] = rawValue
+    }
+
+    /** Opens the camera for a photo of [participantId]'s trumps, when the game can count them. */
+    fun onScanRequested(participantId: UUID) {
+        val state = _uiState.value
+        val content = state.content ?: return
+        if (state.isSaving || content.faceValueCards == null || content.participants.none { it.id == participantId }) return
+        photoParticipantId = participantId
+        _photoRequests.trySend(Unit)
+    }
+
+    /** Back from the camera; [photoPath] is null when no photo was taken, which changes nothing. */
+    fun onPhotoTaken(photoPath: String?) {
+        val participantId = photoParticipantId ?: return
+        photoParticipantId = null
+        val range = _uiState.value.content?.faceValueCards ?: return
+        if (photoPath == null) return
+
+        _uiState.value = _uiState.value.copy(scan = TrumpScan(participantId))
+        readingJob?.cancel()
+        readingJob = viewModelScope.launch {
+            val trumps = try {
+                trumpReader.read(photoPath, range)
+            } catch (cancellation: CancellationException) {
+                throw cancellation
+            } catch (_: Exception) {
+                null
+            }
+            val scan = _uiState.value.scan?.takeIf { it.participantId == participantId && it.isReading } ?: return@launch
+            val read = scan.copy(
+                isReading = false,
+                selected = trumps.orEmpty(),
+                readFailed = trumps == null,
+                nothingRecognized = trumps?.isEmpty() == true
+            )
+            _uiState.value = _uiState.value.copy(scan = withScore(read))
+        }
+    }
+
+    fun onScanTrumpToggled(trump: Int) {
+        val scan = _uiState.value.scan?.takeUnless { it.isReading } ?: return
+        if (_uiState.value.content?.faceValueCards?.contains(trump) != true) return
+        val selected = if (trump in scan.selected) scan.selected - trump else scan.selected + trump
+        _uiState.value = _uiState.value.copy(scan = withScore(scan.copy(selected = selected)))
+    }
+
+    /** « Reprendre la photo »: the confirmation stays as it is until a new photo replaces it. */
+    fun onScanRetake() {
+        val scan = _uiState.value.scan?.takeUnless { it.isReading } ?: return
+        photoParticipantId = scan.participantId
+        _photoRequests.trySend(Unit)
+    }
+
+    fun onScanDismissed() {
+        readingJob?.cancel()
+        photoParticipantId = null
+        _uiState.value = _uiState.value.copy(scan = null)
+    }
+
+    /** Writes the scanned score; refused while a checked trump is already another Participant's. */
+    fun onScanConfirmed() {
+        val scan = _uiState.value.scan?.takeUnless { it.isReading } ?: return
+        val content = _uiState.value.content ?: return
+        val takenByOthers = content.trumpsTakenByOthers(scan.participantId)
+        if (scan.selected.any { it in takenByOthers }) return
+        setScore(scan.participantId, scan.score.toString(), scannedTrumps = scan.selected)
+        _uiState.value = _uiState.value.copy(scan = null)
+    }
+
+    private fun withScore(scan: TrumpScan): TrumpScan {
+        val engine = gameEngine ?: return scan
+        val includesSeven = _uiState.value.content?.sevenHolderId == scan.participantId
+        return scan.copy(score = engine.scoreOfCards(scan.selected, includesSeven), includesSeven = includesSeven)
     }
 
     /** Persists the Manche through [ValidateRoundUseCase] (Story 3.4, AC 1-7), or the correction

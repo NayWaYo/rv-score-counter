@@ -10,6 +10,7 @@ import com.rvetiveau.rvscorecount.domain.model.PartyState
 import com.rvetiveau.rvscorecount.domain.model.Round
 import com.rvetiveau.rvscorecount.domain.model.RoundScore
 import com.rvetiveau.rvscorecount.domain.repository.PartyRepository
+import com.rvetiveau.rvscorecount.domain.scan.TrumpReader
 import com.rvetiveau.rvscorecount.domain.usecase.CorrectRoundUseCase
 import com.rvetiveau.rvscorecount.domain.usecase.GetAvailableGamesUseCase
 import com.rvetiveau.rvscorecount.domain.usecase.RollDieUseCase
@@ -137,15 +138,31 @@ class RoundEntryViewModelTest {
         validateRoundUseCase: ValidateRoundUseCase = ValidateRoundUseCase(
             partyRepository,
             mapOf(PapayooEngine.GAME_ID to PapayooEngine())
-        )
+        ),
+        trumpReader: TrumpReader = FakeTrumpReader()
     ) = RoundEntryViewModel(
         partyRepository,
         rollDieUseCase,
         savedStateHandle,
         getAvailableGamesUseCase,
         validateRoundUseCase,
-        CorrectRoundUseCase(partyRepository, mapOf(PapayooEngine.GAME_ID to PapayooEngine()))
+        CorrectRoundUseCase(partyRepository, mapOf(PapayooEngine.GAME_ID to PapayooEngine())),
+        trumpReader
     )
+
+    /** Reads [result] on any photo, or throws [failure]. */
+    private class FakeTrumpReader(
+        var result: Set<Int> = emptySet(),
+        var failure: Throwable? = null
+    ) : TrumpReader {
+        val readPaths = mutableListOf<String>()
+
+        override suspend fun read(photoPath: String, numbers: IntRange): Set<Int> {
+            readPaths += photoPath
+            failure?.let { throw it }
+            return result
+        }
+    }
 
     private fun initializedViewModel(
         savedStateHandle: SavedStateHandle = SavedStateHandle(),
@@ -1110,5 +1127,162 @@ class RoundEntryViewModelTest {
 
         assertTrue(state.loadError)
         assertNull(state.content)
+    }
+
+    // --- Story 9.1 trump scan ---
+
+    private inner class ScanFixture(
+        val reader: FakeTrumpReader = FakeTrumpReader(),
+        engine: GameEngine = PapayooEngine()
+    ) {
+        val partyId: UUID = UUID.randomUUID()
+        val alice = aParticipant(partyId, "Alice", 0)
+        val bob = aParticipant(partyId, "Bob", 1)
+        val chloe = aParticipant(partyId, "Chloé", 2)
+        val vm = viewModel(
+            partyRepository = FakePartyRepository(aParty(partyId), listOf(alice, bob, chloe)),
+            getAvailableGamesUseCase = GetAvailableGamesUseCase(mapOf(PapayooEngine.GAME_ID to engine)),
+            trumpReader = reader
+        ).also { it.initialize(partyId) }
+
+        val scan: TrumpScan? get() = vm.uiState.value.scan
+        val content: RoundEntryContent get() = vm.uiState.value.content!!
+
+        /** Photographs [participant]'s trumps and lets the reader read [read]. */
+        fun scan(participant: Participant, read: Set<Int>) {
+            reader.result = read
+            vm.onScanRequested(participant.id)
+            vm.onPhotoTaken("photo-${participant.name}.jpg")
+        }
+    }
+
+    @Test
+    fun `a scan request asks for a photo, and the photo is read into a confirmation`() = runTest {
+        val fixture = ScanFixture()
+
+        fixture.vm.onScanRequested(fixture.alice.id)
+        assertEquals(Unit, withTimeoutOrNull(1_000) { fixture.vm.photoRequests.first() })
+        fixture.reader.result = setOf(3, 6, 10)
+        fixture.vm.onPhotoTaken("photo.jpg")
+
+        val scan = fixture.scan!!
+        assertEquals(fixture.alice.id, scan.participantId)
+        assertEquals(false, scan.isReading)
+        assertEquals(setOf(3, 6, 10), scan.selected)
+        assertEquals(19, scan.score)
+        assertEquals(listOf("photo.jpg"), fixture.reader.readPaths)
+    }
+
+    @Test
+    fun `coming back from the camera without a photo changes nothing`() = runTest {
+        val fixture = ScanFixture()
+
+        fixture.vm.onScanRequested(fixture.alice.id)
+        fixture.vm.onPhotoTaken(null)
+
+        assertNull(fixture.scan)
+        assertTrue(fixture.reader.readPaths.isEmpty())
+    }
+
+    @Test
+    fun `nothing recognized and an unreadable photo are told apart`() = runTest {
+        val fixture = ScanFixture()
+
+        fixture.scan(fixture.alice, read = emptySet())
+        assertEquals(true, fixture.scan!!.nothingRecognized)
+        assertEquals(false, fixture.scan!!.readFailed)
+
+        fixture.reader.failure = IllegalStateException("not an image")
+        fixture.vm.onScanRetake()
+        fixture.vm.onPhotoTaken("photo.jpg")
+        assertEquals(true, fixture.scan!!.readFailed)
+        assertEquals(emptySet<Int>(), fixture.scan!!.selected)
+    }
+
+    @Test
+    fun `confirming writes the trumps, plus 40 for the seven holder, into the field`() = runTest {
+        val fixture = ScanFixture()
+        fixture.vm.onSevenHolderSelected(fixture.bob.id)
+
+        fixture.scan(fixture.bob, read = setOf(3, 6))
+        fixture.vm.onScanTrumpToggled(10)
+        assertEquals(59, fixture.scan!!.score)
+        assertEquals(true, fixture.scan!!.includesSeven)
+        fixture.vm.onScanConfirmed()
+
+        assertNull(fixture.scan)
+        assertEquals("59", fixture.content.scores[fixture.bob.id])
+        assertEquals(setOf(3, 6, 10), fixture.content.scannedTrumps[fixture.bob.id])
+    }
+
+    @Test
+    fun `a trump already counted for another player blocks the confirmation`() = runTest {
+        val fixture = ScanFixture()
+        fixture.scan(fixture.alice, read = setOf(3, 6))
+        fixture.vm.onScanConfirmed()
+
+        fixture.scan(fixture.bob, read = setOf(6, 20))
+        assertEquals(mapOf(3 to "Alice", 6 to "Alice"), fixture.content.trumpsTakenByOthers(fixture.bob.id))
+        fixture.vm.onScanConfirmed()
+        assertEquals(setOf(6, 20), fixture.scan!!.selected)
+        assertEquals("", fixture.content.scores[fixture.bob.id].orEmpty())
+
+        fixture.vm.onScanTrumpToggled(6)
+        fixture.vm.onScanConfirmed()
+        assertEquals("20", fixture.content.scores[fixture.bob.id])
+    }
+
+    @Test
+    fun `cancelling the confirmation changes nothing`() = runTest {
+        val fixture = ScanFixture()
+        fixture.scan(fixture.alice, read = setOf(3))
+
+        fixture.vm.onScanDismissed()
+
+        assertNull(fixture.scan)
+        assertEquals("", fixture.content.scores[fixture.alice.id].orEmpty())
+        assertTrue(fixture.content.scannedTrumps.isEmpty())
+    }
+
+    @Test
+    fun `a score typed by hand forgets the scanned trumps`() = runTest {
+        val fixture = ScanFixture()
+        fixture.scan(fixture.alice, read = setOf(3))
+        fixture.vm.onScanConfirmed()
+
+        fixture.vm.onScoreChanged(fixture.alice.id, "4")
+
+        assertEquals("4", fixture.content.scores[fixture.alice.id])
+        assertNull(fixture.content.scannedTrumps[fixture.alice.id])
+    }
+
+    @Test
+    fun `choosing another seven holder moves the 40 between scanned scores`() = runTest {
+        val fixture = ScanFixture()
+        fixture.vm.onSevenHolderSelected(fixture.alice.id)
+        fixture.scan(fixture.alice, read = setOf(1, 2))
+        fixture.vm.onScanConfirmed()
+        fixture.scan(fixture.bob, read = setOf(3))
+        fixture.vm.onScanConfirmed()
+        assertEquals("43", fixture.content.scores[fixture.alice.id])
+
+        fixture.vm.onSevenHolderSelected(fixture.bob.id)
+
+        assertEquals("3", fixture.content.scores[fixture.alice.id])
+        assertEquals("43", fixture.content.scores[fixture.bob.id])
+        assertEquals(setOf(3), fixture.content.scannedTrumps[fixture.bob.id])
+    }
+
+    @Test
+    fun `a game without face value cards offers no scan`() = runTest {
+        val noCards = object : GameEngine by PapayooEngine() {
+            override val faceValueCards: IntRange? = null
+        }
+        val fixture = ScanFixture(engine = noCards)
+
+        fixture.vm.onScanRequested(fixture.alice.id)
+
+        assertNull(fixture.content.faceValueCards)
+        assertNull(withTimeoutOrNull(100) { fixture.vm.photoRequests.first() })
     }
 }

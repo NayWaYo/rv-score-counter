@@ -58,9 +58,25 @@ fun RoundEntryScreen(
     modifier: Modifier = Modifier,
     onValidate: () -> Unit = {},
     onSevenHolderSelected: (UUID) -> Unit = {},
-    onPanelSelected: (RoundEntryPanel) -> Unit = {}
+    onPanelSelected: (RoundEntryPanel) -> Unit = {},
+    scanActions: TrumpScanActions = TrumpScanActions()
 ) {
     val content = state.content
+    val scan = state.scan
+    val trumps = content?.faceValueCards
+    if (scan != null && trumps != null) {
+        TrumpScanDialog(
+            scan = scan,
+            participantName = content.participants.firstOrNull { it.id == scan.participantId }?.name.orEmpty(),
+            trumps = trumps,
+            takenByOthers = content.trumpsTakenByOthers(scan.participantId),
+            sevenPoints = content.sevenPoints,
+            onTrumpToggled = scanActions.onTrumpToggled,
+            onRetake = scanActions.onRetake,
+            onDismiss = scanActions.onDismiss,
+            onConfirm = scanActions.onConfirm
+        )
+    }
     Column(
         modifier = modifier
             .fillMaxSize()
@@ -72,6 +88,7 @@ fun RoundEntryScreen(
             onScoreChanged = onScoreChanged,
             onRetry = onRetry,
             onSevenHolderSelected = onSevenHolderSelected,
+            onScanRequested = scanActions.onScanRequested,
             onPanelSelected = onPanelSelected,
             modifier = Modifier.weight(1f)
         )
@@ -97,6 +114,7 @@ private fun ScrollingContent(
     onScoreChanged: (UUID, String) -> Unit,
     onRetry: () -> Unit,
     onSevenHolderSelected: (UUID) -> Unit,
+    onScanRequested: (UUID) -> Unit,
     onPanelSelected: (RoundEntryPanel) -> Unit,
     modifier: Modifier
 ) {
@@ -143,7 +161,8 @@ private fun ScrollingContent(
                     suit = state.suit,
                     content = content,
                     onScoreChanged = onScoreChanged,
-                    onSevenHolderSelected = onSevenHolderSelected
+                    onSevenHolderSelected = onSevenHolderSelected,
+                    onScanRequested = onScanRequested
                 )
             }
 
@@ -178,7 +197,8 @@ private fun ScrollingContent(
                         suit = state.suit,
                         content = content,
                         onScoreChanged = onScoreChanged,
-                        onSevenHolderSelected = onSevenHolderSelected
+                        onSevenHolderSelected = onSevenHolderSelected,
+                        onScanRequested = onScanRequested
                     )
                 }
             }
@@ -255,7 +275,8 @@ private fun ScoreForm(
     suit: CardSuit?,
     content: RoundEntryContent,
     onScoreChanged: (UUID, String) -> Unit,
-    onSevenHolderSelected: (UUID) -> Unit
+    onSevenHolderSelected: (UUID) -> Unit,
+    onScanRequested: (UUID) -> Unit
 ) {
     val focusManager = LocalFocusManager.current
     val participantIds = content.participants.map { it.id }
@@ -296,6 +317,7 @@ private fun ScoreForm(
             },
             focusRequester = focusRequesters[participant.id],
             suggestion = content.suggestion?.takeIf { it.participantId == participant.id }?.score,
+            onScan = content.faceValueCards?.let { { onScanRequested(participant.id) } },
             isError = content.sumIndicatorState == SumIndicatorState.ERROR,
             modifier = Modifier.padding(bottom = 8.dp)
         )

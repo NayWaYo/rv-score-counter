@@ -1,5 +1,13 @@
 <?xml version="1.0" encoding="utf-8"?>
-<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools">
+
+    <!-- ML Kit (Story 9.1) asks for the network to send usage statistics: its model is bundled and
+         the app stays offline (NFR-2). ACCESS_NETWORK_STATE stays: it sends nothing, and its
+         statistics service queries the network state without guarding against its absence. -->
+    <uses-permission
+        android:name="android.permission.INTERNET"
+        tools:node="remove" />
 
     <application
         android:name=".RvScoreCounterApplication"
@@ -19,6 +27,16 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
+
+        <provider
+            android:name="androidx.core.content.FileProvider"
+            android:authorities="${applicationId}.scans"
+            android:exported="false"
+            android:grantUriPermissions="true">
+            <meta-data
+                android:name="android.support.FILE_PROVIDER_PATHS"
+                android:resource="@xml/scan_paths" />
+        </provider>
 
     </application>
 

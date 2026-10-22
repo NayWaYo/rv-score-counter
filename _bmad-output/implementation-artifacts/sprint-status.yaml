@@ -140,6 +140,15 @@ development_status:
 
   epic-8-retrospective: optional
 
+  # -------------------------------------------------------
+  # Epic 9: Comptage par la caméra (1 story)
+  # -------------------------------------------------------
+  epic-9: in-progress
+
+  9-1-scanner-les-atouts-du-papayoo: done
+
+  epic-9-retrospective: optional
+
 action_items:
   - epic: 1
     action: "Appliquer un préflight de compatibilité avant toute implémentation fonctionnelle d'une story modifiant la stack."

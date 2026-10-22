@@ -20,7 +20,9 @@ data class RoundEntryUiState(
     /** Section shown under the die: none, the Partie's Classement or the score form. */
     val panel: RoundEntryPanel = RoundEntryPanel.NONE,
     /** Number of the validated Manche being corrected; null for a new Manche. Its suit is fixed. */
-    val correctedRoundNumber: Int? = null
+    val correctedRoundNumber: Int? = null,
+    /** The photo of a Participant's trumps being read or confirmed (Story 9.1); null otherwise. */
+    val scan: TrumpScan? = null
 ) {
     val isCorrection: Boolean get() = correctedRoundNumber != null
 
@@ -47,8 +49,18 @@ data class RoundEntryContent(
     /** Points of the suit seven when the game records its holder (Papayoo : 40), else null. */
     val sevenPoints: Int? = null,
     val sevenHolderId: UUID? = null,
-    val summary: RoundEntrySummary = RoundEntrySummary()
+    val summary: RoundEntrySummary = RoundEntrySummary(),
+    /** Cards worth their own number that a photo can count (Papayoo : 1 to 20); null hides the scan. */
+    val faceValueCards: IntRange? = null,
+    /** Trumps confirmed from a photo, by Participant; a score typed by hand drops its entry. */
+    val scannedTrumps: Map<UUID, Set<Int>> = emptyMap()
 ) {
+    /** Trumps already confirmed for another Participant than [participantId], with that Participant's name. */
+    fun trumpsTakenByOthers(participantId: UUID): Map<Int, String> =
+        participants.filter { it.id != participantId }.flatMap { other ->
+            scannedTrumps[other.id].orEmpty().map { trump -> trump to other.name }
+        }.toMap()
+
     /** The entered drafts plus the suggestion in its empty field: what « Valider la Manche » saves,
      * since the complement is the only score that reaches the total. */
     private val effectiveScores: Map<UUID, String>
@@ -94,6 +106,21 @@ data class RoundEntryContent(
         participant.id to (effectiveScores[participant.id]?.toIntOrNull() ?: return null)
     }
 }
+
+/**
+ * A Participant's trumps read from a photo, to be corrected then confirmed (Story 9.1). While
+ * [isReading], [selected] is empty; [readFailed] means the photo could not be read at all. [score]
+ * is what confirming writes: the trumps, plus the 7's points when [includesSeven].
+ */
+data class TrumpScan(
+    val participantId: UUID,
+    val isReading: Boolean = true,
+    val selected: Set<Int> = emptySet(),
+    val score: Int = 0,
+    val includesSeven: Boolean = false,
+    val readFailed: Boolean = false,
+    val nothingRecognized: Boolean = false
+)
 
 /** The score that completes the total, offered in the only field still empty. Never negative. */
 data class ScoreSuggestion(

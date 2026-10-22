@@ -4,6 +4,7 @@ import com.rvetiveau.rvscorecount.domain.engine.DealingRules
 import com.rvetiveau.rvscorecount.domain.engine.RoundValidation
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
+import org.junit.Assert.assertThrows
 import org.junit.Assert.assertTrue
 import org.junit.Test
 import java.util.UUID
@@ -95,5 +96,17 @@ class PapayooEngineTest {
         assertEquals(6 to 2, twenty.fullPackets to twenty.lastPacket)
         val twelve = checkNotNull(engine.dealingRules(5))
         assertEquals(4 to 0, twelve.fullPackets to twelve.lastPacket)
+    }
+
+    @Test
+    fun `the payoo are worth their number, plus 40 with the seven`() {
+        val engine = PapayooEngine()
+
+        assertEquals(1..20, engine.faceValueCards)
+        assertEquals(19, engine.scoreOfCards(setOf(3, 6, 10), tookSuitSeven = false))
+        assertEquals(59, engine.scoreOfCards(setOf(3, 6, 10), tookSuitSeven = true))
+        assertEquals(40, engine.scoreOfCards(emptySet(), tookSuitSeven = true))
+        assertEquals(250, engine.scoreOfCards((1..20).toSet(), tookSuitSeven = true))
+        assertThrows(IllegalArgumentException::class.java) { engine.scoreOfCards(setOf(21), tookSuitSeven = false) }
     }
 }

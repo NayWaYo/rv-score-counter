@@ -18,6 +18,19 @@ interface GameEngine : Game {
      */
     val suitSevenPoints: Int? get() = null
 
+    /**
+     * Numbers of the cards worth their own number (Papayoo : the Payoo 1 to 20), which a photo of a
+     * player's cards can count (Story 9.1); null when the game has none.
+     */
+    val faceValueCards: IntRange? get() = null
+
+    /** Round score of a player who took [cards] among [faceValueCards] and, when [tookSuitSeven], the 7. */
+    fun scoreOfCards(cards: Set<Int>, tookSuitSeven: Boolean): Int {
+        val range = requireNotNull(faceValueCards) { "$gameId has no face value cards" }
+        require(cards.all { it in range }) { "Cards $cards are not all within $range" }
+        return cards.sum() + if (tookSuitSeven) suitSevenPoints ?: 0 else 0
+    }
+
     /** Dealing reminder for [playerCount] players, null when the game has none or the count is out of range. */
     fun dealingRules(playerCount: Int): DealingRules? = null
 

@@ -665,3 +665,23 @@ Afin de classer les joueurs selon le nombre de fois où ils ont pris.
 **And** la carte liste les 4 joueurs, du plus grand nombre de prises au plus petit, avec « N prises · M faites » (fait ou capot du preneur) ; à égalité de prises, le plus de contrats faits passe devant, puis l'ordre de table
 **And** les Manches sans joueur preneur ne comptent pas, et la carte n'apparaît pas si aucune n'en a
 **And** le tableau des Manches indique le joueur preneur quand il est connu (« Pris par Alice »), l'Équipe sinon
+
+## Epic 9: Comptage par la caméra
+
+Idée de l'utilisateur (2026-10-22) : compter les points d'une Manche de Papayoo en photographiant les cartes. Le groupe joue avec un jeu de Tarot (les atouts 1 à 20 font les Payoo) ; un test de faisabilité sur 11 photos d'éventails a lu tous les atouts sans faux positif.
+
+### Story 9.1: Scanner les atouts du Papayoo
+
+En tant que joueur de Papayoo,
+Je veux photographier mes atouts tenus en éventail,
+Afin que l'application compte mes points à ma place.
+
+**Acceptance Criteria:**
+
+**Given** la saisie ou la correction d'une Manche de Papayoo
+**When** le formulaire des scores s'affiche
+**Then** chaque Participant a un bouton caméra (48dp, « Scanner les atouts de <prénom> ») qui ouvre l'appareil photo du système, sans permission demandée par l'application
+**And** la photo est lue sur le téléphone, hors ligne, puis une fenêtre présente les 20 atouts en pastilles, ceux reconnus cochés, avec leur somme ; l'utilisateur corrige avant de confirmer
+**And** un atout déjà confirmé pour un autre Participant de la Manche bloque la confirmation
+**And** confirmer écrit la somme des atouts, plus 40 pour le détenteur du 7, dans le champ ; changer le détenteur recalcule ces scores
+**And** les 11 photos de référence donnent exactement leurs atouts dans un test instrumenté

@@ -195,6 +195,19 @@
     <string name="round_correction_save_button">Enregistrer la correction</string>
     <string name="score_field_suggested_content_description">Score de %1$s, %2$d suggéré</string>
     <string name="score_field_use_suggestion">Utiliser %1$d pour %2$s</string>
+    <string name="score_field_scan">Scanner les atouts de %1$s</string>
+    <string name="trump_scan_title">Atouts de %1$s</string>
+    <string name="trump_scan_reading">Lecture des atouts…</string>
+    <string name="trump_scan_hint">Vérifiez les atouts cochés avant de valider.</string>
+    <string name="trump_scan_nothing">Aucun atout reconnu : cochez-les à la main ou reprenez la photo.</string>
+    <string name="trump_scan_failed">La photo n\'a pas pu être lue : reprenez-la ou cochez les atouts à la main.</string>
+    <string name="trump_scan_taken_label">%1$d · %2$s</string>
+    <string name="trump_scan_conflict">Le %1$d est déjà compté pour %2$s.</string>
+    <string name="trump_scan_score">Score : %1$d</string>
+    <string name="trump_scan_score_with_seven">Score : %1$d (atouts %2$d + %3$d du 7)</string>
+    <string name="trump_scan_confirm">Valider</string>
+    <string name="trump_scan_retake">Reprendre la photo</string>
+    <string name="trump_scan_cancel">Annuler</string>
 
     <!-- Belote (Story 7.3) : création -->
     <string name="belote_setup_title">Nouvelle partie de Belote</string>

@@ -67,7 +67,8 @@ class RoundEntryScreenTest {
         onRoll: () -> Unit = {},
         onScoreChanged: (UUID, String) -> Unit = { _, _ -> },
         onRetry: () -> Unit = {},
-        onValidate: () -> Unit = {}
+        onValidate: () -> Unit = {},
+        scanActions: TrumpScanActions = TrumpScanActions()
     ) {
         composeTestRule.setContent {
             RvScoreCounterTheme {
@@ -76,10 +77,86 @@ class RoundEntryScreenTest {
                     onRoll = onRoll,
                     onScoreChanged = onScoreChanged,
                     onRetry = onRetry,
-                    onValidate = onValidate
+                    onValidate = onValidate,
+                    scanActions = scanActions
                 )
             }
         }
+    }
+
+    // --- Story 9.1 trump scan ---
+
+    private fun aScannableState(
+        scan: TrumpScan? = null,
+        scannedTrumps: Map<UUID, Set<Int>> = emptyMap()
+    ): RoundEntryUiState {
+        val loaded = aLoadedState()
+        return loaded.copy(
+            scan = scan,
+            content = loaded.content!!.copy(faceValueCards = 1..20, sevenPoints = 40, scannedTrumps = scannedTrumps)
+        )
+    }
+
+    @Test
+    fun eachScoreFieldHasAScanButtonWhenTheGameCountsFaceValueCards() {
+        val requested = mutableListOf<UUID>()
+        setContent(aScannableState(), scanActions = TrumpScanActions(onScanRequested = { requested += it }))
+
+        composeTestRule.onNodeWithTag("score_field_scan_$bobId")
+            .assert(SemanticsMatcher.expectValue(SemanticsProperties.ContentDescription, listOf("Scanner les atouts de Bob")))
+            .performClick()
+
+        assertEquals(listOf(bobId), requested)
+    }
+
+    @Test
+    fun noScanButtonWithoutFaceValueCards() {
+        setContent(aLoadedState())
+
+        composeTestRule.onNodeWithTag("score_field_scan_$aliceId").assertDoesNotExist()
+    }
+
+    @Test
+    fun theConfirmationShowsTheReadTrumpsAndTheirScore() {
+        val toggled = mutableListOf<Int>()
+        var confirmed = false
+        setContent(
+            aScannableState(scan = TrumpScan(aliceId, isReading = false, selected = setOf(3, 6, 10), score = 19)),
+            scanActions = TrumpScanActions(onTrumpToggled = { toggled += it }, onConfirm = { confirmed = true })
+        )
+
+        composeTestRule.onNodeWithText("Atouts de Alice").assertIsDisplayed()
+        composeTestRule.onNodeWithTag("trump_scan_trump_6").assertIsSelected()
+        composeTestRule.onNodeWithTag("trump_scan_trump_7").assertIsNotSelected()
+        composeTestRule.onNodeWithTag("trump_scan_score").assertTextEquals("Score : 19")
+        composeTestRule.onNodeWithTag("trump_scan_trump_7").performClick()
+        composeTestRule.onNodeWithTag("trump_scan_confirm").assertIsEnabled().performClick()
+
+        assertEquals(listOf(7), toggled)
+        assertTrue(confirmed)
+    }
+
+    @Test
+    fun aTrumpCountedForAnotherPlayerBlocksTheConfirmation() {
+        setContent(
+            aScannableState(
+                scan = TrumpScan(bobId, isReading = false, selected = setOf(6, 20), score = 26),
+                scannedTrumps = mapOf(aliceId to setOf(6))
+            )
+        )
+
+        composeTestRule.onNodeWithTag("trump_scan_conflict_6").assertTextEquals("Le 6 est déjà compté pour Alice.")
+        composeTestRule.onNodeWithTag("trump_scan_confirm").assertIsNotEnabled()
+    }
+
+    @Test
+    fun whileReadingOnlyCancelIsPossible() {
+        setContent(aScannableState(scan = TrumpScan(aliceId)))
+
+        composeTestRule.onNodeWithTag("trump_scan_reading").assertIsDisplayed()
+        composeTestRule.onNodeWithTag("trump_scan_confirm").assertIsNotEnabled()
+        composeTestRule.onNodeWithTag("trump_scan_retake").assertIsNotEnabled()
+        composeTestRule.onNodeWithTag("trump_scan_cancel").assertIsEnabled()
     }
 
     @Test

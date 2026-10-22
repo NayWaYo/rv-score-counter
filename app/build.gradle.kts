@@ -49,6 +49,11 @@ android {
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
             )
+            // ML Kit's text recognition ships ~11 MB of native code per ABI: the phones the release
+            // targets (API 36) are arm64. Debug keeps every ABI for the x86_64 emulator.
+            ndk {
+                abiFilters += "arm64-v8a"
+            }
         }
     }
 
@@ -104,5 +109,6 @@ dependencies {
     androidTestImplementation(libs.compose.ui.test.junit4)
     androidTestImplementation(libs.androidx.test.junit)
     androidTestImplementation(libs.androidx.test.runner)
+    implementation(libs.mlkit.text.recognition)
     debugImplementation(libs.compose.ui.test.manifest)
 }
