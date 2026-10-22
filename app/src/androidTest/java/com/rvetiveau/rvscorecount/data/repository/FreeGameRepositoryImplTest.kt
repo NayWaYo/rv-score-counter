@@ -104,11 +104,28 @@ class FreeGameRepositoryImplTest {
         val first = round(1, aliceScore = 10, bobScore = 20)
         repository.saveRound(first, party)
 
-        repository.correctRound(first.copy(scores = mapOf(alice.id to -4, bob.id to 7)))
+        repository.correctRound(first.copy(scores = mapOf(alice.id to -4, bob.id to 7)), party)
 
         assertEquals(mapOf(alice.id to -4, bob.id to 7), repository.getRounds(party.id).single().scores)
         val stranger = first.copy(scores = mapOf(alice.id to 1, UUID.randomUUID() to 2))
-        assertTrue(runCatching { repository.correctRound(stranger) }.isFailure)
+        assertTrue(runCatching { repository.correctRound(stranger, party) }.isFailure)
+    }
+
+    @Test
+    fun aCorrectionAndTheEndItReachesCommitTogetherOrNotAtAll() = runTest {
+        val first = round(1, aliceScore = 10, bobScore = 20)
+        repository.saveRound(first, party)
+        val finished = party.copy(status = PartyState.FINISHED)
+
+        repository.correctRound(first.copy(scores = mapOf(alice.id to 100, bob.id to 20)), finished)
+
+        assertEquals(PartyState.FINISHED, parties.getPartyById(party.id)?.status)
+        assertEquals(mapOf(alice.id to 100, bob.id to 20), repository.getRounds(party.id).single().scores)
+
+        parties.updateParty(party)
+        val stranger = first.copy(scores = mapOf(alice.id to 1, UUID.randomUUID() to 2))
+        assertTrue(runCatching { repository.correctRound(stranger, finished) }.isFailure)
+        assertEquals(PartyState.IN_PROGRESS, parties.getPartyById(party.id)?.status)
     }
 
     @Test

@@ -46,3 +46,25 @@ sealed interface FreePartyStatus {
     /** The end rule is reached: [winners] are every Participant at the best total. */
     data class Finished(val winners: List<Participant>) : FreePartyStatus
 }
+
+/**
+ * A Partie of Jeu libre as played (Story 11.3): its Participants in table order, its Manches in
+ * order and, recomputed by the engine, the [standings] and the [status] they lead to. A Partie
+ * ended by hand is FINISHED while its [status] may still be in progress.
+ */
+data class FreePartyState(
+    val party: Party,
+    val participants: List<Participant>,
+    val rounds: List<FreeRound>,
+    val standings: List<FreeStanding>,
+    val status: FreePartyStatus
+) {
+    val gameName: String get() = checkNotNull(party.gameName) { "A Partie of Jeu libre has a game name" }
+
+    val winDirection: WinDirection get() = checkNotNull(party.winDirection) { "A Partie of Jeu libre has a win direction" }
+
+    val dealer: Participant get() = participants[party.currentDealerIndex]
+
+    /** Every Participant at the best total: the winners once the Partie is ended, by its rule or by hand. */
+    val leaders: List<Participant> get() = standings.filter { it.rank == 1 }.map { it.participant }
+}

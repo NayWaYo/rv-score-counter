@@ -52,20 +52,26 @@ data class RoundTablePlayer(
 
 /**
  * One validated Manche. [points] only holds the Participants who played it; [sevenHolderId] is
- * who took the 7 of [suit], null for Manches recorded before it was asked.
+ * who took the 7 of [suit], null for Manches recorded before it was asked. [suit] is null for a
+ * Manche of Jeu libre, where [highestIsBest] follows its win direction.
  */
 data class RoundTableRow(
     val roundNumber: Int,
-    val suit: CardSuit,
+    val suit: CardSuit?,
     val points: Map<UUID, Int>,
-    val sevenHolderId: UUID? = null
+    val sevenHolderId: UUID? = null,
+    val highestIsBest: Boolean = false
 ) {
     val total: Int get() = points.values.sum()
 
-    /** Fewest points of the Manche, the best result; null when everyone scored the same. */
-    val bestPoints: Int? get() = points.values.minOrNull()?.takeIf { it != points.values.max() }
+    /** Fewest points of the Manche (most when [highestIsBest]), the best result; null when everyone scored the same. */
+    val bestPoints: Int? get() = if (highestIsBest) highest else lowest
 
-    val worstPoints: Int? get() = points.values.maxOrNull()?.takeIf { it != points.values.min() }
+    val worstPoints: Int? get() = if (highestIsBest) lowest else highest
+
+    private val lowest: Int? get() = points.values.minOrNull()?.takeIf { it != points.values.max() }
+
+    private val highest: Int? get() = points.values.maxOrNull()?.takeIf { it != points.values.min() }
 }
 
 /** Score sheet of a Partie: one column per Participant in table order, Manches in chronological order. */
@@ -108,17 +114,22 @@ private val MinPlayerColumnWidth = 64.dp
 private val CellHeight = 40.dp
 
 /**
- * Score sheet: header of names, one row per Manche led by its number and suit, then the totals.
+ * Score sheet: header of names, one row per Manche led by its number and suit (if any), then the totals.
  * The 7 holder's cell takes the suit's tint, the Manche's best score is bold in the primary colour and
  * its worst muted.
  * Scrolls sideways when the columns do not fit; each row is read as one by TalkBack. With [onRoundClick], touching a Manche's row reports its number.
  */
 @Composable
-fun RoundTable(table: RoundTable, modifier: Modifier = Modifier, onRoundClick: ((Int) -> Unit)? = null) {
+fun RoundTable(
+    table: RoundTable,
+    modifier: Modifier = Modifier,
+    onRoundClick: ((Int) -> Unit)? = null,
+    legend: String = stringResource(R.string.round_table_legend)
+) {
     Column(modifier = modifier.fillMaxWidth()) {
         RoundTableGrid(table, onRoundClick)
         Text(
-            text = stringResource(R.string.round_table_legend),
+            text = legend,
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             modifier = Modifier.padding(top = 4.dp)
@@ -184,13 +195,12 @@ private fun RoundRow(
         .mapNotNull { player -> row.points[player.participantId]?.let { player.name to it } }
         .map { (name, points) -> stringResource(R.string.round_history_score, name, points) }
         .joinToString(separator)
-    val baseDescription = stringResource(
-        R.string.round_history_content_description,
-        row.roundNumber,
-        stringResource(row.suit.nameRes),
-        scoresText,
-        row.total
-    )
+    val suit = row.suit
+    val baseDescription = if (suit != null) {
+        stringResource(R.string.round_history_content_description, row.roundNumber, stringResource(suit.nameRes), scoresText, row.total)
+    } else {
+        stringResource(R.string.round_table_free_content_description, row.roundNumber, scoresText)
+    }
     val holderName = players.firstOrNull { it.participantId == row.sevenHolderId }?.name
     val description = if (holderName != null) {
         "$baseDescription, ${stringResource(R.string.round_history_seven_holder, holderName)}"
@@ -226,12 +236,14 @@ private fun RoundRow(
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
-            Text(
-                text = stringResource(row.suit.pictogramRes),
-                style = MaterialTheme.typography.bodyLarge,
-                color = row.suit.color,
-                modifier = Modifier.padding(start = 2.dp)
-            )
+            if (suit != null) {
+                Text(
+                    text = stringResource(suit.pictogramRes),
+                    style = MaterialTheme.typography.bodyLarge,
+                    color = suit.color,
+                    modifier = Modifier.padding(start = 2.dp)
+                )
+            }
         }
         players.forEach { player ->
             val points = row.points[player.participantId]
@@ -246,7 +258,7 @@ private fun RoundRow(
                     else -> MaterialTheme.colorScheme.onSurfaceVariant
                 },
                 fontWeight = if (points != null && points == row.bestPoints) FontWeight.Bold else null,
-                background = if (isHolder) row.suit.tint else null
+                background = if (isHolder) suit?.tint else null
             )
         }
     }

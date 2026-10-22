@@ -1,5 +1,7 @@
 package com.rvetiveau.rvscorecount.ui.screens.belote
 
+import com.rvetiveau.rvscorecount.domain.usecase.FakeFreeGameRepository
+import com.rvetiveau.rvscorecount.game.free.FreeGameEngine
 import androidx.lifecycle.SavedStateHandle
 import com.rvetiveau.rvscorecount.R
 import com.rvetiveau.rvscorecount.domain.model.EndRule
@@ -445,7 +447,7 @@ class BeloteViewModelsTest {
     fun `the history opens the Belote detail for a Belote party`() = runTest {
         val party = store.seedParty(EndRule.RoundCount(1))
         play(party.id, BeloteRoundInput(FIRST, 100))
-        val viewModel = HistoryViewModel(ObservePartyHistoryUseCase(store, store, rules), DeletePartyUseCase(store), SavedStateHandle())
+        val viewModel = HistoryViewModel(ObservePartyHistoryUseCase(store, store, rules, FakeFreeGameRepository(), FreeGameEngine()), DeletePartyUseCase(store), SavedStateHandle())
 
         viewModel.onEntrySelected(party.id)
 

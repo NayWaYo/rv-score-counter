@@ -2,69 +2,212 @@ package com.rvetiveau.rvscorecount.ui.screens.free
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.rvetiveau.rvscorecount.domain.engine.GameIds
+import com.rvetiveau.rvscorecount.R
 import com.rvetiveau.rvscorecount.domain.model.EndRule
+import com.rvetiveau.rvscorecount.domain.model.FreePartyState
 import com.rvetiveau.rvscorecount.domain.model.Participant
+import com.rvetiveau.rvscorecount.domain.model.PartyState
 import com.rvetiveau.rvscorecount.domain.model.WinDirection
-import com.rvetiveau.rvscorecount.domain.repository.PartyRepository
+import com.rvetiveau.rvscorecount.domain.usecase.ClosePartyUseCase
+import com.rvetiveau.rvscorecount.domain.usecase.ObserveFreePartyUseCase
+import com.rvetiveau.rvscorecount.ui.components.RoundTable
+import com.rvetiveau.rvscorecount.ui.components.RoundTablePlayer
+import com.rvetiveau.rvscorecount.ui.components.RoundTableRow
+import com.rvetiveau.rvscorecount.ui.components.StandingRow
+import com.rvetiveau.rvscorecount.ui.navigation.NavigationEvent
+import com.rvetiveau.rvscorecount.ui.navigation.Routes
+import com.rvetiveau.rvscorecount.ui.screens.party.PartyClosureUiState
 import dagger.hilt.android.lifecycle.HiltViewModel
 import java.util.UUID
 import javax.inject.Inject
+import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.channels.Channel
+import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
-import kotlinx.coroutines.flow.catch
-import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.receiveAsFlow
+import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
 sealed interface FreePartyUiState {
     data object Loading : FreePartyUiState
     data object LoadError : FreePartyUiState
+    data object NotFound : FreePartyUiState
 
-    /** A Partie of Jeu libre: its rules and its Participants in table order, [dealerId] dealing next. */
+    /**
+     * A Partie of Jeu libre (Story 11.3): its [standings] by its win direction, the Donneur flagged
+     * while it is in progress, how far the end is ([progress], null by hand or once finished) and its
+     * Manches. Once [isFinished], [winnerNames] holds the best totals, empty without a Manche.
+     */
     data class Loaded(
         val gameName: String,
         val winDirection: WinDirection,
         val endRule: EndRule?,
-        val participants: List<Participant>,
-        val dealerId: UUID?
+        val isFinished: Boolean,
+        val standings: List<StandingRow>,
+        val winnerNames: List<String>,
+        val progress: FreeProgress?,
+        val roundTable: RoundTable,
+        val nextRoundNumber: Int,
+        val closure: PartyClosureUiState = PartyClosureUiState()
     ) : FreePartyUiState
 }
 
-/** The Partie of Jeu libre (Story 11.2), followed live from Room; its Manches come with Story 11.3. */
+sealed interface FreeProgress {
+    /** [closestNames]: the Joueur(s) at the largest total, [remaining] points from the [target]. */
+    data class Target(val target: Int, val remaining: Int, val closestNames: List<String>) : FreeProgress
+
+    data class Rounds(val current: Int, val total: Int) : FreeProgress
+}
+
+/**
+ * The Partie of Jeu libre (Stories 11.2, 11.3), followed live from Room: in progress, its Manches
+ * are entered and corrected and it ends by hand after confirmation; finished, it is read only.
+ */
 @HiltViewModel
 class FreePartyViewModel @Inject constructor(
-    private val partyRepository: PartyRepository
+    private val observeFreePartyUseCase: ObserveFreePartyUseCase,
+    private val closePartyUseCase: ClosePartyUseCase
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow<FreePartyUiState>(FreePartyUiState.Loading)
     val uiState: StateFlow<FreePartyUiState> = _uiState.asStateFlow()
 
-    private var initializedPartyId: UUID? = null
+    private val _navigationEvents = Channel<NavigationEvent>(Channel.BUFFERED)
+    val navigationEvents: Flow<NavigationEvent> = _navigationEvents.receiveAsFlow()
+
+    private var partyId: UUID? = null
+    private var observation: Job? = null
 
     /** Idempotent: a recomposition never restarts the observation of the same Partie. */
     fun initialize(partyId: UUID) {
-        if (initializedPartyId == partyId) return
-        initializedPartyId = partyId
+        if (this.partyId != null) return
+        this.partyId = partyId
+        observe()
+    }
+
+    fun retry() = observe()
+
+    fun onPlayRound() {
+        if (inProgress() == null) return
+        navigate { Routes.FreeRound(it.toString()) }
+    }
+
+    fun onRoundSelected(roundNumber: Int) {
+        if (inProgress() == null) return
+        navigate { Routes.FreeRound(it.toString(), roundNumber) }
+    }
+
+    fun onBackHome() {
+        viewModelScope.launch { _navigationEvents.send(NavigationEvent.ReplaceAll(Routes.Home)) }
+    }
+
+    fun onEndPartyClick() {
+        val state = inProgress() ?: return
+        if (state.closure.isClosing) return
+        _uiState.value = state.copy(closure = PartyClosureUiState(isConfirmationOpen = true))
+    }
+
+    fun onEndPartyDismissed() {
+        val state = inProgress() ?: return
+        if (state.closure.isClosing) return
+        _uiState.value = state.copy(closure = PartyClosureUiState())
+    }
+
+    /** The observation then shows the finished Partie; a failure closes the dialog and keeps it in progress. */
+    fun onEndPartyConfirmed() {
+        val id = partyId ?: return
+        val state = inProgress() ?: return
+        if (!state.closure.isConfirmationOpen || state.closure.isClosing) return
+        _uiState.value = state.copy(closure = state.closure.copy(isClosing = true))
+
         viewModelScope.launch {
-            combine(partyRepository.observeParty(partyId), partyRepository.observeParticipants(partyId)) { party, participants ->
-                val gameName = party?.gameName
-                val direction = party?.winDirection
-                if (party == null || party.gameId != GameIds.FREE || gameName == null || direction == null) {
-                    FreePartyUiState.LoadError
-                } else {
-                    val seats = participants.sortedBy { it.listPosition }
-                    FreePartyUiState.Loaded(
-                        gameName = gameName,
-                        winDirection = direction,
-                        endRule = party.endRule,
-                        participants = seats,
-                        dealerId = seats.getOrNull(party.currentDealerIndex)?.id
-                    )
+            if (closePartyUseCase(id).isFailure) {
+                _uiState.update { current ->
+                    if (current is FreePartyUiState.Loaded && !current.isFinished) {
+                        current.copy(closure = PartyClosureUiState(errorRes = R.string.party_end_error))
+                    } else {
+                        current
+                    }
                 }
             }
-                .catch { emit(FreePartyUiState.LoadError) }
-                .collect { _uiState.value = it }
         }
     }
+
+    private fun inProgress(): FreePartyUiState.Loaded? =
+        (_uiState.value as? FreePartyUiState.Loaded)?.takeUnless { it.isFinished }
+
+    private fun navigate(route: (UUID) -> Routes) {
+        val id = partyId ?: return
+        viewModelScope.launch { _navigationEvents.send(NavigationEvent.NavigateTo(route(id))) }
+    }
+
+    private fun observe() {
+        val id = partyId ?: return
+        observation?.cancel()
+        _uiState.value = FreePartyUiState.Loading
+        observation = viewModelScope.launch {
+            try {
+                observeFreePartyUseCase(id).collect { state ->
+                    _uiState.update { current ->
+                        when {
+                            state == null -> FreePartyUiState.NotFound
+                            // A closure in flight keeps its dialog until Room reports the end.
+                            current is FreePartyUiState.Loaded && !current.isFinished ->
+                                state.toUiState().let { next -> if (next.isFinished) next else next.copy(closure = current.closure) }
+                            else -> state.toUiState()
+                        }
+                    }
+                }
+            } catch (cancellation: CancellationException) {
+                throw cancellation
+            } catch (_: Throwable) {
+                _uiState.value = FreePartyUiState.LoadError
+            }
+        }
+    }
+}
+
+internal fun FreePartyState.toUiState(): FreePartyUiState.Loaded {
+    val isFinished = party.status == PartyState.FINISHED
+    val progress = if (isFinished) null else when (val rule = party.endRule) {
+        null -> null
+        is EndRule.RoundCount -> FreeProgress.Rounds(rounds.size + 1, rule.rounds)
+        is EndRule.TargetScore -> {
+            // The Partie ends when any total reaches the target, whoever wins: the largest is closest.
+            val largest = standings.maxOf { it.total }
+            FreeProgress.Target(rule.points, rule.points - largest, standings.filter { it.total == largest }.map { it.participant.name })
+        }
+    }
+    return FreePartyUiState.Loaded(
+        gameName = gameName,
+        winDirection = winDirection,
+        endRule = party.endRule,
+        isFinished = isFinished,
+        standings = standings.map { standing ->
+            StandingRow(
+                participantId = standing.participant.id,
+                rank = standing.rank,
+                name = standing.participant.name,
+                cumulativeScore = standing.total,
+                isDealer = !isFinished && standing.participant.id == dealer.id
+            )
+        },
+        winnerNames = if (isFinished && rounds.isNotEmpty()) leaders.map(Participant::name) else emptyList(),
+        progress = progress,
+        roundTable = RoundTable(
+            players = participants.map { RoundTablePlayer(it.id, it.name) },
+            rows = rounds.map { round ->
+                RoundTableRow(
+                    roundNumber = round.roundNumber,
+                    suit = null,
+                    points = round.scores,
+                    highestIsBest = winDirection == WinDirection.HIGHEST_WINS
+                )
+            }
+        ),
+        nextRoundNumber = rounds.size + 1
+    )
 }

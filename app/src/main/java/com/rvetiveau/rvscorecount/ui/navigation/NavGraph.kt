@@ -14,6 +14,7 @@ import com.rvetiveau.rvscorecount.ui.screens.belote.BeloteRoundRoute
 import com.rvetiveau.rvscorecount.ui.screens.belote.BeloteSetupRoute
 import com.rvetiveau.rvscorecount.ui.screens.belote.BeloteStatsRoute
 import com.rvetiveau.rvscorecount.ui.screens.free.FreePartyRoute
+import com.rvetiveau.rvscorecount.ui.screens.free.FreeRoundRoute
 import com.rvetiveau.rvscorecount.ui.screens.free.FreeSetupRoute
 import com.rvetiveau.rvscorecount.ui.screens.history.HistoryRoute
 import com.rvetiveau.rvscorecount.ui.screens.home.HomeRoute
@@ -135,7 +136,18 @@ fun RvScoreCounterNavHost(
         }
         composable<Routes.FreeParty> { backStackEntry ->
             val route: Routes.FreeParty = backStackEntry.toRoute()
-            FreePartyRoute(partyId = UUID.fromString(route.partyId))
+            FreePartyRoute(
+                partyId = UUID.fromString(route.partyId),
+                onNavigate = { event -> navController.dispatch(event) }
+            )
+        }
+        composable<Routes.FreeRound> { backStackEntry ->
+            val route: Routes.FreeRound = backStackEntry.toRoute()
+            FreeRoundRoute(
+                partyId = UUID.fromString(route.partyId),
+                correctedRoundNumber = route.correctedRoundNumber,
+                onNavigate = { event -> navController.dispatch(event) }
+            )
         }
         composable<Routes.BeloteStats> { backStackEntry ->
             val route: Routes.BeloteStats = backStackEntry.toRoute()

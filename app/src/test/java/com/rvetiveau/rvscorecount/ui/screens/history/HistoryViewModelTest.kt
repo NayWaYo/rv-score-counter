@@ -1,5 +1,7 @@
 package com.rvetiveau.rvscorecount.ui.screens.history
 
+import com.rvetiveau.rvscorecount.domain.usecase.FakeFreeGameRepository
+import com.rvetiveau.rvscorecount.game.free.FreeGameEngine
 import androidx.lifecycle.SavedStateHandle
 import com.rvetiveau.rvscorecount.R
 import com.rvetiveau.rvscorecount.domain.model.Participant
@@ -78,7 +80,7 @@ class HistoryViewModelTest {
         Party(id = UUID.randomUUID(), gameId = "papayoo", status = PartyState.FINISHED, currentDealerIndex = 0, createdAt = createdAt)
 
     private fun viewModel(repository: PartyRepository, gameId: String? = null) = HistoryViewModel(
-        ObservePartyHistoryUseCase(repository, FakeBeloteStore(), BeloteEngine()),
+        ObservePartyHistoryUseCase(repository, FakeBeloteStore(), BeloteEngine(), FakeFreeGameRepository(), FreeGameEngine()),
         DeletePartyUseCase(repository),
         SavedStateHandle(listOfNotNull(gameId?.let { "gameId" to it }).toMap())
     )

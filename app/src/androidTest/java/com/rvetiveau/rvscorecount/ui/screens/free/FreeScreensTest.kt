@@ -9,18 +9,25 @@ import androidx.compose.ui.test.assertIsSelected
 import androidx.compose.ui.test.assertTextEquals
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onNodeWithTag
+import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performTextInput
 import com.rvetiveau.rvscorecount.domain.model.EndRule
-import com.rvetiveau.rvscorecount.domain.model.Participant
 import com.rvetiveau.rvscorecount.domain.model.WinDirection
+import com.rvetiveau.rvscorecount.ui.components.RoundTable
+import com.rvetiveau.rvscorecount.ui.components.RoundTablePlayer
+import com.rvetiveau.rvscorecount.ui.components.RoundTableRow
+import com.rvetiveau.rvscorecount.ui.components.StandingRow
+import com.rvetiveau.rvscorecount.ui.screens.party.PartyClosureUiState
 import com.rvetiveau.rvscorecount.ui.screens.setup.ParticipantDraft
 import com.rvetiveau.rvscorecount.ui.theme.RvScoreCounterTheme
 import java.util.UUID
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
 
-/** The creation and the first party screen of the Jeu libre (Story 11.2), stateless. */
+/** The creation, the Partie and the saisie of the Manches of the Jeu libre (Stories 11.2, 11.3), stateless. */
 class FreeScreensTest {
 
     @get:Rule
@@ -78,22 +85,126 @@ class FreeScreensTest {
         assertEquals(listOf("Uno"), picked)
     }
 
+    private val aliceId = UUID.randomUUID()
+    private val bobId = UUID.randomUUID()
+
+    private val inProgress = FreePartyUiState.Loaded(
+        gameName = "Skyjo",
+        winDirection = WinDirection.LOWEST_WINS,
+        endRule = EndRule.TargetScore(100),
+        isFinished = false,
+        standings = listOf(
+            StandingRow(bobId, 1, "Bob", -5, isDealer = false),
+            StandingRow(aliceId, 2, "Alice", 40, isDealer = true)
+        ),
+        winnerNames = emptyList(),
+        progress = FreeProgress.Target(100, 60, listOf("Alice")),
+        roundTable = RoundTable(
+            players = listOf(RoundTablePlayer(aliceId, "Alice"), RoundTablePlayer(bobId, "Bob")),
+            rows = listOf(RoundTableRow(1, suit = null, points = mapOf(aliceId to 40, bobId to -5)))
+        ),
+        nextRoundNumber = 2
+    )
+
+    private fun setParty(state: FreePartyUiState, actions: FreePartyActions = FreePartyActions()) {
+        composeTestRule.setContent {
+            RvScoreCounterTheme { FreePartyScreen(state = state, actions = actions, modifier = Modifier.fillMaxSize().testTag("root")) }
+        }
+    }
+
     @Test
-    fun thePartyShowsItsGameItsRulesAndItsTableWithTheDealer() {
-        val partyId = UUID.randomUUID()
-        val alice = Participant(UUID.randomUUID(), partyId, "Alice", 0)
-        val bob = Participant(UUID.randomUUID(), partyId, "Bob", 1)
+    fun thePartyShowsItsGameItsRulesItsProgressItsClassementAndItsManches() {
+        val calls = mutableListOf<Any>()
+        setParty(inProgress, FreePartyActions(onPlayRound = { calls += "play" }, onRoundSelected = { calls += it }))
+
+        composeTestRule.onNodeWithTag("free_party_title").assertTextEquals("Skyjo")
+        composeTestRule.onNodeWithTag("free_party_rules").assertTextEquals("Le plus petit total gagne · Fin à 100 points")
+        composeTestRule.onNodeWithTag("free_party_progress").assertTextEquals("Alice : encore 60 points avant 100")
+        composeTestRule.onNodeWithTag("dealer_badge", useUnmergedTree = true).assertExists()
+        composeTestRule.onNodeWithTag("round_table_total_$bobId", useUnmergedTree = true).assertTextEquals("-5")
+        composeTestRule.onNodeWithTag("round_table_row_1").performClick()
+        composeTestRule.onNodeWithTag("free_party_play_round").assertTextEquals("Manche 2").performClick()
+
+        assertEquals(listOf<Any>(1, "play"), calls)
+    }
+
+    @Test
+    fun finDePartieAsksForAConfirmation() {
+        val calls = mutableListOf<String>()
+        setParty(
+            inProgress.copy(closure = PartyClosureUiState(isConfirmationOpen = true)),
+            FreePartyActions(onEndPartyConfirmed = { calls += "confirm" })
+        )
+
+        composeTestRule.onNodeWithText("Fin de partie ?").assertExists()
+        composeTestRule.onNodeWithTag("party_end_confirm_button").performClick()
+
+        assertEquals(listOf("confirm"), calls)
+    }
+
+    @Test
+    fun aFinishedPartyShowsItsWinnersReadOnly() {
+        val calls = mutableListOf<Any>()
+        setParty(
+            inProgress.copy(
+                isFinished = true,
+                standings = inProgress.standings.map { it.copy(isDealer = false) },
+                winnerNames = listOf("Bob"),
+                progress = null
+            ),
+            FreePartyActions(onRoundSelected = { calls += it }, onBackHome = { calls += "home" })
+        )
+
+        composeTestRule.onNodeWithTag("free_party_winners").assertTextEquals("Vainqueur : Bob")
+        composeTestRule.onNodeWithTag("winner_trophy", useUnmergedTree = true).assertExists()
+        composeTestRule.onNodeWithTag("free_party_play_round").assertDoesNotExist()
+        composeTestRule.onNodeWithTag("free_party_end").assertDoesNotExist()
+        composeTestRule.onNodeWithTag("round_table_row_1").performClick()
+        composeTestRule.onNodeWithTag("free_party_back_home").performClick()
+
+        assertEquals(listOf<Any>("home"), calls)
+    }
+
+    @Test
+    fun theSaisieTakesNegativeScoresThroughTheSignButton() {
+        val calls = mutableListOf<Any>()
+        val fields = listOf(FreeScoreInput(aliceId, "Alice", "-3"), FreeScoreInput(bobId, "Bob"))
         composeTestRule.setContent {
             RvScoreCounterTheme {
-                FreePartyScreen(
-                    FreePartyUiState.Loaded("Skyjo", WinDirection.LOWEST_WINS, EndRule.TargetScore(100), listOf(alice, bob), dealerId = alice.id),
+                FreeRoundScreen(
+                    state = FreeRoundUiState.Loaded(roundNumber = 2, isCorrection = false, fields = fields),
+                    onScoreChanged = { id, text -> calls += id to text },
+                    onToggleSign = { calls += it },
                     modifier = Modifier.fillMaxSize().testTag("root")
                 )
             }
         }
 
-        composeTestRule.onNodeWithTag("free_party_title").assertTextEquals("Skyjo")
-        composeTestRule.onNodeWithTag("free_party_rules").assertTextEquals("Le plus petit total gagne · Fin à 100 points")
-        composeTestRule.onNodeWithTag("free_party_dealer").assertTextEquals("Donneur M1")
+        composeTestRule.onNodeWithTag("free_round_title").assertTextEquals("Manche 2")
+        composeTestRule.onNodeWithTag("score_field_$aliceId").assertTextEquals("-3")
+        composeTestRule.onNodeWithTag("free_round_validate").assertIsNotEnabled()
+        composeTestRule.onNodeWithTag("score_field_sign_$bobId").performClick()
+        composeTestRule.onNodeWithTag("score_field_$bobId").performTextInput("-7")
+
+        assertEquals(listOf<Any>(bobId, bobId to "-7"), calls)
+    }
+
+    @Test
+    fun aFilledCorrectionCanBeSaved() {
+        var saved = false
+        val fields = listOf(FreeScoreInput(aliceId, "Alice", "4"), FreeScoreInput(bobId, "Bob", "0"))
+        composeTestRule.setContent {
+            RvScoreCounterTheme {
+                FreeRoundScreen(
+                    state = FreeRoundUiState.Loaded(roundNumber = 1, isCorrection = true, fields = fields),
+                    onValidate = { saved = true }
+                )
+            }
+        }
+
+        composeTestRule.onNodeWithTag("free_round_title").assertTextEquals("Corriger la manche 1")
+        composeTestRule.onNodeWithTag("free_round_validate").assertIsEnabled().performClick()
+
+        assertTrue(saved)
     }
 }

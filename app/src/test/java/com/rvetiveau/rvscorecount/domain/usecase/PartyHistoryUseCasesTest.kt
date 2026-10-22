@@ -1,5 +1,6 @@
 package com.rvetiveau.rvscorecount.domain.usecase
 
+import com.rvetiveau.rvscorecount.game.free.FreeGameEngine
 import com.rvetiveau.rvscorecount.domain.model.CardSuit
 import com.rvetiveau.rvscorecount.domain.model.Participant
 import com.rvetiveau.rvscorecount.domain.model.Party
@@ -81,7 +82,7 @@ class PartyHistoryUseCasesTest {
             )
         )
 
-        val summary = ObservePartyHistoryUseCase(repository, FakeBeloteStore(), BeloteEngine())().first().single()
+        val summary = ObservePartyHistoryUseCase(repository, FakeBeloteStore(), BeloteEngine(), FakeFreeGameRepository(), FreeGameEngine())().first().single()
 
         assertEquals(PartySummary(party.id, "papayoo", 10L, roundCount = 2, winners = listOf("Alice", "Bob"), winningScore = 150), summary)
     }
@@ -98,7 +99,7 @@ class PartyHistoryUseCasesTest {
             listOf(RoundScore(round.id, UUID.randomUUID(), 250))
         )
 
-        val (emptySummary, brokenSummary) = ObservePartyHistoryUseCase(repository, FakeBeloteStore(), BeloteEngine())().first()
+        val (emptySummary, brokenSummary) = ObservePartyHistoryUseCase(repository, FakeBeloteStore(), BeloteEngine(), FakeFreeGameRepository(), FreeGameEngine())().first()
 
         assertEquals(0, emptySummary.roundCount)
         assertTrue(emptySummary.winners.isEmpty())
@@ -116,7 +117,7 @@ class PartyHistoryUseCasesTest {
 
         assertTrue(result.isSuccess)
         assertEquals(party.id, repository.deletedId)
-        assertTrue(ObservePartyHistoryUseCase(repository, FakeBeloteStore(), BeloteEngine())().first().isEmpty())
+        assertTrue(ObservePartyHistoryUseCase(repository, FakeBeloteStore(), BeloteEngine(), FakeFreeGameRepository(), FreeGameEngine())().first().isEmpty())
     }
 
     @Test

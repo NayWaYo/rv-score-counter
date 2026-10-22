@@ -49,8 +49,9 @@ class FreeGameRepositoryImpl @Inject constructor(
         }
     }
 
-    // Transaction requise (AD-3) : une correction à moitié écrite fausserait les totaux.
-    override suspend fun correctRound(round: FreeRound) {
+    // Transaction requise (AD-3) : une correction à moitié écrite fausserait les totaux, ou la fin qu'elle atteint.
+    override suspend fun correctRound(round: FreeRound, updatedParty: Party) {
+        require(updatedParty.id == round.partyId) { "The updated party must be the round's party" }
         appDatabase.withTransaction {
             val stored = requireNotNull(roundDao.getById(round.id.toString())) { "Round ${round.id} does not exist" }
             require(stored == RoundEntity(round.id.toString(), round.partyId.toString(), round.roundNumber, suit = null)) {
@@ -63,6 +64,7 @@ class FreeGameRepositoryImpl @Inject constructor(
             round.scores.forEach { (participantId, points) ->
                 roundScoreDao.updatePoints(stored.id, participantId.toString(), points)
             }
+            partyDao.update(updatedParty.toEntity())
         }
     }
 

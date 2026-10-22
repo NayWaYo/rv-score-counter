@@ -36,12 +36,17 @@ open class FakeFreeGameRepository(gameNames: List<PlayedGameName> = emptyList())
     val rounds = MutableStateFlow<List<FreeRound>>(emptyList())
     val gameNames = MutableStateFlow(gameNames)
 
+    /** The Partie as each write left it, last one last. */
+    val updatedParties = mutableListOf<Party>()
+
     override suspend fun saveRound(round: FreeRound, updatedParty: Party) {
         rounds.value = rounds.value + round
+        updatedParties += updatedParty
     }
 
-    override suspend fun correctRound(round: FreeRound) {
+    override suspend fun correctRound(round: FreeRound, updatedParty: Party) {
         rounds.value = rounds.value.map { if (it.id == round.id) round else it }
+        updatedParties += updatedParty
     }
 
     override suspend fun getRounds(partyId: UUID): List<FreeRound> = rounds.value.filter { it.partyId == partyId }

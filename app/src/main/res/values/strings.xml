@@ -316,6 +316,20 @@
     <string name="free_rules_manual">Fin à la main</string>
     <string name="free_rules_target">Fin à %1$d points</string>
     <string name="free_rules_rounds">Fin après %1$d manches</string>
+
+    <!-- Jeu libre (Story 11.3) : partie en cours et saisie des manches -->
+    <string name="free_party_standings_title">Classement</string>
+    <string name="free_party_progress_rounds">Manche %1$d sur %2$d</string>
+    <string name="free_party_progress_target">%1$s : encore %2$d points avant %3$d</string>
+    <string name="free_party_play_round">Manche %1$d</string>
+    <string name="free_party_finished">Partie terminée</string>
+    <string name="free_party_winners">%1$s : %2$s</string>
+    <string name="round_table_free_legend">En gras orange : meilleur score de la manche · en gris : pire</string>
+    <string name="round_table_free_content_description">Manche %1$d : %2$s</string>
+    <string name="free_round_hint">Un score par joueur, négatif compris : le bouton +/− change le signe.</string>
+    <string name="free_round_out_of_bounds">Au plus 99 999 points par manche, en positif comme en négatif.</string>
+    <string name="score_field_sign_symbol" translatable="false">+/−</string>
+    <string name="score_field_sign">Changer le signe du score de %1$s</string>
     <string name="belote_setup_table_title">Ordre de table</string>
     <string name="belote_setup_first_dealer">%1$s donne en premier</string>
     <string name="belote_setup_seat_placeholder">%1$s %2$d</string>

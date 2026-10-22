@@ -48,6 +48,14 @@ class RoundTableTest {
     }
 
     @Test
+    fun `marks the most points as best when the highest total wins, without a suit`() {
+        val row = RoundTableRow(1, suit = null, points = mapOf(alice.id to -5, bob.id to 12), highestIsBest = true)
+
+        assertEquals(12, row.bestPoints)
+        assertEquals(-5, row.worstPoints)
+    }
+
+    @Test
     fun `has no best or worst when everyone scored the same`() {
         val row = RoundTableRow(1, CardSuit.SPADE, mapOf(alice.id to 125, bob.id to 125))
 

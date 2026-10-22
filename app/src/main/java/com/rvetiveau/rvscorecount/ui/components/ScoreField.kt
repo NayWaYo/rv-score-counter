@@ -1,6 +1,7 @@
 package com.rvetiveau.rvscorecount.ui.components
 
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.size
@@ -15,6 +16,7 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -42,6 +44,9 @@ private val ScoreFieldWidth = 136.dp
  *
  * While the field is empty, [suggestion] shows greyed as a placeholder on an accent tint, with a
  * calculation icon that enters it; typing replaces it.
+ *
+ * With [onToggleSign] (Jeu libre, Story 11.3), the field also accepts a leading minus and a +/−
+ * button before it switches the sign, number keyboards rarely offering one.
  */
 @Composable
 fun ScoreField(
@@ -55,7 +60,8 @@ fun ScoreField(
     focusRequester: FocusRequester? = null,
     suggestion: Int? = null,
     isError: Boolean = false,
-    onScan: (() -> Unit)? = null
+    onScan: (() -> Unit)? = null,
+    onToggleSign: (() -> Unit)? = null
 ) {
     val shownSuggestion = suggestion?.takeIf { value.isEmpty() }
     val accessibilityLabel = if (shownSuggestion != null) {
@@ -63,6 +69,7 @@ fun ScoreField(
     } else {
         stringResource(R.string.score_field_content_description, participantName)
     }
+    val signLabel = stringResource(R.string.score_field_sign, participantName)
     val containerColor = if (shownSuggestion != null) {
         MaterialTheme.colorScheme.primary.copy(alpha = 0.12f)
     } else {
@@ -83,11 +90,28 @@ fun ScoreField(
                 .semantics { hideFromAccessibility() }
                 .testTag("score_field_label_$participantId")
         )
+        if (onToggleSign != null) {
+            TextButton(
+                onClick = onToggleSign,
+                contentPadding = PaddingValues(0.dp),
+                modifier = Modifier
+                    .size(48.dp)
+                    .semantics { contentDescription = signLabel }
+                    .testTag("score_field_sign_$participantId")
+            ) {
+                Text(
+                    text = stringResource(R.string.score_field_sign_symbol),
+                    style = MaterialTheme.typography.titleMedium,
+                    modifier = Modifier.semantics { hideFromAccessibility() }
+                )
+            }
+        }
         OutlinedTextField(
             value = value,
             onValueChange = { proposed ->
-                val isDigitsOnly = proposed.isEmpty() || (proposed.all(Char::isDigit) && proposed.toIntOrNull() != null)
-                if (isDigitsOnly) onValueChange(proposed)
+                val digits = if (onToggleSign != null) proposed.removePrefix("-") else proposed
+                val isNumber = proposed.isEmpty() || (digits.all(Char::isDigit) && (digits.isEmpty() || digits.toIntOrNull() != null))
+                if (isNumber) onValueChange(proposed)
             },
             singleLine = true,
             isError = isError,

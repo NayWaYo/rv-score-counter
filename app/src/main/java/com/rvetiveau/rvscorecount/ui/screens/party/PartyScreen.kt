@@ -306,7 +306,7 @@ private fun InsertionPositionSheet(
 
 /** Confirmation of a destructive closure (Story 5.1): Confirmer in error color, Annuler. */
 @Composable
-private fun EndPartyDialog(isClosing: Boolean, onConfirm: () -> Unit, onDismiss: () -> Unit) {
+internal fun EndPartyDialog(isClosing: Boolean, onConfirm: () -> Unit, onDismiss: () -> Unit) {
     AlertDialog(
         onDismissRequest = onDismiss,
         title = { Text(text = stringResource(R.string.party_end_dialog_title)) },

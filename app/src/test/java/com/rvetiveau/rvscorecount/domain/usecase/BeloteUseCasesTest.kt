@@ -1,5 +1,6 @@
 package com.rvetiveau.rvscorecount.domain.usecase
 
+import com.rvetiveau.rvscorecount.game.free.FreeGameEngine
 import com.rvetiveau.rvscorecount.domain.engine.Game
 import com.rvetiveau.rvscorecount.domain.model.EndRule
 import com.rvetiveau.rvscorecount.domain.model.BelotePartyStatus
@@ -258,7 +259,7 @@ class BeloteUseCasesTest {
 
     // Historique (Story 7.4)
 
-    private val history = ObservePartyHistoryUseCase(store, store, rules)
+    private val history = ObservePartyHistoryUseCase(store, store, rules, FakeFreeGameRepository(), FreeGameEngine())
 
     @Test
     fun `a finished Belote party is summarized by team with its winning team`() = runTest {

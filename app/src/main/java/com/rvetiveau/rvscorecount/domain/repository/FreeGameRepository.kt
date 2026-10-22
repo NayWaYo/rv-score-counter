@@ -17,8 +17,11 @@ interface FreeGameRepository {
      */
     suspend fun saveRound(round: FreeRound, updatedParty: Party)
 
-    /** Replaces the scores of the validated Manche [round], for the same Participants only. */
-    suspend fun correctRound(round: FreeRound)
+    /**
+     * Atomic write: replaces the scores of the validated Manche [round], for the same Participants
+     * only, with [updatedParty] (FINISHED when the correction reaches the end rule).
+     */
+    suspend fun correctRound(round: FreeRound, updatedParty: Party)
 
     /** The Manches of [partyId] in order; a Manche with a 7's suit is not a Jeu libre one and throws. */
     suspend fun getRounds(partyId: UUID): List<FreeRound>
