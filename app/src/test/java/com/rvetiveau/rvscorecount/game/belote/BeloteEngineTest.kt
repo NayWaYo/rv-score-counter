@@ -1,6 +1,6 @@
 package com.rvetiveau.rvscorecount.game.belote
 
-import com.rvetiveau.rvscorecount.domain.model.BeloteEndRule
+import com.rvetiveau.rvscorecount.domain.model.EndRule
 import com.rvetiveau.rvscorecount.domain.model.BeloteOutcome
 import com.rvetiveau.rvscorecount.domain.model.BelotePartyStatus
 import com.rvetiveau.rvscorecount.domain.model.BeloteRoundInput
@@ -220,28 +220,28 @@ class BeloteEngineTest {
     fun `a party below the target score goes on`() {
         val results = engine.scoreParty(List(3) { BeloteRoundInput(FIRST, 100) })
 
-        assertEquals(BelotePartyStatus.InProgress, engine.partyStatus(results, BeloteEndRule.TargetScore(1000)))
+        assertEquals(BelotePartyStatus.InProgress, engine.partyStatus(results, EndRule.TargetScore(1000)))
     }
 
     @Test
     fun `the team reaching the target score wins`() {
         val results = engine.scoreParty(List(10) { BeloteRoundInput(FIRST, 100) })
 
-        assertEquals(BelotePartyStatus.Won(FIRST), engine.partyStatus(results, BeloteEndRule.TargetScore(1000)))
+        assertEquals(BelotePartyStatus.Won(FIRST), engine.partyStatus(results, EndRule.TargetScore(1000)))
     }
 
     @Test
     fun `when both teams reach the target the higher one wins`() {
         val results = engine.scoreParty(listOf(BeloteRoundInput(SECOND, 100)))
 
-        assertEquals(BelotePartyStatus.Won(SECOND), engine.partyStatus(results, BeloteEndRule.TargetScore(50)))
+        assertEquals(BelotePartyStatus.Won(SECOND), engine.partyStatus(results, EndRule.TargetScore(50)))
     }
 
     @Test
     fun `equal totals at the target need one more round`() {
         val results = engine.scoreParty(listOf(BeloteRoundInput(FIRST, 100), BeloteRoundInput(SECOND, 100)))
 
-        assertEquals(BelotePartyStatus.InProgress, engine.partyStatus(results, BeloteEndRule.TargetScore(150)))
+        assertEquals(BelotePartyStatus.InProgress, engine.partyStatus(results, EndRule.TargetScore(150)))
     }
 
     @Test
@@ -250,8 +250,8 @@ class BeloteEngineTest {
         val nine = engine.scoreParty(rounds)
         val ten = engine.scoreParty(rounds + BeloteRoundInput(SECOND, 120))
 
-        assertEquals(BelotePartyStatus.InProgress, engine.partyStatus(nine, BeloteEndRule.RoundCount(10)))
-        assertEquals(BelotePartyStatus.Won(FIRST), engine.partyStatus(ten, BeloteEndRule.RoundCount(10)))
+        assertEquals(BelotePartyStatus.InProgress, engine.partyStatus(nine, EndRule.RoundCount(10)))
+        assertEquals(BelotePartyStatus.Won(FIRST), engine.partyStatus(ten, EndRule.RoundCount(10)))
     }
 
     @Test
@@ -261,8 +261,8 @@ class BeloteEngineTest {
             listOf(BeloteRoundInput(FIRST, 100), BeloteRoundInput(SECOND, 100), BeloteRoundInput(SECOND, 90))
         )
 
-        assertEquals(BelotePartyStatus.InProgress, engine.partyStatus(tied, BeloteEndRule.RoundCount(2)))
-        assertEquals(BelotePartyStatus.Won(SECOND), engine.partyStatus(decided, BeloteEndRule.RoundCount(2)))
+        assertEquals(BelotePartyStatus.InProgress, engine.partyStatus(tied, EndRule.RoundCount(2)))
+        assertEquals(BelotePartyStatus.Won(SECOND), engine.partyStatus(decided, EndRule.RoundCount(2)))
     }
 
     @Test
@@ -270,13 +270,13 @@ class BeloteEngineTest {
         val results = engine.scoreParty(listOf(BeloteRoundInput(SECOND, 100), BeloteRoundInput(FIRST, 81)))
 
         assertEquals(81, results.last().reserveAfter)
-        assertEquals(BelotePartyStatus.Won(SECOND), engine.partyStatus(results, BeloteEndRule.RoundCount(2)))
+        assertEquals(BelotePartyStatus.Won(SECOND), engine.partyStatus(results, EndRule.RoundCount(2)))
     }
 
     @Test
     fun `the default end rules are 1000 points and 10 rounds`() {
-        assertEquals(1000, BeloteEndRule.DEFAULT_TARGET_SCORE)
-        assertEquals(10, BeloteEndRule.DEFAULT_ROUND_COUNT)
+        assertEquals(1000, EndRule.DEFAULT_TARGET_SCORE)
+        assertEquals(10, EndRule.DEFAULT_ROUND_COUNT)
     }
 
     // Invalid input
@@ -307,7 +307,7 @@ class BeloteEngineTest {
 
     @Test
     fun `a non positive end rule is rejected`() {
-        assertThrows(IllegalArgumentException::class.java) { BeloteEndRule.TargetScore(0) }
-        assertThrows(IllegalArgumentException::class.java) { BeloteEndRule.RoundCount(0) }
+        assertThrows(IllegalArgumentException::class.java) { EndRule.TargetScore(0) }
+        assertThrows(IllegalArgumentException::class.java) { EndRule.RoundCount(0) }
     }
 }

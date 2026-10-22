@@ -161,6 +161,18 @@ development_status:
 
   epic-10-retrospective: optional
 
+  # -------------------------------------------------------
+  # Epic 11: Jeu libre (4 stories)
+  # -------------------------------------------------------
+  epic-11: in-progress
+
+  11-1-moteur-et-donnees-du-jeu-libre: done
+  11-2-creation-d-une-partie-de-jeu-libre: backlog
+  11-3-saisie-des-manches-et-partie-en-cours: backlog
+  11-4-resultats-historique-et-palmares-du-jeu-libre: backlog
+
+  epic-11-retrospective: optional
+
 action_items:
   - epic: 1
     action: "Appliquer un préflight de compatibilité avant toute implémentation fonctionnelle d'une story modifiant la stack."

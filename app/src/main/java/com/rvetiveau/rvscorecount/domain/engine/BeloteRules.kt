@@ -1,6 +1,6 @@
 package com.rvetiveau.rvscorecount.domain.engine
 
-import com.rvetiveau.rvscorecount.domain.model.BeloteEndRule
+import com.rvetiveau.rvscorecount.domain.model.EndRule
 import com.rvetiveau.rvscorecount.domain.model.BelotePartyStatus
 import com.rvetiveau.rvscorecount.domain.model.BeloteRoundInput
 import com.rvetiveau.rvscorecount.domain.model.BeloteRoundResult
@@ -24,5 +24,5 @@ interface BeloteRules : Game {
     /** Scores the Manches of a Partie in order, carrying the litige reserve from one to the next. */
     fun scoreParty(rounds: List<BeloteRoundInput>): List<BeloteRoundResult>
 
-    fun partyStatus(results: List<BeloteRoundResult>, endRule: BeloteEndRule): BelotePartyStatus
+    fun partyStatus(results: List<BeloteRoundResult>, endRule: EndRule): BelotePartyStatus
 }

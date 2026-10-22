@@ -1,6 +1,6 @@
 package com.rvetiveau.rvscorecount.domain.usecase
 
-import com.rvetiveau.rvscorecount.domain.model.BeloteEndRule
+import com.rvetiveau.rvscorecount.domain.model.EndRule
 import com.rvetiveau.rvscorecount.domain.model.BeloteRound
 import com.rvetiveau.rvscorecount.domain.model.Participant
 import com.rvetiveau.rvscorecount.domain.model.Party
@@ -29,7 +29,7 @@ class FakeBeloteStore : PartyRepository, BeloteRepository {
 
     /** A Belote party in progress: « Nous » (Alice, Chloé) against « Eux » (Bob, David). */
     fun seedParty(
-        endRule: BeloteEndRule = BeloteEndRule.TargetScore(1000),
+        endRule: EndRule = EndRule.TargetScore(1000),
         status: PartyState = PartyState.IN_PROGRESS,
         dealerIndex: Int = 0
     ): Party {

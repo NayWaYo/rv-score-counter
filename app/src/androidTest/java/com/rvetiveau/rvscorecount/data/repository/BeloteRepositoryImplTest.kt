@@ -5,7 +5,7 @@ import androidx.test.platform.app.InstrumentationRegistry
 import com.rvetiveau.rvscorecount.data.db.AppDatabase
 import com.rvetiveau.rvscorecount.data.entity.toDomain
 import com.rvetiveau.rvscorecount.data.entity.toEntity
-import com.rvetiveau.rvscorecount.domain.model.BeloteEndRule
+import com.rvetiveau.rvscorecount.domain.model.EndRule
 import com.rvetiveau.rvscorecount.domain.model.BeloteRound
 import com.rvetiveau.rvscorecount.domain.model.BeloteRoundInput
 import com.rvetiveau.rvscorecount.domain.model.Participant
@@ -55,7 +55,7 @@ class BeloteRepositoryImplTest {
         status = PartyState.IN_PROGRESS,
         currentDealerIndex = 0,
         createdAt = 0L,
-        endRule = BeloteEndRule.TargetScore(1000)
+        endRule = EndRule.TargetScore(1000)
     )
 
     private val teams = listOf(Team(party.id, SECOND, "Eux"), Team(party.id, FIRST, "Nous"))
@@ -82,7 +82,7 @@ class BeloteRepositoryImplTest {
     fun createsThePartyItsTeamsAndItsParticipantsTogether() = runTest {
         repository.createParty(party, teams, participants)
 
-        assertEquals(BeloteEndRule.TargetScore(1000), database.partyDao().getById(party.id.toString())?.toDomain()?.endRule)
+        assertEquals(EndRule.TargetScore(1000), database.partyDao().getById(party.id.toString())?.toDomain()?.endRule)
         assertEquals(listOf("Nous", "Eux"), repository.getTeams(party.id).map { it.name })
         assertEquals(listOf("Nous", "Eux"), repository.observeTeams(party.id).first().map { it.name })
         val stored = database.participantDao().getByPartyId(party.id.toString())

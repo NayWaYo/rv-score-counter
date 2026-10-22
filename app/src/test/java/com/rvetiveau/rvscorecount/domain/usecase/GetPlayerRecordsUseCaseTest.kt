@@ -1,6 +1,6 @@
 package com.rvetiveau.rvscorecount.domain.usecase
 
-import com.rvetiveau.rvscorecount.domain.model.BeloteEndRule
+import com.rvetiveau.rvscorecount.domain.model.EndRule
 import com.rvetiveau.rvscorecount.domain.model.BeloteRound
 import com.rvetiveau.rvscorecount.domain.model.BeloteRoundInput
 import com.rvetiveau.rvscorecount.domain.model.PartyState
@@ -30,7 +30,7 @@ class GetPlayerRecordsUseCaseTest {
 
     /** A one-Manche Partie of Belote that Alice's Équipe wins as takers, linked to the Joueurs. */
     private fun seedBelote(status: PartyState): UUID {
-        val party = store.seedParty(BeloteEndRule.RoundCount(1), status)
+        val party = store.seedParty(EndRule.RoundCount(1), status)
         val alice = store.takerOf(party.id, TeamSide.FIRST)
         store.rounds.value += BeloteRound(UUID.randomUUID(), party.id, 1, BeloteRoundInput(TeamSide.FIRST, 100), alice)
         val seats = store.participants.value.filter { it.partyId == party.id }

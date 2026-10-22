@@ -765,3 +765,69 @@ Afin que « Val » et « Valentin » n'aient qu'un seul palmarès.
 **Then** tous les Participants du second sont rattachés au premier, renommés à son prénom, et le second Joueur disparaît, en une transaction
 **And** la fusion est refusée si les deux Joueurs ont joué dans une même Partie, avec un message nommant cette Partie
 **And** un Joueur sans aucune Partie peut être supprimé depuis son profil, après confirmation
+
+## Epic 11: Jeu libre
+
+Proposition n°7 du 2026-10-22, retenue par l'utilisateur : un compteur générique pour tous les jeux sans moteur dédié (Skyjo, Uno, Rami, Yams, jeux de société…). Chaque Partie porte le nom du jeu joué, ses Joueurs (Epic 10) et ses propres règles de victoire et de fin ; les scores d'une Manche sont libres.
+
+Choix validés par l'utilisateur le 2026-10-22 :
+- **Nom du jeu** : texte libre à la création (« Skyjo »), proposé ensuite d'après les noms déjà utilisés ; une tuile « Jeu libre » sur l'accueil, après le Papayoo et la Belote.
+- **Joueurs** : de 2 à 10, avec les suggestions de prénoms et le refus des doublons (Story 10.1).
+- **Scores** : un entier par Joueur et par Manche, **négatifs compris** (Skyjo), sans total imposé ni complément automatique.
+- **Victoire** : au choix à la création, **le plus petit total gagne** ou **le plus grand total gagne** ; égalités comprises.
+- **Fin de partie** : au choix, **manuelle** (« Fin de partie », par défaut), **score à atteindre** (la Partie se termine quand un Joueur l'atteint ou le dépasse, dans un sens comme dans l'autre) ou **nombre de Manches**.
+- **Palmarès** : une section « Jeux libres » dans le profil (Story 10.3), avec le taux de victoire tous jeux libres confondus puis par nom de jeu.
+
+### Story 11.1: Moteur et données du Jeu libre
+
+En tant qu'utilisateur,
+Je veux que l'application sache compter n'importe quel jeu,
+Afin de ne pas dépendre des seuls jeux qu'elle connaît.
+
+**Acceptance Criteria:**
+
+**Given** une Partie de Jeu libre
+**Then** ses règles (nom du jeu, sens de victoire, fin de partie) sont enregistrées avec elle ; un moteur `free` applique : scores entiers négatifs compris, pas de total imposé, classement selon le sens de victoire, fin selon la règle choisie
+**And** le schéma Room passe en version 6 : les colonnes de la Partie (nom du jeu, sens de victoire) et une couleur du 7 facultative pour les Manches, par une migration 5 → 6 testée sans perte sur un vrai fichier de version 5
+**And** les règles vivent dans le domaine et le moteur, couvertes par des tests JVM (sens de victoire, égalités, chaque fin de partie, scores négatifs)
+
+### Story 11.2: Création d'une Partie de Jeu libre
+
+En tant qu'utilisateur,
+Je veux créer une Partie de n'importe quel jeu en quelques secondes,
+Afin de compter les points dès la première Manche.
+
+**Acceptance Criteria:**
+
+**Given** l'accueil
+**When** je touche la tuile « Jeu libre »
+**Then** la création demande le nom du jeu (avec les noms déjà joués en suggestions), les Joueurs (2 à 10, ordre modifiable, suggestions de prénoms, doublons refusés), le sens de victoire et la fin de partie (manuelle par défaut, score à atteindre ou nombre de Manches)
+**And** « Commencer » n'est actif qu'avec un nom de jeu, au moins 2 Joueurs et une fin de partie valide
+**And** l'icône Historique de l'en-tête ouvre l'historique des Jeux libres
+
+### Story 11.3: Saisie des Manches et Partie en cours
+
+En tant qu'utilisateur,
+Je veux saisir les scores de chaque Manche et suivre le classement,
+Afin de savoir qui mène à tout moment.
+
+**Acceptance Criteria:**
+
+**Given** une Partie de Jeu libre en cours
+**Then** l'écran montre le nom du jeu, le classement selon le sens de victoire, le donneur s'il y en a un, ce qu'il reste avant la fin (score à atteindre ou Manches restantes) et le tableau des Manches
+**And** la saisie d'une Manche propose un champ par Joueur acceptant les nombres négatifs (bouton +/−) ; elle se valide dès que chaque Joueur a un score
+**And** une Manche validée peut être corrigée tant que la Partie est en cours
+**And** la Partie se termine d'elle-même quand la règle de fin est atteinte, ou par « Fin de partie » après confirmation ; l'écran reste allumé pendant la Partie
+
+### Story 11.4: Résultats, historique et palmarès du Jeu libre
+
+En tant qu'utilisateur,
+Je veux retrouver mes Parties de Jeu libre et le palmarès de chacun,
+Afin de comparer les joueurs sur tous nos jeux.
+
+**Acceptance Criteria:**
+
+**Given** une Partie de Jeu libre terminée
+**Then** les résultats affichent le classement final et le ou les gagnants, avec « Rejouer » (mêmes joueurs, même jeu, mêmes règles) et « Retour accueil »
+**And** l'Historique liste ces Parties avec le nom du jeu, et leur détail en lecture seule
+**And** le profil d'un Joueur (Story 10.3) gagne une section « Jeux libres » : taux de victoire tous jeux libres confondus, puis par nom de jeu, du plus joué au moins joué

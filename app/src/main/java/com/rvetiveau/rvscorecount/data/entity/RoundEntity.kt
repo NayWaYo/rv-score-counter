@@ -26,7 +26,8 @@ data class RoundEntity(
     @PrimaryKey val id: String,
     val partyId: String,
     val roundNumber: Int,
-    val suit: String,
+    /** The 7's suit of a Manche of Papayoo; null for a Manche of Jeu libre (schema v6, AD-9). */
+    val suit: String?,
     /** Participant who took the 7 of [suit] (schema v2); null for rounds recorded before. */
     @ColumnInfo(defaultValue = "NULL") val sevenHolderId: String? = null
 )
@@ -35,7 +36,7 @@ fun RoundEntity.toDomain() = Round(
     id = UUID.fromString(id),
     partyId = UUID.fromString(partyId),
     roundNumber = roundNumber,
-    suit = CardSuit.valueOf(suit),
+    suit = CardSuit.valueOf(checkNotNull(suit) { "Round $id of party $partyId has no suit: it is not a Papayoo round" }),
     sevenHolderId = sevenHolderId?.let(UUID::fromString)
 )
 

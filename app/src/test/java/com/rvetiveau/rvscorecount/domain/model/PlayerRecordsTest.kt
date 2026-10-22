@@ -89,7 +89,7 @@ class PlayerRecordsTest {
         takerRecorded: Boolean = true,
         seatOf: String = "Alice"
     ): BelotePlay {
-        val party = Party(UUID.randomUUID(), "belote", PartyState.FINISHED, 0, 0, BeloteEndRule.RoundCount(1))
+        val party = Party(UUID.randomUUID(), "belote", PartyState.FINISHED, 0, 0, EndRule.RoundCount(1))
         val seats = listOf(first.first to TeamSide.FIRST, second.first to TeamSide.SECOND, first.second to TeamSide.FIRST, second.second to TeamSide.SECOND)
         val players = seats.mapIndexed { index, (name, side) -> Participant(UUID.randomUUID(), party.id, name, index, side) }
         val taker = players.first()

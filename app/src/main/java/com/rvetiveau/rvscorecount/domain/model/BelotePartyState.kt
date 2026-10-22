@@ -12,7 +12,7 @@ data class BelotePartyState(
     val results: List<BeloteRoundResult>,
     val status: BelotePartyStatus
 ) {
-    val endRule: BeloteEndRule get() = checkNotNull(party.endRule) { "A Belote party has an end rule" }
+    val endRule: EndRule get() = checkNotNull(party.endRule) { "A Belote party has an end rule" }
 
     val totals: TeamPoints get() = results.fold(TeamPoints.ZERO) { sum, result -> sum + result.points }
 

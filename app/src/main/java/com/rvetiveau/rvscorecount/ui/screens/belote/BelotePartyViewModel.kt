@@ -2,7 +2,7 @@ package com.rvetiveau.rvscorecount.ui.screens.belote
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.rvetiveau.rvscorecount.domain.model.BeloteEndRule
+import com.rvetiveau.rvscorecount.domain.model.EndRule
 import com.rvetiveau.rvscorecount.domain.model.BelotePartyState
 import com.rvetiveau.rvscorecount.domain.model.PartyState
 import com.rvetiveau.rvscorecount.domain.model.TeamSide
@@ -91,7 +91,7 @@ internal fun BelotePartyState.toUiState(): BelotePartyUiState.Loaded {
         )
     }
     val progress = when (val rule = endRule) {
-        is BeloteEndRule.TargetScore -> {
+        is EndRule.TargetScore -> {
             val best = maxOf(totals.first, totals.second)
             if (best >= rule.points) {
                 BeloteProgress.ExtraRound
@@ -99,7 +99,7 @@ internal fun BelotePartyState.toUiState(): BelotePartyUiState.Loaded {
                 BeloteProgress.Target(rule.points, rule.points - best, teams.filter { it.total == best }.map { it.name })
             }
         }
-        is BeloteEndRule.RoundCount ->
+        is EndRule.RoundCount ->
             if (rounds.size >= rule.rounds) BeloteProgress.ExtraRound else BeloteProgress.Rounds(rounds.size + 1, rule.rounds)
     }
     return BelotePartyUiState.Loaded(

@@ -5,6 +5,7 @@ import androidx.room.Insert
 import androidx.room.OnConflictStrategy
 import androidx.room.Query
 import com.rvetiveau.rvscorecount.data.entity.RoundEntity
+import kotlinx.coroutines.flow.Flow
 
 @Dao
 interface RoundDao {
@@ -22,4 +23,7 @@ interface RoundDao {
     /** Returns the number of rows changed: 0 when the round does not exist. */
     @Query("UPDATE rounds SET sevenHolderId = :sevenHolderId WHERE id = :id")
     suspend fun updateSevenHolder(id: String, sevenHolderId: String?): Int
+
+    @Query("SELECT * FROM rounds WHERE partyId = :partyId ORDER BY roundNumber ASC")
+    fun observeByPartyId(partyId: String): Flow<List<RoundEntity>>
 }

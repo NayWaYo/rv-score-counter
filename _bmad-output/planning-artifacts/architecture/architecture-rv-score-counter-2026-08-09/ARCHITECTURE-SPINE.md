@@ -118,6 +118,12 @@ stateDiagram-v2
 - **Prevents:** forcer un jeu par Équipe dans le contrat par joueur de AD-2 ; refondre le Papayoo pour un besoin qui ne le concerne pas
 - **Rule:** amende AD-2. `GameEngine` reste le contrat par joueur du Papayoo et le catalogue des Jeux. Un jeu par Équipe expose en plus un contrat de domaine qui lui est propre (`BeloteRules` dans `domain/engine/`), implémenté dans `game/{gameId}/`, injecté par un `@Binds` simple et testé en JVM. Ses modèles (`TeamSide`, entrée et résultat de Manche, règle de fin) vivent dans `domain/model/`. Un moteur n'entre dans le catalogue (`@IntoMap`, donc sur l'Accueil) qu'avec sa présentation et son écran de création (Story 7.3), où la part commune de `GameEngine` pour la Belote est fixée. **Fixé en 7.3 :** la part commune est l'interface `Game` (`gameId`) dont héritent `GameEngine` et `BeloteRules` ; le catalogue de l'Accueil est une map `@IntoMap` de `Game`, ordonnée par `GameIds.CATALOG_ORDER`. La map de `GameEngine` reste réservée aux use cases du Papayoo, qui refusent donc toute Partie de Belote.
 
+### AD-9 — Jeu libre : contrat dédié, règles portées par la Partie (2026-10-22)
+
+- **Binds:** Epic 11 (Jeu libre) ; couches `domain`, `game` et `data`
+- **Prevents:** un moteur par jeu de société ; imposer au Jeu libre le total fixe et la couleur du 7 du Papayoo
+- **Rule:** suit AD-8. Le Jeu libre expose `FreeGameRules` dans `domain/engine/`, implémenté dans `game/free/` et injecté par un `@Binds` simple ; il n'entre dans le catalogue de l'Accueil qu'avec son écran de création (Story 11.2). Ses règles varient d'une Partie à l'autre et sont donc portées par la Partie : nom du jeu, sens de victoire (`WinDirection`) et règle de fin (`EndRule`, commune avec la Belote, nulle pour une fin manuelle). Ses Manches réutilisent `rounds` et `round_scores` sans couleur du 7 (colonne facultative depuis le schéma 6), avec leur propre modèle `FreeRound` et leur `FreeGameRepository` ; la Partie et ses Participants passent par `PartyRepository`.
+
 ---
 
 ## Consistency Conventions

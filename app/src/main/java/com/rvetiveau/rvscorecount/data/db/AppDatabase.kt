@@ -29,7 +29,7 @@ import com.rvetiveau.rvscorecount.data.entity.TeamEntity
         BeloteRoundEntity::class,
         PlayerEntity::class
     ],
-    version = 5,
+    version = 6,
     exportSchema = true,
     autoMigrations = [
         // v2 : colonne rounds.sevenHolderId (qui a eu le 7 de la couleur du dé), nulle pour les manches existantes.
@@ -38,9 +38,12 @@ import com.rvetiveau.rvscorecount.data.entity.TeamEntity
         // participants.teamSide, nulles pour les parties de Papayoo existantes.
         AutoMigration(from = 2, to = 3),
         // v4 : colonne belote_rounds.takerPlayerId (joueur preneur), nulle pour les manches existantes.
-        AutoMigration(from = 3, to = 4)
+        AutoMigration(from = 3, to = 4),
         // v5 (joueurs) : table players et participants.playerId, par MIGRATION_4_5 écrite à la main
         // (un Joueur par prénom, clé calculée en Kotlin), listée dans MANUAL_MIGRATIONS.
+        // v6 (Jeu libre, AD-9) : colonnes parties.gameName et parties.winDirection, nulles pour les
+        // autres Jeux, et rounds.suit facultative (une Manche de Jeu libre n'a pas de couleur du 7).
+        AutoMigration(from = 5, to = 6)
     ]
 )
 @TypeConverters(Converters::class)

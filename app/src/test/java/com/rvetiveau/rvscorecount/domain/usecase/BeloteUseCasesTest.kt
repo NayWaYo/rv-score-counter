@@ -1,7 +1,7 @@
 package com.rvetiveau.rvscorecount.domain.usecase
 
 import com.rvetiveau.rvscorecount.domain.engine.Game
-import com.rvetiveau.rvscorecount.domain.model.BeloteEndRule
+import com.rvetiveau.rvscorecount.domain.model.EndRule
 import com.rvetiveau.rvscorecount.domain.model.BelotePartyStatus
 import com.rvetiveau.rvscorecount.domain.model.BeloteRound
 import com.rvetiveau.rvscorecount.domain.model.BeloteRoundInput
@@ -64,13 +64,13 @@ class BeloteUseCasesTest {
 
     @Test
     fun `creates the party with alternating seats, trimmed names and the first player dealing`() = runTest {
-        val partyId = create(drafts, BeloteEndRule.RoundCount(10)).getOrThrow()
+        val partyId = create(drafts, EndRule.RoundCount(10)).getOrThrow()
 
         val party = checkNotNull(store.getPartyById(partyId))
         assertEquals("belote", party.gameId)
         assertEquals(PartyState.IN_PROGRESS, party.status)
         assertEquals(0, party.currentDealerIndex)
-        assertEquals(BeloteEndRule.RoundCount(10), party.endRule)
+        assertEquals(EndRule.RoundCount(10), party.endRule)
         assertEquals(listOf("Nous", "Eux"), store.getTeams(partyId).map { it.name })
         val players = store.getParticipantsByPartyId(partyId)
         assertEquals(listOf("Alice", "Bob", "Chloé", "David"), players.map { it.name })
@@ -85,7 +85,7 @@ class BeloteUseCasesTest {
         val samePlayerTwice = drafts.mapIndexed { i, team -> if (i == 1) team.copy(playerNames = listOf("ALICE", "Bob")) else team }
 
         listOf(blankPlayer, blankTeam, threePlayers, samePlayerTwice, drafts.take(1)).forEach { teams ->
-            assertTrue(create(teams, BeloteEndRule.TargetScore(1000)).exceptionOrNull() is InvalidPartyConfigurationException)
+            assertTrue(create(teams, EndRule.TargetScore(1000)).exceptionOrNull() is InvalidPartyConfigurationException)
         }
         assertTrue(store.parties.value.isEmpty())
     }
@@ -94,16 +94,16 @@ class BeloteUseCasesTest {
     fun `a storage failure is reported as a persistence failure`() = runTest {
         store.writeFailure = IOException("disk")
 
-        assertTrue(create(drafts, BeloteEndRule.TargetScore(1000)).exceptionOrNull() is PartyCreationPersistenceException)
+        assertTrue(create(drafts, EndRule.TargetScore(1000)).exceptionOrNull() is PartyCreationPersistenceException)
     }
 
     @Test
     fun `replay copies the teams, the seats and the end rule of a finished party`() = runTest {
-        val reference = store.seedParty(BeloteEndRule.RoundCount(4), status = PartyState.FINISHED)
+        val reference = store.seedParty(EndRule.RoundCount(4), status = PartyState.FINISHED)
 
         val partyId = create.fromParty(reference.id).getOrThrow()
 
-        assertEquals(BeloteEndRule.RoundCount(4), store.getPartyById(partyId)?.endRule)
+        assertEquals(EndRule.RoundCount(4), store.getPartyById(partyId)?.endRule)
         assertEquals(listOf("Nous", "Eux"), store.getTeams(partyId).map { it.name })
         assertEquals(listOf("Alice", "Bob", "Chloé", "David"), store.getParticipantsByPartyId(partyId).map { it.name })
     }
@@ -130,7 +130,7 @@ class BeloteUseCasesTest {
 
     @Test
     fun `the round reaching the target finishes the party in the same write`() = runTest {
-        val party = store.seedParty(BeloteEndRule.TargetScore(200))
+        val party = store.seedParty(EndRule.TargetScore(200))
         play(party.id, BeloteRoundInput(SECOND, 120)).getOrThrow()
 
         val status = play(party.id, BeloteRoundInput(SECOND, 100)).getOrThrow()
@@ -183,7 +183,7 @@ class BeloteUseCasesTest {
 
     @Test
     fun `a correction reaching the target finishes the party`() = runTest {
-        val party = store.seedParty(BeloteEndRule.TargetScore(260))
+        val party = store.seedParty(EndRule.TargetScore(260))
         play(party.id, BeloteRoundInput(FIRST, 150)).getOrThrow()
 
         val status = correct(party.id, 1, BeloteRoundInput(FIRST, 162, capotTeam = FIRST)).getOrThrow()
@@ -262,7 +262,7 @@ class BeloteUseCasesTest {
 
     @Test
     fun `a finished Belote party is summarized by team with its winning team`() = runTest {
-        val party = store.seedParty(BeloteEndRule.RoundCount(2))
+        val party = store.seedParty(EndRule.RoundCount(2))
         play(party.id, BeloteRoundInput(FIRST, 100)).getOrThrow()
         play(party.id, BeloteRoundInput(SECOND, 120)).getOrThrow()
 

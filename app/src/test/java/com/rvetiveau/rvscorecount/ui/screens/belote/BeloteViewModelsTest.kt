@@ -2,7 +2,7 @@ package com.rvetiveau.rvscorecount.ui.screens.belote
 
 import androidx.lifecycle.SavedStateHandle
 import com.rvetiveau.rvscorecount.R
-import com.rvetiveau.rvscorecount.domain.model.BeloteEndRule
+import com.rvetiveau.rvscorecount.domain.model.EndRule
 import com.rvetiveau.rvscorecount.domain.model.BeloteOutcome
 import com.rvetiveau.rvscorecount.domain.model.BeloteRound
 import com.rvetiveau.rvscorecount.domain.model.BeloteRoundInput
@@ -86,7 +86,7 @@ class BeloteViewModelsTest {
 
         val state = viewModel.uiState.value
         assertEquals(listOf("Nous", "Eux"), state.teamNames)
-        assertEquals(BeloteEndRule.TargetScore(1000), state.endRule)
+        assertEquals(EndRule.TargetScore(1000), state.endRule)
         assertEquals(listOf("Alice", "Bob", "Chloé", "David"), state.tableOrder)
         assertTrue(state.canStart)
     }
@@ -141,10 +141,10 @@ class BeloteViewModelsTest {
         viewModel.onEndValueChanged("12")
         viewModel.onEndValueChanged("1a")
         viewModel.onEndValueChanged("12345")
-        assertEquals(BeloteEndRule.RoundCount(12), viewModel.uiState.value.endRule)
+        assertEquals(EndRule.RoundCount(12), viewModel.uiState.value.endRule)
 
         viewModel.onEndModeChanged(BeloteEndMode.TARGET_SCORE)
-        assertEquals(BeloteEndRule.TargetScore(1000), viewModel.uiState.value.endRule)
+        assertEquals(EndRule.TargetScore(1000), viewModel.uiState.value.endRule)
     }
 
     @Test
@@ -156,7 +156,7 @@ class BeloteViewModelsTest {
 
         val party = store.parties.value.values.single()
         assertEquals(NavigationEvent.ReplaceAll(Routes.BeloteParty(party.id.toString())), viewModel.navigationEvents.first())
-        assertEquals(BeloteEndRule.TargetScore(1000), party.endRule)
+        assertEquals(EndRule.TargetScore(1000), party.endRule)
     }
 
     @Test
@@ -205,7 +205,7 @@ class BeloteViewModelsTest {
 
     @Test
     fun `a party by round count shows the current round, and equal totals at the end an extra one`() = runTest {
-        val party = store.seedParty(BeloteEndRule.RoundCount(2))
+        val party = store.seedParty(EndRule.RoundCount(2))
         val viewModel = BelotePartyViewModel(observe).apply { initialize(party.id) }
         assertEquals(BeloteProgress.Rounds(1, 2), (viewModel.uiState.value as BelotePartyUiState.Loaded).progress)
 
@@ -315,7 +315,7 @@ class BeloteViewModelsTest {
 
     @Test
     fun `the round ending the party opens the results`() = runTest {
-        val party = store.seedParty(BeloteEndRule.RoundCount(1))
+        val party = store.seedParty(EndRule.RoundCount(1))
         val viewModel = roundViewModel(party.id)
         viewModel.onTakerPlayerSelected(store.takerOf(party.id, FIRST))
         viewModel.onPointsChanged(FIRST, "100")
@@ -414,7 +414,7 @@ class BeloteViewModelsTest {
 
     @Test
     fun `the results show the winner first and replay starts a new party`() = runTest {
-        val party = store.seedParty(BeloteEndRule.RoundCount(1))
+        val party = store.seedParty(EndRule.RoundCount(1))
         play(party.id, BeloteRoundInput(SECOND, 100))
         val viewModel = BeloteResultsViewModel(observe, create).apply { initialize(party.id) }
 
@@ -425,12 +425,12 @@ class BeloteViewModelsTest {
         viewModel.onReplay()
         val newParty = store.parties.value.values.single { it.id != party.id }
         assertEquals(NavigationEvent.ReplaceAll(Routes.BeloteParty(newParty.id.toString())), viewModel.navigationEvents.first())
-        assertEquals(BeloteEndRule.RoundCount(1), newParty.endRule)
+        assertEquals(EndRule.RoundCount(1), newParty.endRule)
     }
 
     @Test
     fun `the results open the statistics`() = runTest {
-        val party = store.seedParty(BeloteEndRule.RoundCount(1))
+        val party = store.seedParty(EndRule.RoundCount(1))
         play(party.id, BeloteRoundInput(SECOND, 100))
         val viewModel = BeloteResultsViewModel(observe, create).apply { initialize(party.id) }
 
@@ -443,7 +443,7 @@ class BeloteViewModelsTest {
 
     @Test
     fun `the history opens the Belote detail for a Belote party`() = runTest {
-        val party = store.seedParty(BeloteEndRule.RoundCount(1))
+        val party = store.seedParty(EndRule.RoundCount(1))
         play(party.id, BeloteRoundInput(FIRST, 100))
         val viewModel = HistoryViewModel(ObservePartyHistoryUseCase(store, store, rules), DeletePartyUseCase(store), SavedStateHandle())
 
@@ -454,7 +454,7 @@ class BeloteViewModelsTest {
 
     @Test
     fun `the detail shows both teams and the rounds, and replays the party`() = runTest {
-        val party = store.seedParty(BeloteEndRule.RoundCount(2))
+        val party = store.seedParty(EndRule.RoundCount(2))
         play(party.id, BeloteRoundInput(FIRST, 81))
         play(party.id, BeloteRoundInput(SECOND, 100))
         val viewModel = BelotePartyDetailViewModel(observe, create).apply { initialize(party.id) }

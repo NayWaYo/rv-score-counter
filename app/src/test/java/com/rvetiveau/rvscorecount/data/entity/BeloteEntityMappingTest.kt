@@ -1,6 +1,6 @@
 package com.rvetiveau.rvscorecount.data.entity
 
-import com.rvetiveau.rvscorecount.domain.model.BeloteEndRule
+import com.rvetiveau.rvscorecount.domain.model.EndRule
 import com.rvetiveau.rvscorecount.domain.model.BeloteRound
 import com.rvetiveau.rvscorecount.domain.model.BeloteRoundInput
 import com.rvetiveau.rvscorecount.domain.model.Participant
@@ -19,7 +19,7 @@ class BeloteEntityMappingTest {
 
     private val partyId = UUID.randomUUID()
 
-    private fun aParty(endRule: BeloteEndRule?) = Party(
+    private fun aParty(endRule: EndRule?) = Party(
         id = partyId,
         gameId = "belote",
         status = PartyState.IN_PROGRESS,
@@ -40,15 +40,15 @@ class BeloteEntityMappingTest {
 
     @Test
     fun `a party keeps its end rule both ways`() {
-        listOf(BeloteEndRule.TargetScore(1000), BeloteEndRule.RoundCount(10), null).forEach { rule ->
+        listOf(EndRule.TargetScore(1000), EndRule.RoundCount(10), null).forEach { rule ->
             assertEquals(aParty(rule), aParty(rule).toEntity().toDomain())
         }
     }
 
     @Test
     fun `end rules are stored by type name and value`() {
-        val target = aParty(BeloteEndRule.TargetScore(501)).toEntity()
-        val rounds = aParty(BeloteEndRule.RoundCount(12)).toEntity()
+        val target = aParty(EndRule.TargetScore(501)).toEntity()
+        val rounds = aParty(EndRule.RoundCount(12)).toEntity()
         val none = aParty(null).toEntity()
 
         assertEquals("TARGET_SCORE" to 501, target.endRuleType to target.endRuleValue)

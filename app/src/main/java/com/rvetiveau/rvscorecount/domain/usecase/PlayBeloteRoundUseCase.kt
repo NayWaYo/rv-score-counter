@@ -1,7 +1,7 @@
 package com.rvetiveau.rvscorecount.domain.usecase
 
 import com.rvetiveau.rvscorecount.domain.engine.BeloteRules
-import com.rvetiveau.rvscorecount.domain.model.BeloteEndRule
+import com.rvetiveau.rvscorecount.domain.model.EndRule
 import com.rvetiveau.rvscorecount.domain.model.BelotePartyState
 import com.rvetiveau.rvscorecount.domain.model.BelotePartyStatus
 import com.rvetiveau.rvscorecount.domain.model.BeloteRound
@@ -68,7 +68,7 @@ internal fun requireTaker(state: BelotePartyState, input: BeloteRoundInput, take
 /** The engine's status once [inputs] are played; an input it refuses is an invalid Manche. */
 internal fun statusAfter(
     inputs: List<BeloteRoundInput>,
-    endRule: BeloteEndRule,
+    endRule: EndRule,
     rules: BeloteRules
 ): BelotePartyStatus = try {
     rules.partyStatus(rules.scoreParty(inputs), endRule)

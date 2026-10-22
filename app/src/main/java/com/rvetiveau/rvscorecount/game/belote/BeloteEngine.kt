@@ -2,7 +2,7 @@ package com.rvetiveau.rvscorecount.game.belote
 
 import com.rvetiveau.rvscorecount.domain.engine.BeloteRules
 import com.rvetiveau.rvscorecount.domain.engine.GameIds
-import com.rvetiveau.rvscorecount.domain.model.BeloteEndRule
+import com.rvetiveau.rvscorecount.domain.model.EndRule
 import com.rvetiveau.rvscorecount.domain.model.BeloteOutcome
 import com.rvetiveau.rvscorecount.domain.model.BelotePartyStatus
 import com.rvetiveau.rvscorecount.domain.model.BeloteRoundInput
@@ -77,11 +77,11 @@ class BeloteEngine @Inject constructor() : BeloteRules {
         }
     }
 
-    override fun partyStatus(results: List<BeloteRoundResult>, endRule: BeloteEndRule): BelotePartyStatus {
+    override fun partyStatus(results: List<BeloteRoundResult>, endRule: EndRule): BelotePartyStatus {
         val totals = results.fold(TeamPoints.ZERO) { sum, result -> sum + result.points }
         val endReached = when (endRule) {
-            is BeloteEndRule.TargetScore -> maxOf(totals.first, totals.second) >= endRule.points
-            is BeloteEndRule.RoundCount -> results.size >= endRule.rounds
+            is EndRule.TargetScore -> maxOf(totals.first, totals.second) >= endRule.points
+            is EndRule.RoundCount -> results.size >= endRule.rounds
         }
         return when {
             !endReached || totals.first == totals.second -> BelotePartyStatus.InProgress

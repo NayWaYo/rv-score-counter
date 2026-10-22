@@ -1,9 +1,11 @@
 package com.rvetiveau.rvscorecount.di
 
 import com.rvetiveau.rvscorecount.domain.engine.BeloteRules
+import com.rvetiveau.rvscorecount.domain.engine.FreeGameRules
 import com.rvetiveau.rvscorecount.domain.engine.Game
 import com.rvetiveau.rvscorecount.domain.engine.GameEngine
 import com.rvetiveau.rvscorecount.game.belote.BeloteEngine
+import com.rvetiveau.rvscorecount.game.free.FreeGameEngine
 import com.rvetiveau.rvscorecount.game.papayoo.PapayooEngine
 import dagger.Binds
 import dagger.Module
@@ -36,4 +38,8 @@ abstract class EngineModule {
     @IntoMap
     @StringKey(BeloteEngine.GAME_ID)
     abstract fun bindBeloteGame(engine: BeloteEngine): Game
+
+    // Not in the Accueil catalogue until its creation screen exists (AD-9, Story 11.2).
+    @Binds
+    abstract fun bindFreeGameRules(engine: FreeGameEngine): FreeGameRules
 }

@@ -1,7 +1,7 @@
 package com.rvetiveau.rvscorecount.ui.screens.belote
 
 import androidx.annotation.StringRes
-import com.rvetiveau.rvscorecount.domain.model.BeloteEndRule
+import com.rvetiveau.rvscorecount.domain.model.EndRule
 import com.rvetiveau.rvscorecount.domain.model.duplicatePlayerName
 import com.rvetiveau.rvscorecount.domain.model.suggestPlayerNames
 
@@ -18,8 +18,8 @@ data class BeloteSetupUiState(
     /** Names of earlier Parties, the most recently played first. */
     val knownPlayerNames: List<String> = emptyList(),
     val endMode: BeloteEndMode = BeloteEndMode.TARGET_SCORE,
-    val targetScoreInput: String = BeloteEndRule.DEFAULT_TARGET_SCORE.toString(),
-    val roundCountInput: String = BeloteEndRule.DEFAULT_ROUND_COUNT.toString(),
+    val targetScoreInput: String = EndRule.DEFAULT_TARGET_SCORE.toString(),
+    val roundCountInput: String = EndRule.DEFAULT_ROUND_COUNT.toString(),
     val isCreatingParty: Boolean = false,
     val creationCompleted: Boolean = false,
     @StringRes val creationErrorRes: Int? = null
@@ -31,11 +31,11 @@ data class BeloteSetupUiState(
         }
 
     /** Null while the value is not a number between 1 and [MAX_END_VALUE]. */
-    val endRule: BeloteEndRule?
+    val endRule: EndRule?
         get() = endValueInput.toIntOrNull()?.takeIf { it in 1..MAX_END_VALUE }?.let { value ->
             when (endMode) {
-                BeloteEndMode.TARGET_SCORE -> BeloteEndRule.TargetScore(value)
-                BeloteEndMode.ROUND_COUNT -> BeloteEndRule.RoundCount(value)
+                BeloteEndMode.TARGET_SCORE -> EndRule.TargetScore(value)
+                BeloteEndMode.ROUND_COUNT -> EndRule.RoundCount(value)
             }
         }
 

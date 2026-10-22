@@ -1,7 +1,7 @@
 package com.rvetiveau.rvscorecount.domain.usecase
 
 import com.rvetiveau.rvscorecount.domain.engine.GameIds
-import com.rvetiveau.rvscorecount.domain.model.BeloteEndRule
+import com.rvetiveau.rvscorecount.domain.model.EndRule
 import com.rvetiveau.rvscorecount.domain.model.Participant
 import com.rvetiveau.rvscorecount.domain.model.Party
 import com.rvetiveau.rvscorecount.domain.model.PartyState
@@ -26,7 +26,7 @@ class CreateBelotePartyUseCase @Inject constructor(
     private val beloteRepository: BeloteRepository
 ) {
     /** [teams]: the first Équipe, then the second. */
-    suspend operator fun invoke(teams: List<BeloteTeamDraft>, endRule: BeloteEndRule): Result<UUID> = try {
+    suspend operator fun invoke(teams: List<BeloteTeamDraft>, endRule: EndRule): Result<UUID> = try {
         val normalized = teams.map { team ->
             BeloteTeamDraft(team.name.trim(), team.playerNames.map(String::trim))
         }
