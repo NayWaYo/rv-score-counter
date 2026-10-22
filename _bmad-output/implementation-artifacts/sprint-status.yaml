@@ -164,7 +164,7 @@ development_status:
   # -------------------------------------------------------
   # Epic 11: Jeu libre (4 stories)
   # -------------------------------------------------------
-  epic-11: in-progress
+  epic-11: done
 
   11-1-moteur-et-donnees-du-jeu-libre: done
   11-2-creation-d-une-partie-de-jeu-libre: done
