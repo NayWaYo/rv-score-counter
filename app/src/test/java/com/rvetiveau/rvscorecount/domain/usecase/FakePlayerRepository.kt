@@ -3,6 +3,7 @@ package com.rvetiveau.rvscorecount.domain.usecase
 import com.rvetiveau.rvscorecount.domain.model.KnownPlayer
 import com.rvetiveau.rvscorecount.domain.model.PlayerSummary
 import com.rvetiveau.rvscorecount.domain.repository.PlayerRepository
+import com.rvetiveau.rvscorecount.domain.repository.PlayerSeat
 import java.util.UUID
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -15,6 +16,10 @@ class FakePlayerRepository(
 ) : PlayerRepository {
     val players = MutableStateFlow(players)
     var renameFailure: Throwable? = null
+
+    /** Seats by Joueur, and the Joueur of each seat by Partie (Story 10.3). */
+    val seats = mutableMapOf<UUID, List<PlayerSeat>>()
+    val playerIdsBySeat = mutableMapOf<UUID, Map<UUID, UUID>>()
 
     /** [names] listed from the most to the least recently played. */
     constructor(vararg names: String) : this(names.mapIndexed { index, name -> KnownPlayer(name, (names.size - index).toLong()) })
@@ -29,4 +34,8 @@ class FakePlayerRepository(
         players.value = players.value.map { if (it.id == id) it.copy(name = name) else it }
         return true
     }
+
+    override suspend fun getSeats(playerId: UUID): List<PlayerSeat> = seats[playerId].orEmpty()
+
+    override suspend fun getPlayerIdsBySeat(partyId: UUID): Map<UUID, UUID> = playerIdsBySeat[partyId].orEmpty()
 }

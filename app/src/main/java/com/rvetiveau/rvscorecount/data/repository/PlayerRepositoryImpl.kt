@@ -8,6 +8,7 @@ import com.rvetiveau.rvscorecount.domain.model.KnownPlayer
 import com.rvetiveau.rvscorecount.domain.model.PlayerSummary
 import com.rvetiveau.rvscorecount.domain.model.playerNameKey
 import com.rvetiveau.rvscorecount.domain.repository.PlayerRepository
+import com.rvetiveau.rvscorecount.domain.repository.PlayerSeat
 import java.util.UUID
 import javax.inject.Inject
 import kotlinx.coroutines.flow.Flow
@@ -36,4 +37,10 @@ class PlayerRepositoryImpl @Inject constructor(
             if (renamed) participantDao.renamePlayer(id.toString(), name)
             renamed
         }
+
+    override suspend fun getSeats(playerId: UUID): List<PlayerSeat> =
+        playerDao.getSeats(playerId.toString()).map { PlayerSeat(UUID.fromString(it.partyId), UUID.fromString(it.participantId)) }
+
+    override suspend fun getPlayerIdsBySeat(partyId: UUID): Map<UUID, UUID> =
+        playerDao.getPlayersOfParty(partyId.toString()).associate { UUID.fromString(it.participantId) to UUID.fromString(it.playerId) }
 }

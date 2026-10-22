@@ -5,6 +5,9 @@ import com.rvetiveau.rvscorecount.domain.model.PlayerSummary
 import java.util.UUID
 import kotlinx.coroutines.flow.Flow
 
+/** A place a Joueur took at a Partie: the Participant [participantId] of [partyId]. */
+data class PlayerSeat(val partyId: UUID, val participantId: UUID)
+
 interface PlayerRepository {
     /** Every Joueur, with the date of their latest Partie when they still have one. */
     fun observeKnownPlayers(): Flow<List<KnownPlayer>>
@@ -17,4 +20,10 @@ interface PlayerRepository {
      * false when no Joueur has this id. [name] is already trimmed and free (see RenamePlayerUseCase).
      */
     suspend fun renamePlayer(id: UUID, name: String): Boolean
+
+    /** Every seat of the Joueur [playerId], in every stored Partie (Story 10.3). */
+    suspend fun getSeats(playerId: UUID): List<PlayerSeat>
+
+    /** The Joueur of each Participant of [partyId], keyed by participant id. */
+    suspend fun getPlayerIdsBySeat(partyId: UUID): Map<UUID, UUID>
 }

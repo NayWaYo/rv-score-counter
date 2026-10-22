@@ -6,18 +6,23 @@ import com.rvetiveau.rvscorecount.R
 import com.rvetiveau.rvscorecount.domain.usecase.ObservePlayersUseCase
 import com.rvetiveau.rvscorecount.domain.usecase.RenamePlayerOutcome
 import com.rvetiveau.rvscorecount.domain.usecase.RenamePlayerUseCase
+import com.rvetiveau.rvscorecount.ui.navigation.NavigationEvent
+import com.rvetiveau.rvscorecount.ui.navigation.Routes
 import dagger.hilt.android.lifecycle.HiltViewModel
 import java.util.UUID
 import javax.inject.Inject
 import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.channels.Channel
+import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.catch
+import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
-/** Lists the Joueurs (Story 10.2) from Room and renames them; the list follows every change. */
+/** Lists the Joueurs (Story 10.2) from Room, renames them and opens their profile (Story 10.3). */
 @HiltViewModel
 class PlayersViewModel @Inject constructor(
     observePlayersUseCase: ObservePlayersUseCase,
@@ -26,6 +31,9 @@ class PlayersViewModel @Inject constructor(
 
     private val _uiState = MutableStateFlow<PlayersUiState>(PlayersUiState.Loading)
     val uiState: StateFlow<PlayersUiState> = _uiState.asStateFlow()
+
+    private val _navigationEvents = Channel<NavigationEvent>(Channel.BUFFERED)
+    val navigationEvents: Flow<NavigationEvent> = _navigationEvents.receiveAsFlow()
 
     init {
         viewModelScope.launch {
@@ -44,6 +52,13 @@ class PlayersViewModel @Inject constructor(
                         }
                     }
                 }
+        }
+    }
+
+    /** Opens the Joueur's profile (Story 10.3). */
+    fun onPlayerSelected(playerId: UUID) {
+        viewModelScope.launch {
+            _navigationEvents.send(NavigationEvent.NavigateTo(Routes.PlayerProfile(playerId.toString())))
         }
     }
 

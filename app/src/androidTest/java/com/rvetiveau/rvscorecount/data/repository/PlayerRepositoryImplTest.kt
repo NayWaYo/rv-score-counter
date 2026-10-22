@@ -104,6 +104,22 @@ class PlayerRepositoryImplTest {
         assertEquals(alice.id.toString(), database.participantDao().getByPartyId(third.toString()).single().playerId)
     }
 
+    // --- Profil (Story 10.3) ---
+
+    @Test
+    fun seatsAndTheirJoueursAreReadBack() = runTest {
+        val first = createParty("papayoo", createdAt = 10, "Alice", "Bob")
+        val second = createParty("belote", createdAt = 20, "alice", "Chloé")
+        val alice = repository.observePlayers().first().single { it.name == "Alice" }
+
+        val seats = repository.getSeats(alice.id)
+
+        assertEquals(setOf(first, second), seats.map { it.partyId }.toSet())
+        val players = repository.getPlayerIdsBySeat(second)
+        assertEquals(alice.id, players.getValue(seats.single { it.partyId == second }.participantId))
+        assertEquals(2, players.size)
+    }
+
     @Test
     fun renamingAnUnknownJoueurChangesNothing() = runTest {
         createParty("papayoo", createdAt = 10, "Alice")

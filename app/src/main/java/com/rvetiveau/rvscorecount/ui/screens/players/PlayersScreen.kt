@@ -1,6 +1,7 @@
 package com.rvetiveau.rvscorecount.ui.screens.players
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -45,12 +46,13 @@ import java.util.UUID
 
 /**
  * Stateless « Joueurs » (Story 10.2): every Joueur with their finished Parties and latest Partie,
- * and a pencil that opens the rename dialog. Tapping a row will open the profile (Story 10.3).
+ * and a pencil that opens the rename dialog; tapping a row opens the profile (Story 10.3).
  */
 @Composable
 fun PlayersScreen(
     state: PlayersUiState,
     modifier: Modifier = Modifier,
+    onPlayerSelected: (UUID) -> Unit = {},
     onRenameRequested: (UUID) -> Unit = {},
     onRenameInputChanged: (String) -> Unit = {},
     onRenameConfirmed: () -> Unit = {},
@@ -84,7 +86,11 @@ fun PlayersScreen(
                         .testTag("players_list")
                 ) {
                     items(state.players, key = { it.id }) { player ->
-                        PlayerRow(player = player, onRenameRequested = { onRenameRequested(player.id) })
+                        PlayerRow(
+                            player = player,
+                            onSelected = { onPlayerSelected(player.id) },
+                            onRenameRequested = { onRenameRequested(player.id) }
+                        )
                     }
                 }
                 state.renaming?.let { renaming ->
@@ -101,7 +107,7 @@ fun PlayersScreen(
 }
 
 @Composable
-private fun PlayerRow(player: PlayerSummary, onRenameRequested: () -> Unit) {
+private fun PlayerRow(player: PlayerSummary, onSelected: () -> Unit, onRenameRequested: () -> Unit) {
     val dateFormatter = remember { DateTimeFormatter.ofLocalizedDate(FormatStyle.MEDIUM) }
     val details = player.lastPlayedAt?.let { lastPlayedAt ->
         val date = Instant.ofEpochMilli(lastPlayedAt).atZone(ZoneId.systemDefault()).format(dateFormatter)
@@ -116,6 +122,7 @@ private fun PlayerRow(player: PlayerSummary, onRenameRequested: () -> Unit) {
             .heightIn(min = 64.dp)
             .clip(RoundedCornerShape(8.dp))
             .background(MaterialTheme.colorScheme.surfaceVariant)
+            .clickable(onClick = onSelected)
             .padding(start = 16.dp, end = 4.dp, top = 8.dp, bottom = 8.dp)
             .testTag("players_row_${player.id}")
     ) {

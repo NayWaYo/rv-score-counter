@@ -48,6 +48,11 @@ sealed interface Routes {
     @SerialName("players")
     data object Players : Routes
 
+    /** A Joueur's profile and records (Story 10.3). */
+    @Serializable
+    @SerialName("playerProfile")
+    data class PlayerProfile(val playerId: String) : Routes
+
     @Serializable
     @SerialName("partyDetail")
     data class PartyDetail(val partyId: String) : Routes

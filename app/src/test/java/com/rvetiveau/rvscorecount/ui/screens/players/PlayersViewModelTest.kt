@@ -5,10 +5,13 @@ import com.rvetiveau.rvscorecount.domain.model.PlayerSummary
 import com.rvetiveau.rvscorecount.domain.usecase.FakePlayerRepository
 import com.rvetiveau.rvscorecount.domain.usecase.ObservePlayersUseCase
 import com.rvetiveau.rvscorecount.domain.usecase.RenamePlayerUseCase
+import com.rvetiveau.rvscorecount.ui.navigation.NavigationEvent
+import com.rvetiveau.rvscorecount.ui.navigation.Routes
 import java.io.IOException
 import java.util.UUID
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import kotlinx.coroutines.test.resetMain
 import kotlinx.coroutines.test.runTest
@@ -87,6 +90,18 @@ class PlayersViewModelTest {
 
         assertEquals(R.string.players_rename_failed, vm.loaded().renaming?.errorRes)
         assertEquals(false, vm.loaded().renaming?.isSaving)
+    }
+
+    @Test
+    fun `selecting a player opens their profile`() = runTest {
+        val vm = viewModel(FakePlayerRepository(players = listOf(alice)))
+
+        vm.onPlayerSelected(alice.id)
+
+        assertEquals(
+            NavigationEvent.NavigateTo(Routes.PlayerProfile(alice.id.toString())),
+            vm.navigationEvents.first()
+        )
     }
 
     @Test

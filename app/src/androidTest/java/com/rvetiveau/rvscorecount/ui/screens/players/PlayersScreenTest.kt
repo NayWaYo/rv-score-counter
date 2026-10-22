@@ -29,6 +29,7 @@ class PlayersScreenTest {
 
     private fun setContent(
         state: PlayersUiState,
+        onPlayerSelected: (UUID) -> Unit = {},
         onRenameRequested: (UUID) -> Unit = {},
         onRenameInputChanged: (String) -> Unit = {},
         onRenameConfirmed: () -> Unit = {}
@@ -37,6 +38,7 @@ class PlayersScreenTest {
             RvScoreCounterTheme {
                 PlayersScreen(
                     state = state,
+                    onPlayerSelected = onPlayerSelected,
                     onRenameRequested = onRenameRequested,
                     onRenameInputChanged = onRenameInputChanged,
                     onRenameConfirmed = onRenameConfirmed
@@ -49,14 +51,14 @@ class PlayersScreenTest {
     fun eachPlayerShowsTheirFinishedPartiesAndLatestPartie() {
         setContent(PlayersUiState.Loaded(listOf(alice, bob)))
 
-        composeTestRule.onNodeWithTag("players_name_${alice.id}").assertTextEquals("Alice")
-        val aliceDetails = composeTestRule.onNodeWithTag("players_details_${alice.id}")
+        composeTestRule.onNodeWithTag("players_name_${alice.id}", useUnmergedTree = true).assertTextEquals("Alice")
+        val aliceDetails = composeTestRule.onNodeWithTag("players_details_${alice.id}", useUnmergedTree = true)
         aliceDetails.assertIsDisplayed()
         assertTrue(
             aliceDetails.fetchSemanticsNode().config[androidx.compose.ui.semantics.SemanticsProperties.Text]
                 .single().text.startsWith("3 parties terminées · dernière partie le ")
         )
-        composeTestRule.onNodeWithTag("players_details_${bob.id}").assertTextEquals("Aucune partie")
+        composeTestRule.onNodeWithTag("players_details_${bob.id}", useUnmergedTree = true).assertTextEquals("Aucune partie")
     }
 
     @Test
@@ -90,6 +92,16 @@ class PlayersScreenTest {
 
         assertEquals(listOf("Alicia"), inputs)
         assertTrue(confirmed)
+    }
+
+    @Test
+    fun tappingARowOpensThatPlayer() {
+        val selected = mutableListOf<UUID>()
+        setContent(PlayersUiState.Loaded(listOf(alice, bob)), onPlayerSelected = { selected += it })
+
+        composeTestRule.onNodeWithTag("players_row_${alice.id}").performClick()
+
+        assertEquals(listOf(alice.id), selected)
     }
 
     @Test

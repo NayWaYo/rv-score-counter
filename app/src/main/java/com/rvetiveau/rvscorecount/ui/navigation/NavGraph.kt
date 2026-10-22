@@ -17,6 +17,7 @@ import com.rvetiveau.rvscorecount.ui.screens.history.HistoryRoute
 import com.rvetiveau.rvscorecount.ui.screens.home.HomeRoute
 import com.rvetiveau.rvscorecount.ui.screens.party.PartyRoute
 import com.rvetiveau.rvscorecount.ui.screens.players.PlayersRoute
+import com.rvetiveau.rvscorecount.ui.screens.profile.PlayerProfileRoute
 import com.rvetiveau.rvscorecount.ui.screens.partydetail.PartyDetailRoute
 import com.rvetiveau.rvscorecount.ui.screens.results.ResultsRoute
 import com.rvetiveau.rvscorecount.ui.screens.round.RoundEntryRoute
@@ -76,7 +77,11 @@ fun RvScoreCounterNavHost(
             HistoryRoute(onNavigate = { event -> navController.dispatch(event) })
         }
         composable<Routes.Players> {
-            PlayersRoute()
+            PlayersRoute(onNavigate = { event -> navController.dispatch(event) })
+        }
+        composable<Routes.PlayerProfile> { backStackEntry ->
+            val route: Routes.PlayerProfile = backStackEntry.toRoute()
+            PlayerProfileRoute(playerId = UUID.fromString(route.playerId))
         }
         composable<Routes.GameHistory> {
             HistoryRoute(onNavigate = { event -> navController.dispatch(event) })

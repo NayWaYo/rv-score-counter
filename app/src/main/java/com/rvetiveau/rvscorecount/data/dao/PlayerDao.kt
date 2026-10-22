@@ -49,7 +49,17 @@ interface PlayerDao {
     /** Number of rows changed: 0 when no Joueur has [id]. */
     @Query("UPDATE players SET name = :name, nameKey = :nameKey WHERE id = :id")
     suspend fun rename(id: String, name: String, nameKey: String): Int
+
+    @Query("SELECT partyId, id AS participantId FROM participants WHERE playerId = :playerId")
+    suspend fun getSeats(playerId: String): List<SeatRow>
+
+    @Query("SELECT id AS participantId, playerId FROM participants WHERE partyId = :partyId")
+    suspend fun getPlayersOfParty(partyId: String): List<SeatPlayerRow>
 }
+
+data class SeatRow(val partyId: String, val participantId: String)
+
+data class SeatPlayerRow(val participantId: String, val playerId: String)
 
 data class KnownNameRow(
     val name: String,
