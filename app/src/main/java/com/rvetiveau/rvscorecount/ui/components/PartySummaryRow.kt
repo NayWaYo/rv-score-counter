@@ -32,7 +32,8 @@ import java.time.format.DateTimeFormatter
 import java.time.format.FormatStyle
 
 /**
- * One finished Partie: date · Jeu · nombre de Manches, then the winner(s) or why there is none.
+ * One finished Partie: date · Jeu (the game played, for a Jeu libre) · nombre de Manches, then the
+ * winner(s) or why there is none.
  * Tapping opens it; [onDeleteRequested], when given, adds a visible trash button at the end (Story 8.1).
  */
 @Composable
@@ -78,7 +79,7 @@ fun PartySummaryRow(
                 text = stringResource(
                     R.string.history_entry_header,
                     date,
-                    stringResource(gamePresentation(entry.gameId).nameRes),
+                    entry.gameName ?: stringResource(gamePresentation(entry.gameId).nameRes),
                     pluralStringResource(R.plurals.history_round_count, entry.roundCount, entry.roundCount)
                 ),
                 style = MaterialTheme.typography.bodySmall,

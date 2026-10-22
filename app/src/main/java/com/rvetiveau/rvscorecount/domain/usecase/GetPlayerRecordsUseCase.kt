@@ -4,6 +4,10 @@ import com.rvetiveau.rvscorecount.domain.engine.BeloteRules
 import com.rvetiveau.rvscorecount.domain.engine.GameEngine
 import com.rvetiveau.rvscorecount.domain.engine.GameIds
 import com.rvetiveau.rvscorecount.domain.model.BelotePlay
+import com.rvetiveau.rvscorecount.domain.model.FreePlay
+import com.rvetiveau.rvscorecount.domain.model.freeRecords
+import com.rvetiveau.rvscorecount.domain.engine.FreeGameRules
+import com.rvetiveau.rvscorecount.domain.repository.FreeGameRepository
 import com.rvetiveau.rvscorecount.domain.model.PapayooPlay
 import com.rvetiveau.rvscorecount.domain.model.Party
 import com.rvetiveau.rvscorecount.domain.model.PartyState
@@ -28,7 +32,9 @@ class GetPlayerRecordsUseCase @Inject constructor(
     private val partyRepository: PartyRepository,
     private val beloteRepository: BeloteRepository,
     private val beloteRules: BeloteRules,
-    private val engines: Map<String, @JvmSuppressWildcards GameEngine>
+    private val engines: Map<String, @JvmSuppressWildcards GameEngine>,
+    private val freeGameRepository: FreeGameRepository,
+    private val freeGameRules: FreeGameRules
 ) {
     /** Null when no Joueur has [playerId]. */
     suspend operator fun invoke(playerId: UUID): PlayerRecords? {
@@ -38,11 +44,13 @@ class GetPlayerRecordsUseCase @Inject constructor(
 
         val papayooPlays = mutableListOf<PapayooPlay>()
         val belotePlays = mutableListOf<BelotePlay>()
+        val freePlays = mutableListOf<FreePlay>()
         playerRepository.getSeats(playerId).groupBy { it.partyId }.forEach { (partyId, seats) ->
             val party = partyRepository.getPartyById(partyId)?.takeIf { it.status == PartyState.FINISHED } ?: return@forEach
             when (party.gameId) {
                 GameIds.PAPAYOO -> papayooPlay(party, seats)?.let(papayooPlays::add)
                 GameIds.BELOTE -> belotePlay(party, seats)?.let(belotePlays::add)
+                GameIds.FREE -> freePlay(party, seats)?.let(freePlays::add)
             }
         }
 
@@ -50,8 +58,28 @@ class GetPlayerRecordsUseCase @Inject constructor(
         return PlayerRecords(
             player = player,
             papayoo = fullRoundPoints?.let { papayooRecords(papayooPlays, it) },
-            belote = beloteRecords(belotePlays) { id -> names[id].orEmpty() }
+            belote = beloteRecords(belotePlays) { id -> names[id].orEmpty() },
+            free = freeRecords(freePlays)
         )
+    }
+
+    private suspend fun freePlay(party: Party, seats: List<PlayerSeat>): FreePlay? {
+        val state = try {
+            assembleFreeParty(
+                party = party,
+                participants = partyRepository.getParticipantsByPartyId(party.id),
+                rounds = freeGameRepository.getRounds(party.id),
+                rules = freeGameRules
+            )
+        } catch (_: IllegalStateException) {
+            return null
+        } catch (_: IllegalArgumentException) {
+            return null
+        } catch (_: ArithmeticException) {
+            return null
+        }
+        val seat = seats.map { it.participantId }.firstOrNull { seat -> state.participants.any { it.id == seat } } ?: return null
+        return FreePlay(state, seat)
     }
 
     private suspend fun papayooPlay(party: Party, seats: List<PlayerSeat>): PapayooPlay? {

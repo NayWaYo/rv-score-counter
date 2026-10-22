@@ -6,7 +6,8 @@ import java.util.UUID
 data class PlayerRecords(
     val player: PlayerSummary,
     val papayoo: PapayooRecords?,
-    val belote: BeloteRecords?
+    val belote: BeloteRecords?,
+    val free: FreeRecords? = null
 )
 
 /** [wins] over [parties]: the headline of every section. */
@@ -155,4 +156,35 @@ fun beloteRecords(plays: List<BelotePlay>, nameOf: (UUID) -> String): BeloteReco
         compareBy<TeammateRecord> { it.wins.rate }.thenByDescending { it.wins.parties }.thenBy { playerNameKey(it.name) }
     ).firstOrNull()
     return BeloteRecords(WinRecord(wins, plays.size), takes, made, best, worst)
+}
+
+/** Jeu libre figures (Story 11.4): every game together, then [byGame], the most played first. */
+data class FreeRecords(
+    val wins: WinRecord,
+    val byGame: List<FreeGameRecord>
+)
+
+data class FreeGameRecord(val gameName: String, val wins: WinRecord)
+
+/** One finished Partie of Jeu libre and the Joueur's seat in it. */
+data class FreePlay(val state: FreePartyState, val seat: UUID)
+
+/**
+ * The Joueur's Jeu libre record, null without any Partie. A win is a total at the best rank, ties
+ * included; a Partie ended before its first Manche counts without a win. Game names that differ
+ * only by case or surrounding spaces are one game, named as in its latest Partie; games are ranked
+ * by Parties played, then by name.
+ */
+fun freeRecords(plays: List<FreePlay>): FreeRecords? {
+    if (plays.isEmpty()) return null
+    fun FreePlay.isWin() = state.rounds.isNotEmpty() && state.leaders.any { it.id == seat }
+    fun List<FreePlay>.record() = WinRecord(count { it.isWin() }, size)
+    val byGame = plays
+        .groupBy { playerNameKey(it.state.gameName) }
+        .values
+        .map { games ->
+            FreeGameRecord(games.maxBy { it.state.party.createdAt }.state.gameName.trim(), games.record())
+        }
+        .sortedWith(compareByDescending<FreeGameRecord> { it.wins.parties }.thenBy { playerNameKey(it.gameName) })
+    return FreeRecords(plays.record(), byGame)
 }

@@ -77,6 +77,28 @@ class CreateFreePartyUseCase @Inject constructor(
         Result.failure(failure)
     }
 
+    /** « Rejouer » (Story 11.4): same game, rules and Joueurs in the same order as the FINISHED Partie [referencePartyId]. */
+    suspend fun fromParty(referencePartyId: UUID): Result<UUID> {
+        val draft = try {
+            val reference = partyRepository.getPartyById(referencePartyId)
+                ?.takeIf { it.gameId == rules.gameId && it.status == PartyState.FINISHED }
+                ?: throw InvalidPartyConfigurationException("Party $referencePartyId is not a finished Jeu libre party")
+            FreePartyDraft(
+                gameName = checkNotNull(reference.gameName) { "Jeu libre party $referencePartyId has no game name" },
+                winDirection = checkNotNull(reference.winDirection) { "Jeu libre party $referencePartyId has no win direction" },
+                endRule = reference.endRule,
+                participants = partyRepository.getParticipantsByPartyId(referencePartyId)
+                    .sortedBy { it.listPosition }
+                    .map { ParticipantCreationData(UUID.randomUUID(), it.name) }
+            )
+        } catch (cancellation: CancellationException) {
+            throw cancellation
+        } catch (failure: Throwable) {
+            return Result.failure(failure)
+        }
+        return invoke(draft)
+    }
+
     companion object {
         const val MAX_GAME_NAME_LENGTH = 30
         const val MAX_END_VALUE = 9_999

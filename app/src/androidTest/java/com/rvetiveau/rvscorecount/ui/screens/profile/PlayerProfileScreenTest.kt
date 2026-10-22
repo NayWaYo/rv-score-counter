@@ -9,6 +9,8 @@ import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
 import com.rvetiveau.rvscorecount.domain.model.BeloteRecords
+import com.rvetiveau.rvscorecount.domain.model.FreeGameRecord
+import com.rvetiveau.rvscorecount.domain.model.FreeRecords
 import com.rvetiveau.rvscorecount.domain.model.PapayooRecords
 import com.rvetiveau.rvscorecount.domain.model.PlayerRecords
 import com.rvetiveau.rvscorecount.domain.model.PlayerSummary
@@ -149,6 +151,24 @@ class PlayerProfileScreenTest {
         val text = composeTestRule.onNodeWithTag("profile_merge_refused").fetchSemanticsNode()
             .config[SemanticsProperties.Text].single().text
         assertTrue(text, text.startsWith("Alice et Alcie ont joué ensemble la partie de Papayoo du "))
+    }
+
+    @Test
+    fun theJeuLibreSectionShowsEveryGameTogetherThenEachGame() {
+        val free = FreeRecords(
+            wins = WinRecord(wins = 3, parties = 4),
+            byGame = listOf(FreeGameRecord("Skyjo", WinRecord(2, 3)), FreeGameRecord("Uno", WinRecord(1, 1)))
+        )
+        setContent(PlayerProfileUiState.Loaded(PlayerRecords(alice, papayoo = null, belote = null, free = free)))
+
+        composeTestRule.onNodeWithTag("profile_no_finished_party").assertDoesNotExist()
+        assertText("profile_free_win_rate", "75 %")
+        assertText("profile_free_wins", "3 victoires sur 4 parties")
+        assertText("profile_free_game_0_name", "Skyjo")
+        assertText("profile_free_game_0_rate", "67 %")
+        assertText("profile_free_game_0_caption", "3 parties")
+        assertText("profile_free_game_1_name", "Uno")
+        assertText("profile_free_game_1_caption", "1 partie")
     }
 
     @Test

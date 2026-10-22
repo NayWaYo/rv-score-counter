@@ -120,6 +120,7 @@ class ObservePartyHistoryUseCase @Inject constructor(
         createdAt = party.createdAt,
         roundCount = roundCount,
         winners = emptyList(),
-        winningScore = null
+        winningScore = null,
+        gameName = party.gameName
     )
 }

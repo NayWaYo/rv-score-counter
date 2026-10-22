@@ -11,15 +11,19 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.rvetiveau.rvscorecount.ui.navigation.NavigationEvent
 import java.util.UUID
 
-/** Compose/Hilt adapter for a Partie of Jeu libre (AD-4); the screen stays on while it is in progress. */
+/**
+ * Compose/Hilt adapter for a Partie of Jeu libre (AD-4), or for its Résultats when [isResults];
+ * the screen stays on while it is in progress.
+ */
 @Composable
 fun FreePartyRoute(
     partyId: UUID,
     onNavigate: (NavigationEvent) -> Unit,
     modifier: Modifier = Modifier,
+    isResults: Boolean = false,
     viewModel: FreePartyViewModel = hiltViewModel()
 ) {
-    LaunchedEffect(partyId) { viewModel.initialize(partyId) }
+    LaunchedEffect(partyId) { viewModel.initialize(partyId, isResults) }
 
     val state by viewModel.uiState.collectAsStateWithLifecycle()
     val currentOnNavigate by rememberUpdatedState(onNavigate)
@@ -38,7 +42,8 @@ fun FreePartyRoute(
             onEndPartyClick = viewModel::onEndPartyClick,
             onEndPartyDismissed = viewModel::onEndPartyDismissed,
             onEndPartyConfirmed = viewModel::onEndPartyConfirmed,
-            onBackHome = viewModel::onBackHome
+            onBackHome = viewModel::onBackHome,
+            onReplay = viewModel::onReplay
         ),
         modifier = if (isFinished) modifier else modifier.keepScreenOn()
     )

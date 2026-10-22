@@ -96,6 +96,11 @@ sealed interface Routes {
     @SerialName("freeRound")
     data class FreeRound(val partyId: String, val correctedRoundNumber: Int? = null) : Routes
 
+    /** Résultats of a Partie of Jeu libre just ended, with « Rejouer » (Story 11.4). */
+    @Serializable
+    @SerialName("freeResults")
+    data class FreeResults(val partyId: String) : Routes
+
     /** Statistiques of a Partie of Belote, in progress or finished. */
     @Serializable
     @SerialName("beloteStats")

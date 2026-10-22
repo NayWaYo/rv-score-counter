@@ -1,5 +1,6 @@
 package com.rvetiveau.rvscorecount.ui.screens.free
 
+import androidx.annotation.StringRes
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.rvetiveau.rvscorecount.R
@@ -9,6 +10,7 @@ import com.rvetiveau.rvscorecount.domain.model.Participant
 import com.rvetiveau.rvscorecount.domain.model.PartyState
 import com.rvetiveau.rvscorecount.domain.model.WinDirection
 import com.rvetiveau.rvscorecount.domain.usecase.ClosePartyUseCase
+import com.rvetiveau.rvscorecount.domain.usecase.CreateFreePartyUseCase
 import com.rvetiveau.rvscorecount.domain.usecase.ObserveFreePartyUseCase
 import com.rvetiveau.rvscorecount.ui.components.RoundTable
 import com.rvetiveau.rvscorecount.ui.components.RoundTablePlayer
@@ -40,6 +42,8 @@ sealed interface FreePartyUiState {
      * A Partie of Jeu libre (Story 11.3): its [standings] by its win direction, the Donneur flagged
      * while it is in progress, how far the end is ([progress], null by hand or once finished) and its
      * Manches. Once [isFinished], [winnerNames] holds the best totals, empty without a Manche.
+     * [isResults]: shown as the Résultats of a Partie just ended, with « Rejouer » (Story 11.4),
+     * rather than as its read-only detail from the Historique.
      */
     data class Loaded(
         val gameName: String,
@@ -51,7 +55,10 @@ sealed interface FreePartyUiState {
         val progress: FreeProgress?,
         val roundTable: RoundTable,
         val nextRoundNumber: Int,
-        val closure: PartyClosureUiState = PartyClosureUiState()
+        val closure: PartyClosureUiState = PartyClosureUiState(),
+        val isResults: Boolean = false,
+        val isReplaying: Boolean = false,
+        @StringRes val replayErrorRes: Int? = null
     ) : FreePartyUiState
 }
 
@@ -63,13 +70,15 @@ sealed interface FreeProgress {
 }
 
 /**
- * The Partie of Jeu libre (Stories 11.2, 11.3), followed live from Room: in progress, its Manches
- * are entered and corrected and it ends by hand after confirmation; finished, it is read only.
+ * The Partie of Jeu libre (Stories 11.2 to 11.4), followed live from Room: in progress, its Manches
+ * are entered and corrected and it ends by hand after confirmation, which opens its Résultats;
+ * finished, it is read only, « Rejouer » being offered from the Résultats.
  */
 @HiltViewModel
 class FreePartyViewModel @Inject constructor(
     private val observeFreePartyUseCase: ObserveFreePartyUseCase,
-    private val closePartyUseCase: ClosePartyUseCase
+    private val closePartyUseCase: ClosePartyUseCase,
+    private val createFreePartyUseCase: CreateFreePartyUseCase
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow<FreePartyUiState>(FreePartyUiState.Loading)
@@ -79,13 +88,37 @@ class FreePartyViewModel @Inject constructor(
     val navigationEvents: Flow<NavigationEvent> = _navigationEvents.receiveAsFlow()
 
     private var partyId: UUID? = null
+    private var isResults = false
     private var observation: Job? = null
 
     /** Idempotent: a recomposition never restarts the observation of the same Partie. */
-    fun initialize(partyId: UUID) {
+    fun initialize(partyId: UUID, isResults: Boolean = false) {
         if (this.partyId != null) return
         this.partyId = partyId
+        this.isResults = isResults
         observe()
+    }
+
+    /** Same game, rules and Joueurs; the new Partie replaces the whole back stack. */
+    fun onReplay() {
+        val id = partyId ?: return
+        val state = (_uiState.value as? FreePartyUiState.Loaded)?.takeIf { it.isResults && it.isFinished } ?: return
+        if (state.isReplaying) return
+        _uiState.value = state.copy(isReplaying = true, replayErrorRes = null)
+        viewModelScope.launch {
+            createFreePartyUseCase.fromParty(id).fold(
+                onSuccess = { newPartyId ->
+                    _navigationEvents.send(NavigationEvent.ReplaceAll(Routes.FreeParty(newPartyId.toString())))
+                },
+                onFailure = {
+                    _uiState.update { current ->
+                        (current as? FreePartyUiState.Loaded)
+                            ?.copy(isReplaying = false, replayErrorRes = R.string.results_replay_error)
+                            ?: current
+                    }
+                }
+            )
+        }
     }
 
     fun retry() = observe()
@@ -116,7 +149,7 @@ class FreePartyViewModel @Inject constructor(
         _uiState.value = state.copy(closure = PartyClosureUiState())
     }
 
-    /** The observation then shows the finished Partie; a failure closes the dialog and keeps it in progress. */
+    /** Opens the Résultats in place of the Partie; a failure closes the dialog and keeps it in progress. */
     fun onEndPartyConfirmed() {
         val id = partyId ?: return
         val state = inProgress() ?: return
@@ -124,7 +157,9 @@ class FreePartyViewModel @Inject constructor(
         _uiState.value = state.copy(closure = state.closure.copy(isClosing = true))
 
         viewModelScope.launch {
-            if (closePartyUseCase(id).isFailure) {
+            if (closePartyUseCase(id).isSuccess) {
+                _navigationEvents.send(NavigationEvent.ReplaceAll(Routes.FreeResults(id.toString())))
+            } else {
                 _uiState.update { current ->
                     if (current is FreePartyUiState.Loaded && !current.isFinished) {
                         current.copy(closure = PartyClosureUiState(errorRes = R.string.party_end_error))
@@ -152,12 +187,13 @@ class FreePartyViewModel @Inject constructor(
             try {
                 observeFreePartyUseCase(id).collect { state ->
                     _uiState.update { current ->
+                        if (state == null) return@update FreePartyUiState.NotFound
+                        val next = state.toUiState().copy(isResults = isResults)
                         when {
-                            state == null -> FreePartyUiState.NotFound
+                            current !is FreePartyUiState.Loaded -> next
                             // A closure in flight keeps its dialog until Room reports the end.
-                            current is FreePartyUiState.Loaded && !current.isFinished ->
-                                state.toUiState().let { next -> if (next.isFinished) next else next.copy(closure = current.closure) }
-                            else -> state.toUiState()
+                            !next.isFinished -> next.copy(closure = current.closure)
+                            else -> next.copy(isReplaying = current.isReplaying, replayErrorRes = current.replayErrorRes)
                         }
                     }
                 }

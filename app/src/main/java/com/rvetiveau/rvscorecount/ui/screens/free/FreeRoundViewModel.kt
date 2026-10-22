@@ -5,11 +5,13 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.rvetiveau.rvscorecount.R
 import com.rvetiveau.rvscorecount.domain.engine.FreeGameRules
+import com.rvetiveau.rvscorecount.domain.model.FreePartyStatus
 import com.rvetiveau.rvscorecount.domain.model.PartyState
 import com.rvetiveau.rvscorecount.domain.usecase.CorrectFreeRoundUseCase
 import com.rvetiveau.rvscorecount.domain.usecase.ObserveFreePartyUseCase
 import com.rvetiveau.rvscorecount.domain.usecase.PlayFreeRoundUseCase
 import com.rvetiveau.rvscorecount.ui.navigation.NavigationEvent
+import com.rvetiveau.rvscorecount.ui.navigation.Routes
 import dagger.hilt.android.lifecycle.HiltViewModel
 import java.util.UUID
 import javax.inject.Inject
@@ -52,7 +54,7 @@ data class FreeScoreInput(
 
 /**
  * Saisie, or correction, of a Manche of Jeu libre (Story 11.3): any whole score, negative
- * included, for every Joueur. Back to the Partie once saved, which shows its end when reached.
+ * included, for every Joueur. Back to the Partie once saved, or to its Résultats when it ends.
  */
 @HiltViewModel
 class FreeRoundViewModel @Inject constructor(
@@ -124,7 +126,14 @@ class FreeRoundViewModel @Inject constructor(
                 playFreeRoundUseCase(id, scores)
             }
             result.fold(
-                onSuccess = { _navigationEvents.send(NavigationEvent.NavigateBack) },
+                onSuccess = { status ->
+                    val event = if (status is FreePartyStatus.Finished) {
+                        NavigationEvent.ReplaceAll(Routes.FreeResults(id.toString()))
+                    } else {
+                        NavigationEvent.NavigateBack
+                    }
+                    _navigationEvents.send(event)
+                },
                 onFailure = { _uiState.value = state.copy(isSaving = false, errorRes = R.string.belote_round_error_failed) }
             )
         }

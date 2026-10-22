@@ -66,6 +66,13 @@ class FakeFreeStore(
     }
     override fun observeFinishedParties(): Flow<List<Party>> =
         party.map { listOfNotNull(it?.takeIf { party -> party.status == PartyState.FINISHED }) }
+    /** Parties created by « Rejouer », with their seats. */
+    val created = mutableListOf<Pair<Party, List<Participant>>>()
+
+    override suspend fun createPartyWithParticipants(party: Party, participants: List<Participant>) {
+        if (failWrites) throw IOException("disk full")
+        created += party to participants
+    }
     override suspend fun getParticipantsByPartyId(partyId: UUID): List<Participant> = participants.value
     override fun observeParticipants(partyId: UUID): Flow<List<Participant>> = participants
 }

@@ -141,6 +141,14 @@ fun RvScoreCounterNavHost(
                 onNavigate = { event -> navController.dispatch(event) }
             )
         }
+        composable<Routes.FreeResults> { backStackEntry ->
+            val route: Routes.FreeResults = backStackEntry.toRoute()
+            FreePartyRoute(
+                partyId = UUID.fromString(route.partyId),
+                isResults = true,
+                onNavigate = { event -> navController.dispatch(event) }
+            )
+        }
         composable<Routes.FreeRound> { backStackEntry ->
             val route: Routes.FreeRound = backStackEntry.toRoute()
             FreeRoundRoute(

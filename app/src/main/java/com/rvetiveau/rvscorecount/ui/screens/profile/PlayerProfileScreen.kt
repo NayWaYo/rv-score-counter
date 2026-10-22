@@ -40,6 +40,7 @@ import androidx.compose.ui.unit.dp
 import com.rvetiveau.rvscorecount.R
 import com.rvetiveau.rvscorecount.domain.engine.GameIds
 import com.rvetiveau.rvscorecount.domain.model.BeloteRecords
+import com.rvetiveau.rvscorecount.domain.model.FreeRecords
 import com.rvetiveau.rvscorecount.domain.model.PapayooRecords
 import com.rvetiveau.rvscorecount.domain.model.PlayerRecords
 import com.rvetiveau.rvscorecount.domain.model.TeammateRecord
@@ -56,7 +57,8 @@ import kotlin.math.roundToInt
 /**
  * Stateless profile of a Joueur (Story 10.3): two summary chips, then one card per Jeu they finished
  * a Partie of. Each card leads with the win rate and its bar, then tiles of two (a large figure and
- * a short caption, so that nothing wraps mid-value), then the teammates for the Belote.
+ * a short caption, so that nothing wraps mid-value), then the teammates for the Belote and each
+ * game for the Jeu libre.
  */
 @Composable
 fun PlayerProfileScreen(
@@ -107,12 +109,34 @@ private fun Records(records: PlayerRecords) {
             SummaryChip(stringResource(R.string.players_no_party))
         }
     }
-    if (records.papayoo == null && records.belote == null) {
+    if (records.papayoo == null && records.belote == null && records.free == null) {
         Message(stringResource(R.string.profile_no_finished_party), "profile_no_finished_party")
         return
     }
     records.papayoo?.let { PapayooSection(it, dateFormatter) }
     records.belote?.let { BeloteSection(it) }
+    records.free?.let { FreeSection(it) }
+}
+
+/** Every game together in the card's headline, then each game, the most played first (Story 11.4). */
+@Composable
+private fun FreeSection(records: FreeRecords) {
+    GameCard(gameId = GameIds.FREE, wins = records.wins, tag = "profile_free") {
+        Text(
+            text = stringResource(R.string.profile_free_by_game),
+            style = MaterialTheme.typography.titleSmall,
+            color = MaterialTheme.colorScheme.onSurface
+        )
+        records.byGame.forEachIndexed { index, game ->
+            RecordRow(
+                label = null,
+                name = game.gameName,
+                wins = game.wins,
+                caption = pluralStringResource(R.plurals.profile_game_parties, game.wins.parties, game.wins.parties),
+                tag = "profile_free_game_$index"
+            )
+        }
+    }
 }
 
 @Composable
@@ -316,6 +340,18 @@ private fun StatTile(label: String, value: String, caption: String, tag: String)
 /** A teammate: the label and their name on the left, the win rate together and its count on the right. */
 @Composable
 private fun TeammateRow(labelRes: Int, teammate: TeammateRecord, tag: String) {
+    RecordRow(
+        label = stringResource(labelRes),
+        name = teammate.name,
+        wins = teammate.wins,
+        caption = pluralStringResource(R.plurals.profile_parties_together, teammate.wins.parties, teammate.wins.parties),
+        tag = tag
+    )
+}
+
+/** A name, under its [label] if any, on the left; the win rate and its [caption] on the right. */
+@Composable
+private fun RecordRow(label: String?, name: String, wins: WinRecord, caption: String, tag: String) {
     Row(
         verticalAlignment = Alignment.CenterVertically,
         modifier = Modifier
@@ -327,13 +363,15 @@ private fun TeammateRow(labelRes: Int, teammate: TeammateRecord, tag: String) {
             .testTag(tag)
     ) {
         Column(modifier = Modifier.weight(1f)) {
+            if (label != null) {
+                Text(
+                    text = label,
+                    style = MaterialTheme.typography.labelLarge,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
             Text(
-                text = stringResource(labelRes),
-                style = MaterialTheme.typography.labelLarge,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
-            Text(
-                text = teammate.name,
+                text = name,
                 style = MaterialTheme.typography.titleMedium,
                 fontWeight = FontWeight.Bold,
                 color = MaterialTheme.colorScheme.onSurface,
@@ -344,18 +382,18 @@ private fun TeammateRow(labelRes: Int, teammate: TeammateRecord, tag: String) {
         }
         Column(horizontalAlignment = Alignment.End) {
             Text(
-                text = stringResource(R.string.profile_percent, teammate.wins.rate.percent()),
+                text = stringResource(R.string.profile_percent, wins.rate.percent()),
                 style = MaterialTheme.typography.titleMedium,
                 fontWeight = FontWeight.Bold,
                 color = MaterialTheme.colorScheme.primary,
                 modifier = Modifier.testTag("${tag}_rate")
             )
             Text(
-                text = pluralStringResource(R.plurals.profile_parties_together, teammate.wins.parties, teammate.wins.parties),
+                text = caption,
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 textAlign = TextAlign.End,
-                modifier = Modifier.testTag("${tag}_together")
+                modifier = Modifier.testTag("${tag}_caption")
             )
         }
     }

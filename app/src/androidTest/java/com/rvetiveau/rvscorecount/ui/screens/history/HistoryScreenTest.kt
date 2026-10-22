@@ -78,6 +78,16 @@ class HistoryScreenTest {
     }
 
     @Test
+    fun aJeuLibreEntryIsNamedAfterTheGamePlayed() {
+        val skyjo = played.copy(partyId = UUID.randomUUID(), gameId = "free", gameName = "Skyjo")
+        setContent(HistoryUiState.Loaded(listOf(skyjo)))
+
+        composeTestRule.onNodeWithTag("history_entry_${skyjo.partyId}")
+            .assertTextContains("Skyjo", substring = true)
+            .assertTextContains("Vainqueur : Bob · 120 points")
+    }
+
+    @Test
     fun tappingAnEntryEmitsItsId() {
         var selected: UUID? = null
         setContent(HistoryUiState.Loaded(listOf(played)), onEntrySelected = { selected = it })

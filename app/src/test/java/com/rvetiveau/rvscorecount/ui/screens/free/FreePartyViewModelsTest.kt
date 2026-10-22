@@ -6,6 +6,7 @@ import com.rvetiveau.rvscorecount.domain.model.PartyState
 import com.rvetiveau.rvscorecount.domain.model.WinDirection
 import com.rvetiveau.rvscorecount.domain.usecase.ClosePartyUseCase
 import com.rvetiveau.rvscorecount.domain.usecase.CorrectFreeRoundUseCase
+import com.rvetiveau.rvscorecount.domain.usecase.CreateFreePartyUseCase
 import com.rvetiveau.rvscorecount.domain.usecase.FakeFreeStore
 import com.rvetiveau.rvscorecount.domain.usecase.ObserveFreePartyUseCase
 import com.rvetiveau.rvscorecount.domain.usecase.PlayFreeRoundUseCase
@@ -43,10 +44,11 @@ class FreePartyViewModelsTest {
 
     private val rules = FreeGameEngine()
 
-    private fun partyViewModel(store: FakeFreeStore) = FreePartyViewModel(
+    private fun partyViewModel(store: FakeFreeStore, isResults: Boolean = false) = FreePartyViewModel(
         ObserveFreePartyUseCase(store, store.free, rules),
-        ClosePartyUseCase(store)
-    ).also { it.initialize(store.partyId) }
+        ClosePartyUseCase(store),
+        CreateFreePartyUseCase(store, rules)
+    ).also { it.initialize(store.partyId, isResults) }
 
     private fun roundViewModel(store: FakeFreeStore, correctedRoundNumber: Int? = null) = FreeRoundViewModel(
         ObserveFreePartyUseCase(store, store.free, rules),
@@ -107,7 +109,7 @@ class FreePartyViewModelsTest {
     }
 
     @Test
-    fun `fin de partie asks first, then finishes the partie with its winners`() {
+    fun `fin de partie asks first, then finishes the partie and opens its results`() = runTest {
         val store = FakeFreeStore(endRule = null)
         store.addRound(alicePoints = 3, bobPoints = 8, chloePoints = 3)
         val viewModel = partyViewModel(store)
@@ -121,6 +123,7 @@ class FreePartyViewModelsTest {
         viewModel.onEndPartyClick()
         viewModel.onEndPartyConfirmed()
 
+        assertEquals(NavigationEvent.ReplaceAll(Routes.FreeResults(store.partyId.toString())), viewModel.navigationEvents.first())
         val state = viewModel.loaded()
         assertEquals(PartyState.FINISHED, store.party.value?.status)
         assertTrue(state.isFinished)
@@ -128,6 +131,42 @@ class FreePartyViewModelsTest {
         assertEquals(listOf("Alice", "Chloé"), state.winnerNames)
         assertTrue(state.standings.none { it.isDealer })
         assertNull(state.progress)
+    }
+
+    @Test
+    fun `replay from the results opens a new partie of the same game`() = runTest {
+        val store = FakeFreeStore(endRule = EndRule.RoundCount(1))
+        store.addRound(1, 2, 3)
+        store.party.value = store.party.value?.copy(status = PartyState.FINISHED)
+        val viewModel = partyViewModel(store, isResults = true)
+        assertTrue(viewModel.loaded().isResults)
+
+        viewModel.onReplay()
+
+        val (party, seats) = store.created.single()
+        assertEquals(NavigationEvent.ReplaceAll(Routes.FreeParty(party.id.toString())), viewModel.navigationEvents.first())
+        assertEquals("Skyjo", party.gameName)
+        assertEquals(EndRule.RoundCount(1), party.endRule)
+        assertEquals(listOf("Alice", "Bob", "Chloé"), seats.map { it.name })
+    }
+
+    @Test
+    fun `a failed replay stays on the results and says so, the detail offers no replay`() {
+        val store = FakeFreeStore()
+        store.party.value = store.party.value?.copy(status = PartyState.FINISHED)
+        store.failWrites = true
+        val results = partyViewModel(store, isResults = true)
+
+        results.onReplay()
+
+        assertEquals(R.string.results_replay_error, results.loaded().replayErrorRes)
+        assertFalse(results.loaded().isReplaying)
+
+        store.failWrites = false
+        val detail = partyViewModel(store)
+        detail.onReplay()
+        assertFalse(detail.loaded().isResults)
+        assertTrue(store.created.isEmpty())
     }
 
     @Test
@@ -223,6 +262,17 @@ class FreePartyViewModelsTest {
 
         assertEquals(NavigationEvent.NavigateBack, viewModel.navigationEvents.first())
         assertEquals(store.scores(-3, 0, 12), store.free.rounds.value.single().scores)
+    }
+
+    @Test
+    fun `the manche that ends the partie opens its results`() = runTest {
+        val store = FakeFreeStore(endRule = EndRule.RoundCount(1))
+        val viewModel = roundViewModel(store)
+        viewModel.loaded().fields.forEach { viewModel.onScoreChanged(it.participantId, "2") }
+
+        viewModel.onValidate()
+
+        assertEquals(NavigationEvent.ReplaceAll(Routes.FreeResults(store.partyId.toString())), viewModel.navigationEvents.first())
     }
 
     @Test

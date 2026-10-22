@@ -73,6 +73,12 @@
     <string name="profile_no_value">—</string>
     <string name="profile_best_teammate_label">🤝 Meilleur coéquipier</string>
     <string name="profile_worst_teammate_label">💔 Pire coéquipier</string>
+    <string name="profile_free_by_game">Par jeu</string>
+    <plurals name="profile_game_parties">
+        <item quantity="one">%1$d partie</item>
+        <item quantity="many">%1$d parties</item>
+        <item quantity="other">%1$d parties</item>
+    </plurals>
     <plurals name="profile_parties_together">
         <item quantity="one">%1$d partie ensemble</item>
         <item quantity="many">%1$d parties ensemble</item>

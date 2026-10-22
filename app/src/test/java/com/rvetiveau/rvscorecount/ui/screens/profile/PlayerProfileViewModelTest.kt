@@ -5,12 +5,14 @@ import com.rvetiveau.rvscorecount.domain.model.PlayerSummary
 import com.rvetiveau.rvscorecount.domain.repository.PlayerRepository
 import com.rvetiveau.rvscorecount.domain.repository.PlayerSeat
 import com.rvetiveau.rvscorecount.domain.usecase.FakeBeloteStore
+import com.rvetiveau.rvscorecount.domain.usecase.FakeFreeGameRepository
 import com.rvetiveau.rvscorecount.domain.usecase.FakePlayerRepository
 import com.rvetiveau.rvscorecount.domain.usecase.DeletePlayerUseCase
 import com.rvetiveau.rvscorecount.domain.usecase.GetPlayerRecordsUseCase
 import com.rvetiveau.rvscorecount.domain.usecase.MergePlayersUseCase
 import com.rvetiveau.rvscorecount.domain.usecase.ObservePlayersUseCase
 import com.rvetiveau.rvscorecount.game.belote.BeloteEngine
+import com.rvetiveau.rvscorecount.game.free.FreeGameEngine
 import com.rvetiveau.rvscorecount.game.papayoo.PapayooEngine
 import com.rvetiveau.rvscorecount.ui.navigation.NavigationEvent
 import java.io.IOException
@@ -48,7 +50,9 @@ class PlayerProfileViewModelTest {
     private val players = FakePlayerRepository(players = listOf(alice, alicia))
 
     private fun viewModel(repository: PlayerRepository = players) = PlayerProfileViewModel(
-        GetPlayerRecordsUseCase(repository, store, store, BeloteEngine(), mapOf(PapayooEngine.GAME_ID to PapayooEngine())),
+        GetPlayerRecordsUseCase(
+            repository, store, store, BeloteEngine(), mapOf(PapayooEngine.GAME_ID to PapayooEngine()), FakeFreeGameRepository(), FreeGameEngine()
+        ),
         ObservePlayersUseCase(repository),
         MergePlayersUseCase(repository, store),
         DeletePlayerUseCase(repository)

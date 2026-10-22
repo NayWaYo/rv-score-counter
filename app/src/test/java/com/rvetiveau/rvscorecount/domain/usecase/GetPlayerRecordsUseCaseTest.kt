@@ -9,6 +9,7 @@ import com.rvetiveau.rvscorecount.domain.model.TeamSide
 import com.rvetiveau.rvscorecount.domain.model.WinRecord
 import com.rvetiveau.rvscorecount.domain.repository.PlayerSeat
 import com.rvetiveau.rvscorecount.game.belote.BeloteEngine
+import com.rvetiveau.rvscorecount.game.free.FreeGameEngine
 import com.rvetiveau.rvscorecount.game.papayoo.PapayooEngine
 import java.util.UUID
 import kotlinx.coroutines.test.runTest
@@ -25,7 +26,7 @@ class GetPlayerRecordsUseCaseTest {
         players = playerIds.map { (name, id) -> PlayerSummary(id, name, finishedParties = 1, lastPlayedAt = 0) }
     )
     private val useCase = GetPlayerRecordsUseCase(
-        players, store, store, BeloteEngine(), mapOf(PapayooEngine.GAME_ID to PapayooEngine())
+        players, store, store, BeloteEngine(), mapOf(PapayooEngine.GAME_ID to PapayooEngine()), FakeFreeGameRepository(), FreeGameEngine()
     )
 
     /** A one-Manche Partie of Belote that Alice's Équipe wins as takers, linked to the Joueurs. */

@@ -37,13 +37,15 @@ data class FreePartyActions(
     val onEndPartyClick: () -> Unit = {},
     val onEndPartyDismissed: () -> Unit = {},
     val onEndPartyConfirmed: () -> Unit = {},
-    val onBackHome: () -> Unit = {}
+    val onBackHome: () -> Unit = {},
+    val onReplay: () -> Unit = {}
 )
 
 /**
  * Stateless Partie of Jeu libre (Story 11.3): its game as title and its rules, then, in progress,
  * how far the end is, the Classement with the Donneur, the correctable Manches, « Manche N » and
- * « Fin de partie »; once finished, the winners, the final Classement and the Manches, read only.
+ * « Fin de partie »; once finished, the winners, the final Classement and the Manches, read only,
+ * with « Rejouer » and « Retour à l'accueil » in its Résultats (Story 11.4).
  */
 @Composable
 fun FreePartyScreen(state: FreePartyUiState, modifier: Modifier = Modifier, actions: FreePartyActions = FreePartyActions()) {
@@ -154,19 +156,9 @@ private fun LoadedParty(state: FreePartyUiState.Loaded, modifier: Modifier, acti
                 }
             }
         }
-        if (state.isFinished) {
-            Button(
-                onClick = actions.onBackHome,
-                modifier = Modifier
-                    .padding(top = 16.dp)
-                    .fillMaxWidth()
-                    .heightIn(min = 56.dp)
-                    .testTag("free_party_back_home")
-            ) {
-                Text(text = stringResource(R.string.results_back_home))
-            }
-        } else {
-            InProgressActions(state, actions)
+        when {
+            !state.isFinished -> InProgressActions(state, actions)
+            state.isResults -> ResultsActions(state, actions)
         }
     }
 }
@@ -187,6 +179,43 @@ private fun FinishedBanner(winnerNames: List<String>) {
                 modifier = Modifier.testTag("free_party_winners")
             )
         }
+    }
+}
+
+/** « Rejouer » then « Retour à l'accueil »: the Résultats only, never the detail from the Historique. */
+@Composable
+private fun ResultsActions(state: FreePartyUiState.Loaded, actions: FreePartyActions) {
+    state.replayErrorRes?.let { errorRes ->
+        Text(
+            text = stringResource(errorRes),
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.error,
+            modifier = Modifier
+                .padding(top = 8.dp)
+                .testTag("free_results_replay_error")
+        )
+    }
+    Button(
+        onClick = actions.onReplay,
+        enabled = !state.isReplaying,
+        modifier = Modifier
+            .padding(top = 16.dp)
+            .fillMaxWidth()
+            .heightIn(min = 56.dp)
+            .testTag("free_results_replay")
+    ) {
+        Text(text = stringResource(R.string.results_replay))
+    }
+    OutlinedButton(
+        onClick = actions.onBackHome,
+        enabled = !state.isReplaying,
+        modifier = Modifier
+            .padding(top = 8.dp)
+            .fillMaxWidth()
+            .heightIn(min = 56.dp)
+            .testTag("free_party_back_home")
+    ) {
+        Text(text = stringResource(R.string.results_back_home))
     }
 }
 

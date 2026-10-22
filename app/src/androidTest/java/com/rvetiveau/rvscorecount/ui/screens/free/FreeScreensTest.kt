@@ -12,6 +12,7 @@ import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performTextInput
+import com.rvetiveau.rvscorecount.R
 import com.rvetiveau.rvscorecount.domain.model.EndRule
 import com.rvetiveau.rvscorecount.domain.model.WinDirection
 import com.rvetiveau.rvscorecount.ui.components.RoundTable
@@ -142,27 +143,41 @@ class FreeScreensTest {
         assertEquals(listOf("confirm"), calls)
     }
 
+    private val finished = inProgress.copy(
+        isFinished = true,
+        standings = inProgress.standings.map { it.copy(isDealer = false) },
+        winnerNames = listOf("Bob"),
+        progress = null
+    )
+
     @Test
-    fun aFinishedPartyShowsItsWinnersReadOnly() {
+    fun aFinishedPartyShowsItsWinnersReadOnlyWithoutReplay() {
         val calls = mutableListOf<Any>()
-        setParty(
-            inProgress.copy(
-                isFinished = true,
-                standings = inProgress.standings.map { it.copy(isDealer = false) },
-                winnerNames = listOf("Bob"),
-                progress = null
-            ),
-            FreePartyActions(onRoundSelected = { calls += it }, onBackHome = { calls += "home" })
-        )
+        setParty(finished, FreePartyActions(onRoundSelected = { calls += it }))
 
         composeTestRule.onNodeWithTag("free_party_winners").assertTextEquals("Vainqueur : Bob")
         composeTestRule.onNodeWithTag("winner_trophy", useUnmergedTree = true).assertExists()
         composeTestRule.onNodeWithTag("free_party_play_round").assertDoesNotExist()
         composeTestRule.onNodeWithTag("free_party_end").assertDoesNotExist()
+        composeTestRule.onNodeWithTag("free_results_replay").assertDoesNotExist()
         composeTestRule.onNodeWithTag("round_table_row_1").performClick()
+
+        assertTrue(calls.isEmpty())
+    }
+
+    @Test
+    fun theResultsOfferReplayAndHome() {
+        val calls = mutableListOf<String>()
+        setParty(
+            finished.copy(isResults = true, replayErrorRes = R.string.results_replay_error),
+            FreePartyActions(onReplay = { calls += "replay" }, onBackHome = { calls += "home" })
+        )
+
+        composeTestRule.onNodeWithTag("free_results_replay_error").assertTextEquals("Impossible de relancer la partie. Réessayez.")
+        composeTestRule.onNodeWithTag("free_results_replay").assertTextEquals("Rejouer").performClick()
         composeTestRule.onNodeWithTag("free_party_back_home").performClick()
 
-        assertEquals(listOf<Any>("home"), calls)
+        assertEquals(listOf("replay", "home"), calls)
     }
 
     @Test
