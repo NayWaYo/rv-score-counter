@@ -124,6 +124,12 @@ stateDiagram-v2
 - **Prevents:** un moteur par jeu de société ; imposer au Jeu libre le total fixe et la couleur du 7 du Papayoo
 - **Rule:** suit AD-8. Le Jeu libre expose `FreeGameRules` dans `domain/engine/`, implémenté dans `game/free/` et injecté par un `@Binds` simple ; il n'entre dans le catalogue de l'Accueil qu'avec son écran de création (Story 11.2). Ses règles varient d'une Partie à l'autre et sont donc portées par la Partie : nom du jeu, sens de victoire (`WinDirection`) et règle de fin (`EndRule`, commune avec la Belote, nulle pour une fin manuelle). Ses Manches réutilisent `rounds` et `round_scores` sans couleur du 7 (colonne facultative depuis le schéma 6), avec leur propre modèle `FreeRound` et leur `FreeGameRepository` ; la Partie et ses Participants passent par `PartyRepository`.
 
+### AD-10 — Tarot : contrat dédié par joueur (2026-10-23)
+
+- **Binds:** Epic 13 (Tarot) ; couches `domain` et `game`
+- **Prevents:** plier le Tarot au contrat du Papayoo (couleur du 7, total fixe de 250) ou à celui du Jeu libre (scores saisis à la main)
+- **Rule:** suit AD-8 et AD-9. Le Tarot expose `TarotRules` dans `domain/engine/`, implémenté dans `game/tarot/` et injecté par un `@Binds` simple ; il n'entre dans le catalogue de l'Accueil qu'avec son écran de création (Story 13.3). Ses modèles (`TarotContract`, `TarotRoundInput`, `TarotRoundResult`, `TarotRound`) vivent dans `domain/model/`. Comme pour la Belote, une Manche mémorise ce qui a été saisi et ses points par joueur sont recalculés par le moteur, jamais stockés. La fin de Partie reprend `EndRule` : nulle pour une fin manuelle, `RoundCount` sinon ; `TargetScore` est refusée.
+
 ---
 
 ## Consistency Conventions

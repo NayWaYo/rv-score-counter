@@ -183,6 +183,18 @@ development_status:
 
   epic-12-retrospective: optional
 
+  # -------------------------------------------------------
+  # Epic 13: Tarot (4 stories)
+  # -------------------------------------------------------
+  epic-13: in-progress
+
+  13-1-moteur-tarot: done
+  13-2-donnees-du-tarot: backlog
+  13-3-partie-de-tarot-creation-saisie-et-suivi: backlog
+  13-4-historique-statistiques-et-palmares-du-tarot: backlog
+
+  epic-13-retrospective: optional
+
 action_items:
   - epic: 1
     action: "Appliquer un préflight de compatibilité avant toute implémentation fonctionnelle d'une story modifiant la stack."

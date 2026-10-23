@@ -872,3 +872,77 @@ Afin de retrouver mon historique et mon palmarès.
 **And** après confirmation, toutes les données sont remplacées en une seule transaction Room ; en cas d'erreur, rien n'est modifié
 **And** un fichier qui n'est pas une sauvegarde, abîmé, incohérent (Manche sans Partie, Joueur inconnu…) ou d'un format plus récent est refusé avec un message clair, sans rien modifier
 **And** la restauration est couverte par des tests JVM (validation, refus) et un test instrumenté Room (remplacement complet, retour arrière en cas d'erreur)
+
+## Epic 13: Tarot
+
+Proposition n°4 du 2026-10-23, retenue par l'utilisateur, qui joue déjà avec un jeu de Tarot : le Tarot comme quatrième Jeu, de 3 à 5 joueurs, scores par joueur, avec contrats, bouts et primes calculés par l'application. Règles de comptage : `planning-artifacts/games/tarot.md`.
+
+Choix validés par l'utilisateur le 2026-10-23 :
+- **Joueurs** : de 3 à 5 ; à 5, le preneur indique son partenaire (roi appelé) ou « seul ».
+- **Primes** : toutes, c'est-à-dire petit au bout, poignées simple, double et triple, chelem.
+- **Points** : points de l'attaque entiers, de 0 à 91, ceux de la défense déduits.
+- **Fin de partie** : manuelle par défaut, ou après un nombre de Manches choisi à la création.
+
+### Story 13.1: Moteur Tarot
+
+En tant qu'utilisateur,
+Je veux que l'application applique les règles du Tarot,
+Afin de ne plus calculer à la main contrats, bouts, primes et répartition.
+
+**Acceptance Criteria:**
+
+**Given** le nombre de joueurs, le preneur, le contrat, le partenaire éventuel (à 5), les bouts et les points de l'attaque, le petit au bout, les poignées et le chelem
+**When** le moteur calcule la Manche
+**Then** il renvoie les points de chaque joueur selon `tarot.md` (seuil selon les bouts, contrat fait ou chuté, multiplicateur, primes, répartition à 3, 4 et 5 joueurs, avec ou sans partenaire), leur somme étant toujours nulle
+**And** il refuse une saisie impossible (points hors de 0 à 91, bouts hors de 0 à 3, partenaire hors d'une Partie à 5 ou égal au preneur)
+**And** il indique si la Partie est finie (nombre de Manches) et le ou les gagnants
+**And** le moteur expose un contrat de domaine `TarotRules` (AD-10, sur le modèle d'AD-8 et AD-9) sous la clé canonique `GameIds.TAROT`, injectable, mais n'entre pas encore dans le catalogue de l'Accueil
+**And** chaque règle est couverte par un test JVM
+
+### Story 13.2: Données du Tarot
+
+En tant qu'utilisateur,
+Je veux que mes Parties de Tarot soient enregistrées comme les autres,
+Afin de les reprendre après une fermeture de l'application et de les retrouver dans l'historique et les sauvegardes.
+
+**Acceptance Criteria:**
+
+**Given** le schéma Room en version 6
+**When** l'application passe en version 7
+**Then** une table des Manches de Tarot mémorise ce qui a été saisi (preneur, partenaire, contrat, bouts, points de l'attaque, petit au bout, poignées, chelem) ; les points par joueur sont recalculés par le moteur, jamais stockés
+**And** la migration 6 → 7 est testée sans perte sur un vrai fichier de version 6
+**And** l'enregistrement et la correction d'une Manche, avec la fin de Partie qu'elle provoque, se font en une transaction
+**And** la sauvegarde (Epic 12) contient les Manches de Tarot : le format passe à 2, une sauvegarde au format 1 reste restaurable, et la vérification couvre les nouvelles lignes
+
+### Story 13.3: Partie de Tarot — création, saisie et suivi
+
+En tant qu'utilisateur,
+Je veux créer une Partie de Tarot, saisir chaque Manche en quelques gestes et suivre le classement,
+Afin de jouer une Partie complète sans calcul.
+
+**Acceptance Criteria:**
+
+**Given** l'accueil
+**Then** le Tarot entre dans le catalogue et une tuile Tarot apparaît après la Belote et avant le Jeu libre, avec un logo au même gabarit
+
+**Given** la tuile Tarot touchée
+**Then** la création demande les joueurs (3 à 5, ordre de table modifiable, suggestions de prénoms, doublons refusés) et la fin de partie (manuelle par défaut, ou nombre de Manches) ; l'icône Historique ouvre l'historique du Tarot
+
+**Given** une Partie de Tarot en cours
+**Then** l'écran montre le classement, le Donneur, le rappel de distribution, les Manches restantes s'il y a une limite, et le tableau des Manches (preneur, contrat, fait ou chuté, points de chaque joueur)
+**And** la saisie d'une Manche choisit le preneur, le contrat, le partenaire (à 5), les bouts et les points de l'attaque, puis les primes ; le résultat et les points de chaque joueur s'affichent avant validation
+**And** une Manche validée se corrige depuis le tableau des Manches avec les mêmes contrôles
+**And** la Partie se termine d'elle-même après la dernière Manche prévue, ou par « Fin de partie » après confirmation ; les résultats affichent le classement final et le ou les gagnants, avec « Rejouer » (mêmes joueurs, même fin) ; l'écran reste allumé pendant la Partie
+
+### Story 13.4: Historique, statistiques et palmarès du Tarot
+
+En tant qu'utilisateur,
+Je veux retrouver mes Parties de Tarot et le palmarès de chacun,
+Afin de savoir qui prend le plus et qui réussit le mieux.
+
+**Acceptance Criteria:**
+
+**Given** des Parties de Tarot
+**Then** l'Historique les liste avec le gagnant, et leur détail affiche les Manches en lecture seule
+**And** l'écran Statistiques affiche la courbe des scores par joueur
+**And** le profil d'un Joueur (Story 10.3) gagne une section « Tarot » : taux de victoire, nombre de prises, taux de contrats réussis, contrat le plus pris
