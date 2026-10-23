@@ -94,3 +94,6 @@ sealed interface TarotPartyStatus {
     /** The last Manche planned is played: [winners] are every Participant at the best total. */
     data class Finished(val winners: List<Participant>) : TarotPartyStatus
 }
+
+/** The 78 cards dealt three by three: [cardsPerPlayer] each and a chien of [dogSize]. */
+data class TarotDealing(val cardsPerPlayer: Int, val dogSize: Int)

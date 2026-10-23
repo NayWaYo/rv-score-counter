@@ -1,5 +1,6 @@
 package com.rvetiveau.rvscorecount.domain.usecase
 
+import com.rvetiveau.rvscorecount.game.tarot.TarotEngine
 import com.rvetiveau.rvscorecount.domain.model.EndRule
 import com.rvetiveau.rvscorecount.domain.model.FreePartyStatus
 import com.rvetiveau.rvscorecount.domain.model.PartyState
@@ -175,7 +176,7 @@ class FreeRoundUseCasesTest {
     }
 
     private fun history(store: FakeFreeStore) =
-        ObservePartyHistoryUseCase(store, FakeBeloteStore(), BeloteEngine(), store.free, rules)
+        ObservePartyHistoryUseCase(store, FakeBeloteStore(), BeloteEngine(), store.free, rules, FakeTarotRepository(), TarotEngine())
 
     @Test
     fun `the history sums up a finished partie by its winners for its win direction`() = runTest {

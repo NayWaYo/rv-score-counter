@@ -14,9 +14,6 @@ object GameIds {
     /** Every Jeu the data can hold, whether on the Accueil yet or not: what a backup may contain. */
     val STORED = listOf(PAPAYOO, BELOTE, TAROT, FREE)
 
-    /**
-     * Order of the Accueil tiles: the order the Jeux were added to the app. The Tarot joins it, before
-     * the Jeu libre, with its creation screen (Story 13.3).
-     */
-    val CATALOG_ORDER = listOf(PAPAYOO, BELOTE, FREE)
+    /** Order of the Accueil tiles: the order the Jeux were added, the Jeu libre for anything else last. */
+    val CATALOG_ORDER = listOf(PAPAYOO, BELOTE, TAROT, FREE)
 }

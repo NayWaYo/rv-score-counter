@@ -943,6 +943,6 @@ Afin de savoir qui prend le plus et qui réussit le mieux.
 **Acceptance Criteria:**
 
 **Given** des Parties de Tarot
-**Then** l'Historique les liste avec le gagnant, et leur détail affiche les Manches en lecture seule
+**Then** l'Historique les liste avec le gagnant, et leur détail affiche les Manches en lecture seule (livré avec la Story 13.3, pour qu'une Partie terminée n'y soit jamais traitée comme une Partie de Papayoo)
 **And** l'écran Statistiques affiche la courbe des scores par joueur
 **And** le profil d'un Joueur (Story 10.3) gagne une section « Tarot » : taux de victoire, nombre de prises, taux de contrats réussis, contrat le plus pris

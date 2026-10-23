@@ -41,6 +41,7 @@ class RootViewModel @Inject constructor(
                     party == null -> Routes.Home
                     party.gameId == GameIds.BELOTE -> Routes.BeloteParty(party.id.toString())
                     party.gameId == GameIds.FREE -> Routes.FreeParty(party.id.toString())
+                    party.gameId == GameIds.TAROT -> Routes.TarotParty(party.id.toString())
                     else -> Routes.Party(party.id.toString())
                 }
                 RootUiState.Ready(startDestination)

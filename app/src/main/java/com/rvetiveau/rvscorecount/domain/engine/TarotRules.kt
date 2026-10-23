@@ -2,6 +2,7 @@ package com.rvetiveau.rvscorecount.domain.engine
 
 import com.rvetiveau.rvscorecount.domain.model.EndRule
 import com.rvetiveau.rvscorecount.domain.model.Participant
+import com.rvetiveau.rvscorecount.domain.model.TarotDealing
 import com.rvetiveau.rvscorecount.domain.model.TarotInputError
 import com.rvetiveau.rvscorecount.domain.model.TarotPartyStatus
 import com.rvetiveau.rvscorecount.domain.model.TarotRound
@@ -24,6 +25,9 @@ interface TarotRules : Game {
     /** Trick points of the whole deck. */
     val totalPoints: Int
     val maxBouts: Int
+
+    /** How [playerCount] players deal the 78 cards. */
+    fun dealing(playerCount: Int): TarotDealing
 
     /** Points the attack needs with [bouts] bouts. */
     fun requiredPoints(bouts: Int): Int

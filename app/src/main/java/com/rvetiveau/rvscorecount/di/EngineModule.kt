@@ -50,7 +50,12 @@ abstract class EngineModule {
     @StringKey(FreeGameEngine.GAME_ID)
     abstract fun bindFreeGame(engine: FreeGameEngine): Game
 
-    // Enters the Accueil catalogue with its creation screen (AD-10, Story 13.3).
+    // In the Accueil catalogue with its creation screen (AD-10, Story 13.3).
     @Binds
     abstract fun bindTarotRules(engine: TarotEngine): TarotRules
+
+    @Binds
+    @IntoMap
+    @StringKey(TarotEngine.GAME_ID)
+    abstract fun bindTarotGame(engine: TarotEngine): Game
 }

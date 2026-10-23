@@ -9,6 +9,7 @@ import com.rvetiveau.rvscorecount.domain.model.TarotContract.GARDE
 import com.rvetiveau.rvscorecount.domain.model.TarotContract.GARDE_CONTRE
 import com.rvetiveau.rvscorecount.domain.model.TarotContract.GARDE_SANS
 import com.rvetiveau.rvscorecount.domain.model.TarotContract.PRISE
+import com.rvetiveau.rvscorecount.domain.model.TarotDealing
 import com.rvetiveau.rvscorecount.domain.model.TarotInputError
 import com.rvetiveau.rvscorecount.domain.model.TarotPartyStatus
 import com.rvetiveau.rvscorecount.domain.model.TarotRound
@@ -59,6 +60,17 @@ class TarotEngineTest {
         assertEquals(5, engine.partnerPlayerCount)
         assertEquals(91, engine.totalPoints)
         assertEquals(3, engine.maxBouts)
+    }
+
+    @Test
+    fun `each table size has its dealing`() {
+        assertEquals(TarotDealing(24, 6), engine.dealing(3))
+        assertEquals(TarotDealing(18, 6), engine.dealing(4))
+        assertEquals(TarotDealing(15, 3), engine.dealing(5))
+        // Every card is dealt.
+        (3..5).forEach { players -> engine.dealing(players).let { assertEquals(78, it.cardsPerPlayer * players + it.dogSize) } }
+        assertThrows(IllegalArgumentException::class.java) { engine.dealing(2) }
+        assertThrows(IllegalArgumentException::class.java) { engine.dealing(6) }
     }
 
     @Test

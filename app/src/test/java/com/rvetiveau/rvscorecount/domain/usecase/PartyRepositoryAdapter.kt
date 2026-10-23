@@ -6,8 +6,10 @@ import com.rvetiveau.rvscorecount.domain.model.Party
 import com.rvetiveau.rvscorecount.domain.model.PlayedGameName
 import com.rvetiveau.rvscorecount.domain.model.Round
 import com.rvetiveau.rvscorecount.domain.model.RoundScore
+import com.rvetiveau.rvscorecount.domain.model.TarotRound
 import com.rvetiveau.rvscorecount.domain.repository.FreeGameRepository
 import com.rvetiveau.rvscorecount.domain.repository.PartyRepository
+import com.rvetiveau.rvscorecount.domain.repository.TarotRepository
 import java.util.UUID
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -54,4 +56,26 @@ open class FakeFreeGameRepository(gameNames: List<PlayedGameName> = emptyList())
     override fun observeRounds(partyId: UUID): Flow<List<FreeRound>> = rounds
 
     override fun observeGameNames(): Flow<List<PlayedGameName>> = gameNames
+}
+
+/** In-memory Manches of the Tarot (Story 13.3). */
+open class FakeTarotRepository : TarotRepository {
+    val rounds = MutableStateFlow<List<TarotRound>>(emptyList())
+
+    /** The Partie as each write left it, last one last. */
+    val updatedParties = mutableListOf<Party>()
+
+    override suspend fun saveRound(round: TarotRound, updatedParty: Party) {
+        rounds.value = rounds.value + round
+        updatedParties += updatedParty
+    }
+
+    override suspend fun correctRound(round: TarotRound, updatedParty: Party) {
+        rounds.value = rounds.value.map { if (it.id == round.id) round else it }
+        updatedParties += updatedParty
+    }
+
+    override suspend fun getRounds(partyId: UUID): List<TarotRound> = rounds.value.filter { it.partyId == partyId }
+
+    override fun observeRounds(partyId: UUID): Flow<List<TarotRound>> = rounds
 }

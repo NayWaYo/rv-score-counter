@@ -189,7 +189,7 @@ private fun RulesSection(state: FreeSetupUiState, actions: FreeSetupActions) {
 }
 
 @Composable
-private fun <T> Segments(
+internal fun <T> Segments(
     options: List<T>,
     selected: T,
     label: @Composable (T) -> String,

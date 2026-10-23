@@ -1,5 +1,6 @@
 package com.rvetiveau.rvscorecount.domain.usecase
 
+import com.rvetiveau.rvscorecount.game.tarot.TarotEngine
 import com.rvetiveau.rvscorecount.game.free.FreeGameEngine
 import com.rvetiveau.rvscorecount.domain.engine.Game
 import com.rvetiveau.rvscorecount.domain.model.EndRule
@@ -58,7 +59,7 @@ class BeloteUseCasesTest {
     @Test
     fun `the catalogue fails on a key mismatch or a Jeu missing from the order`() {
         assertThrows(IllegalStateException::class.java) { GetGameCatalogUseCase(mapOf("belote" to FakeGame("papayoo")))() }
-        assertThrows(IllegalStateException::class.java) { GetGameCatalogUseCase(mapOf("tarot" to FakeGame("tarot")))() }
+        assertThrows(IllegalStateException::class.java) { GetGameCatalogUseCase(mapOf("poker" to FakeGame("poker")))() }
     }
 
     // Creation
@@ -259,7 +260,8 @@ class BeloteUseCasesTest {
 
     // Historique (Story 7.4)
 
-    private val history = ObservePartyHistoryUseCase(store, store, rules, FakeFreeGameRepository(), FreeGameEngine())
+    private val history =
+        ObservePartyHistoryUseCase(store, store, rules, FakeFreeGameRepository(), FreeGameEngine(), FakeTarotRepository(), TarotEngine())
 
     @Test
     fun `a finished Belote party is summarized by team with its winning team`() = runTest {

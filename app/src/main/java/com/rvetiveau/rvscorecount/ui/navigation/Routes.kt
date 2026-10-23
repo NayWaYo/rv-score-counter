@@ -106,6 +106,27 @@ sealed interface Routes {
     @SerialName("freeResults")
     data class FreeResults(val partyId: String) : Routes
 
+    // Tarot (Story 13.3, AD-10).
+
+    @Serializable
+    @SerialName("tarotSetup")
+    data object TarotSetup : Routes
+
+    /** A Partie of Tarot, in progress or finished (read only). */
+    @Serializable
+    @SerialName("tarotParty")
+    data class TarotParty(val partyId: String) : Routes
+
+    /** Saisie of the next Manche of Tarot, or correction of the validated Manche [correctedRoundNumber]. */
+    @Serializable
+    @SerialName("tarotRound")
+    data class TarotRound(val partyId: String, val correctedRoundNumber: Int? = null) : Routes
+
+    /** Résultats of a Partie of Tarot just ended, with « Rejouer ». */
+    @Serializable
+    @SerialName("tarotResults")
+    data class TarotResults(val partyId: String) : Routes
+
     /** Statistiques of a Partie of Belote, in progress or finished. */
     @Serializable
     @SerialName("beloteStats")

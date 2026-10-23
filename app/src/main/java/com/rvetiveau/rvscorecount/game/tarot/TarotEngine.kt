@@ -4,6 +4,7 @@ import com.rvetiveau.rvscorecount.domain.engine.GameIds
 import com.rvetiveau.rvscorecount.domain.engine.TarotRules
 import com.rvetiveau.rvscorecount.domain.model.EndRule
 import com.rvetiveau.rvscorecount.domain.model.Participant
+import com.rvetiveau.rvscorecount.domain.model.TarotDealing
 import com.rvetiveau.rvscorecount.domain.model.TarotInputError
 import com.rvetiveau.rvscorecount.domain.model.TarotPartyStatus
 import com.rvetiveau.rvscorecount.domain.model.TarotRound
@@ -23,6 +24,13 @@ class TarotEngine @Inject constructor() : TarotRules {
     override val partnerPlayerCount: Int = 5
     override val totalPoints: Int = 91
     override val maxBouts: Int = 3
+
+    override fun dealing(playerCount: Int): TarotDealing = when (playerCount) {
+        3 -> TarotDealing(cardsPerPlayer = 24, dogSize = 6)
+        4 -> TarotDealing(cardsPerPlayer = 18, dogSize = 6)
+        5 -> TarotDealing(cardsPerPlayer = 15, dogSize = 3)
+        else -> throw IllegalArgumentException("The Tarot is played by $minPlayers to $maxPlayers players, not $playerCount")
+    }
 
     override fun requiredPoints(bouts: Int): Int {
         require(bouts in 0..maxBouts) { "A side has 0 to $maxBouts bouts, not $bouts" }

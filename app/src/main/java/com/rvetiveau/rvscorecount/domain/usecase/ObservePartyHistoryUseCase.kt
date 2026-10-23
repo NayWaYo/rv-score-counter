@@ -3,6 +3,7 @@ package com.rvetiveau.rvscorecount.domain.usecase
 import com.rvetiveau.rvscorecount.domain.engine.BeloteRules
 import com.rvetiveau.rvscorecount.domain.engine.FreeGameRules
 import com.rvetiveau.rvscorecount.domain.engine.GameIds
+import com.rvetiveau.rvscorecount.domain.engine.TarotRules
 import com.rvetiveau.rvscorecount.domain.model.BelotePartyStatus
 import com.rvetiveau.rvscorecount.domain.model.Party
 import com.rvetiveau.rvscorecount.domain.model.PartySummary
@@ -12,6 +13,7 @@ import com.rvetiveau.rvscorecount.domain.model.computeStandings
 import com.rvetiveau.rvscorecount.domain.repository.BeloteRepository
 import com.rvetiveau.rvscorecount.domain.repository.FreeGameRepository
 import com.rvetiveau.rvscorecount.domain.repository.PartyRepository
+import com.rvetiveau.rvscorecount.domain.repository.TarotRepository
 import javax.inject.Inject
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.Flow
@@ -21,14 +23,17 @@ import kotlinx.coroutines.flow.mapLatest
  * Historique (Story 6.1) : résumé de chaque Partie FINISHED, la plus récente d'abord, recalculé à
  * chaque changement de la liste (fin de Partie, suppression). Une Partie de Belote (Story 7.4) est
  * résumée par Équipe, ses Manches rescorées par le moteur ; une Partie de Jeu libre (Story 11.3)
- * par ses gagnants selon son sens de victoire.
+ * par ses gagnants selon son sens de victoire ; une Partie de Tarot (Story 13.3) par ses gagnants au plus
+ * grand total, ses Manches rescorées par le moteur.
  */
 class ObservePartyHistoryUseCase @Inject constructor(
     private val partyRepository: PartyRepository,
     private val beloteRepository: BeloteRepository,
     private val beloteRules: BeloteRules,
     private val freeGameRepository: FreeGameRepository,
-    private val freeGameRules: FreeGameRules
+    private val freeGameRules: FreeGameRules,
+    private val tarotRepository: TarotRepository,
+    private val tarotRules: TarotRules
 ) {
     /** [gameId] restricts the history to one Jeu (Création de Partie); null keeps every Jeu. */
     @OptIn(ExperimentalCoroutinesApi::class)
@@ -38,6 +43,7 @@ class ObservePartyHistoryUseCase @Inject constructor(
                 when (party.gameId) {
                     GameIds.BELOTE -> summarizeBelote(party)
                     GameIds.FREE -> summarizeFree(party)
+                    GameIds.TAROT -> summarizeTarot(party)
                     else -> summarize(party)
                 }
             }
@@ -51,6 +57,30 @@ class ObservePartyHistoryUseCase @Inject constructor(
                 participants = partyRepository.getParticipantsByPartyId(party.id),
                 rounds = freeGameRepository.getRounds(party.id),
                 rules = freeGameRules
+            )
+        } catch (_: IllegalStateException) {
+            return baseSummary(party, roundCount = 0).copy(isConsistent = false)
+        } catch (_: IllegalArgumentException) {
+            return baseSummary(party, roundCount = 0).copy(isConsistent = false)
+        } catch (_: ArithmeticException) {
+            return baseSummary(party, roundCount = 0).copy(isConsistent = false)
+        }
+        val base = baseSummary(party, state.rounds.size)
+        if (state.rounds.isEmpty()) return base
+        return base.copy(
+            winners = state.leaders.map { it.name },
+            winningScore = state.standings.first().total
+        )
+    }
+
+    /** A Partie of Tarot ended by hand before its first Manche has no winner. */
+    private suspend fun summarizeTarot(party: Party): PartySummary {
+        val state = try {
+            assembleTarotParty(
+                party = party,
+                participants = partyRepository.getParticipantsByPartyId(party.id),
+                rounds = tarotRepository.getRounds(party.id),
+                rules = tarotRules
             )
         } catch (_: IllegalStateException) {
             return baseSummary(party, roundCount = 0).copy(isConsistent = false)

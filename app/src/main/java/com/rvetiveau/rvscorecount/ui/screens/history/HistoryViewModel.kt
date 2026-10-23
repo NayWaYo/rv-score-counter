@@ -73,12 +73,13 @@ class HistoryViewModel @Inject constructor(
         if (_uiState.value is HistoryUiState.LoadError) observe()
     }
 
-    /** Each Jeu has its own detail: the Belote one is by Équipe, the Jeu libre one its finished Partie. */
+    /** Each Jeu has its own detail: the Belote one is by Équipe, the Jeu libre and Tarot ones their finished Partie. */
     fun onEntrySelected(partyId: UUID) {
         val entryGameId = (_uiState.value as? HistoryUiState.Loaded)?.entries?.firstOrNull { it.partyId == partyId }?.gameId
         val route = when (entryGameId) {
             GameIds.BELOTE -> Routes.BelotePartyDetail(partyId.toString())
             GameIds.FREE -> Routes.FreeParty(partyId.toString())
+            GameIds.TAROT -> Routes.TarotParty(partyId.toString())
             else -> Routes.PartyDetail(partyId.toString())
         }
         viewModelScope.launch { _navigationEvents.send(NavigationEvent.NavigateTo(route)) }

@@ -36,6 +36,7 @@ class HomeViewModel @Inject constructor(
     fun onGameSelected(gameId: String) {
         val route = when (gameId) {
             GameIds.BELOTE -> Routes.BeloteSetup
+            GameIds.TAROT -> Routes.TarotSetup
             GameIds.FREE -> Routes.FreeSetup
             else -> Routes.Setup(gameId)
         }

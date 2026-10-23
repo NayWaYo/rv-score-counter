@@ -1,5 +1,6 @@
 package com.rvetiveau.rvscorecount.domain.usecase
 
+import com.rvetiveau.rvscorecount.game.tarot.TarotEngine
 import com.rvetiveau.rvscorecount.domain.model.EndRule
 import com.rvetiveau.rvscorecount.domain.model.FreeGameRecord
 import com.rvetiveau.rvscorecount.domain.model.FreeRound
@@ -112,7 +113,8 @@ class FreeRecordsAndReplayTest {
     fun `the history names the game played`() = runTest {
         seed("Skyjo", alice = 5)
 
-        val summary = ObservePartyHistoryUseCase(store, FakeBeloteStore(), BeloteEngine(), store.free, rules)().first().single()
+        val history = ObservePartyHistoryUseCase(store, FakeBeloteStore(), BeloteEngine(), store.free, rules, FakeTarotRepository(), TarotEngine())
+        val summary = history().first().single()
 
         assertEquals("Skyjo", summary.gameName)
         assertEquals(listOf("Alice"), summary.winners)

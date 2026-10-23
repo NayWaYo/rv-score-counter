@@ -27,6 +27,9 @@ import com.rvetiveau.rvscorecount.ui.screens.results.ResultsRoute
 import com.rvetiveau.rvscorecount.ui.screens.round.RoundEntryRoute
 import com.rvetiveau.rvscorecount.ui.screens.setup.SetupRoute
 import com.rvetiveau.rvscorecount.ui.screens.stats.StatsRoute
+import com.rvetiveau.rvscorecount.ui.screens.tarot.TarotPartyRoute
+import com.rvetiveau.rvscorecount.ui.screens.tarot.TarotRoundRoute
+import com.rvetiveau.rvscorecount.ui.screens.tarot.TarotSetupRoute
 import java.util.UUID
 
 /** Single NavHost registering every destination (AD-6). */
@@ -132,6 +135,32 @@ fun RvScoreCounterNavHost(
             val route: Routes.BelotePartyDetail = backStackEntry.toRoute()
             BelotePartyDetailRoute(
                 partyId = UUID.fromString(route.partyId),
+                onNavigate = { event -> navController.dispatch(event) }
+            )
+        }
+        composable<Routes.TarotSetup> {
+            TarotSetupRoute(onNavigate = { event -> navController.dispatch(event) })
+        }
+        composable<Routes.TarotParty> { backStackEntry ->
+            val route: Routes.TarotParty = backStackEntry.toRoute()
+            TarotPartyRoute(
+                partyId = UUID.fromString(route.partyId),
+                onNavigate = { event -> navController.dispatch(event) }
+            )
+        }
+        composable<Routes.TarotResults> { backStackEntry ->
+            val route: Routes.TarotResults = backStackEntry.toRoute()
+            TarotPartyRoute(
+                partyId = UUID.fromString(route.partyId),
+                isResults = true,
+                onNavigate = { event -> navController.dispatch(event) }
+            )
+        }
+        composable<Routes.TarotRound> { backStackEntry ->
+            val route: Routes.TarotRound = backStackEntry.toRoute()
+            TarotRoundRoute(
+                partyId = UUID.fromString(route.partyId),
+                correctedRoundNumber = route.correctedRoundNumber,
                 onNavigate = { event -> navController.dispatch(event) }
             )
         }
