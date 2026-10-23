@@ -11,6 +11,9 @@ object GameIds {
     /** Jeu libre (AD-9): any game without its own engine. */
     const val FREE = "free"
 
+    /** Every Jeu the data can hold, whether on the Accueil yet or not: what a backup may contain. */
+    val STORED = listOf(PAPAYOO, BELOTE, TAROT, FREE)
+
     /**
      * Order of the Accueil tiles: the order the Jeux were added to the app. The Tarot joins it, before
      * the Jeu libre, with its creation screen (Story 13.3).

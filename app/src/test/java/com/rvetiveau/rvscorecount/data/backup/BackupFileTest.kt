@@ -6,6 +6,7 @@ import com.rvetiveau.rvscorecount.data.entity.PartyEntity
 import com.rvetiveau.rvscorecount.data.entity.PlayerEntity
 import com.rvetiveau.rvscorecount.data.entity.RoundEntity
 import com.rvetiveau.rvscorecount.data.entity.RoundScoreEntity
+import com.rvetiveau.rvscorecount.data.entity.TarotRoundEntity
 import com.rvetiveau.rvscorecount.data.entity.TeamEntity
 import com.rvetiveau.rvscorecount.domain.model.playerNameKey
 import kotlinx.serialization.json.Json
@@ -49,7 +50,8 @@ class BackupFileTest {
             RoundScoreEntity("pr-1", "pa-a", 10), RoundScoreEntity("pr-1", "pa-b", 200), RoundScoreEntity("pr-1", "pa-c", 40),
             RoundScoreEntity("pr-2", "pa-a", 0), RoundScoreEntity("pr-2", "pa-b", 150), RoundScoreEntity("pr-2", "pa-c", 100)
         ),
-        beloteRounds = emptyList()
+        beloteRounds = emptyList(),
+        tarotRounds = emptyList()
     )
 
     /** A finished Belote Partie to a target score, with and without belote, capot or taker player. */
@@ -68,7 +70,8 @@ class BackupFileTest {
         beloteRounds = listOf(
             BeloteRoundEntity("br-1", "belote-1", 1, "FIRST", 100, beloteSide = "SECOND", capotSide = null, takerPlayerId = "p-alice"),
             BeloteRoundEntity("br-2", "belote-1", 2, "SECOND", 162, beloteSide = null, capotSide = "SECOND", takerPlayerId = null)
-        )
+        ),
+        tarotRounds = emptyList()
     )
 
     /** A Jeu libre Partie: no 7, negative scores, its own name and win direction. */
@@ -84,7 +87,26 @@ class BackupFileTest {
             RoundScoreEntity("fr-1", "fr-a", -12), RoundScoreEntity("fr-1", "fr-b", 30),
             RoundScoreEntity("fr-2", "fr-a", 0), RoundScoreEntity("fr-2", "fr-b", -3)
         ),
-        beloteRounds = emptyList()
+        beloteRounds = emptyList(),
+        tarotRounds = emptyList()
+    )
+
+    /** A Tarot Partie at 5 (format 2): with and without partner and every bonus. */
+    private val tarot = BackupTables(
+        players = listOf(alice, bob, chloe, david, unseated),
+        parties = listOf(PartyEntity("tarot-1", "tarot", "IN_PROGRESS", 2, 4_000, "ROUND_COUNT", 10)),
+        participants = listOf(
+            seat("ta-a", "tarot-1", alice, 0), seat("ta-b", "tarot-1", bob, 1), seat("ta-c", "tarot-1", chloe, 2),
+            seat("ta-d", "tarot-1", david, 3), seat("ta-e", "tarot-1", unseated, 4)
+        ),
+        teams = emptyList(),
+        rounds = emptyList(),
+        roundScores = emptyList(),
+        beloteRounds = emptyList(),
+        tarotRounds = listOf(
+            TarotRoundEntity("tr-1", "tarot-1", 1, "ta-a", "GARDE", 2, 50, "ta-c", "ATTACK", "SIMPLE", "DOUBLE", "UNANNOUNCED_MADE"),
+            TarotRoundEntity("tr-2", "tarot-1", 2, "ta-d", "PRISE", 0, 40, null, null, null, null, null)
+        )
     )
 
     private fun roundTrip(tables: BackupTables): BackupTables =
@@ -98,6 +120,7 @@ class BackupFileTest {
         assertEquals(expected.rounds.toSet(), actual.rounds.toSet())
         assertEquals(expected.roundScores.toSet(), actual.roundScores.toSet())
         assertEquals(expected.beloteRounds.toSet(), actual.beloteRounds.toSet())
+        assertEquals(expected.tarotRounds.toSet(), actual.tarotRounds.toSet())
     }
 
     @Test
@@ -110,22 +133,26 @@ class BackupFileTest {
     fun `a Jeu libre Partie comes back unchanged`() = assertSameRows(free, roundTrip(free))
 
     @Test
+    fun `a Tarot Partie comes back unchanged`() = assertSameRows(tarot, roundTrip(tarot))
+
+    @Test
     fun `every Jeu together, and a Joueur without Partie, come back unchanged`() {
         val all = BackupTables(
-            players = (papayoo.players + belote.players + free.players + unseated).distinct(),
-            parties = papayoo.parties + belote.parties + free.parties,
-            participants = papayoo.participants + belote.participants + free.participants,
+            players = (papayoo.players + belote.players + free.players + tarot.players).distinct(),
+            parties = papayoo.parties + belote.parties + free.parties + tarot.parties,
+            participants = papayoo.participants + belote.participants + free.participants + tarot.participants,
             teams = belote.teams,
             rounds = papayoo.rounds + free.rounds,
             roundScores = papayoo.roundScores + free.roundScores,
-            beloteRounds = belote.beloteRounds
+            beloteRounds = belote.beloteRounds,
+            tarotRounds = tarot.tarotRounds
         )
         assertSameRows(all, roundTrip(all))
     }
 
     @Test
     fun `an empty database gives an empty file`() {
-        val empty = BackupTables(emptyList(), emptyList(), emptyList(), emptyList(), emptyList(), emptyList(), emptyList())
+        val empty = BackupTables(emptyList(), emptyList(), emptyList(), emptyList(), emptyList(), emptyList(), emptyList(), emptyList())
         val file = empty.toBackupFile(createdAt = 5)
         assertEquals(BackupFile(BACKUP_FORMAT, 5, emptyList(), emptyList()), file)
         assertSameRows(empty, roundTrip(empty))
@@ -135,7 +162,7 @@ class BackupFileTest {
     fun `the file names its format and date, and nests each Partie's rows in play order`() {
         val json = Json.parseToJsonElement(papayoo.toBackupFile(createdAt = 1_761_000_000_000).encode()).jsonObject
 
-        assertEquals(1, json.getValue("format").jsonPrimitive.int)
+        assertEquals(2, json.getValue("format").jsonPrimitive.int)
         assertEquals(1_761_000_000_000, json.getValue("createdAt").jsonPrimitive.long)
         val party = json.getValue("parties").jsonArray.single().jsonObject
         assertEquals(listOf("pa-a", "pa-b", "pa-c"), party.getValue("participants").jsonArray.map { it.jsonObject.getValue("id").jsonPrimitive.content })

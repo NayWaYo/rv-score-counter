@@ -4,6 +4,8 @@ import android.content.Context
 import android.database.sqlite.SQLiteDatabase
 import androidx.room.Room
 import androidx.test.platform.app.InstrumentationRegistry
+import com.rvetiveau.rvscorecount.data.entity.PartyEntity
+import com.rvetiveau.rvscorecount.data.entity.TarotRoundEntity
 import kotlinx.coroutines.test.runTest
 import org.junit.After
 import org.junit.Assert.assertEquals
@@ -16,7 +18,7 @@ import org.junit.Test
  * SQL of the exported `schemas/.../<version>.json`, is opened by Room, which runs the auto-migrations
  * up to the current version and validates the result. v2 added rounds.sevenHolderId, v3 the Belote
  * (teams, belote_rounds, end rule, participant team), v4 the Belote taker player, v5 the Joueurs
- * (hand-written MIGRATION_4_5). Existing parties,
+ * (hand-written MIGRATION_4_5), v6 the Jeu libre, v7 the Tarot (tarot_rounds). Existing parties,
  * rounds and scores must survive untouched.
  */
 class AppDatabaseMigrationTest {
@@ -193,8 +195,67 @@ class AppDatabaseMigrationTest {
         }
     }
 
+    @Test
+    fun openingAVersion6DatabaseAddsTheTarotAndKeepsEverything() = runTest {
+        SQLiteDatabase.openOrCreateDatabase(context.getDatabasePath(DB_NAME), null).use { v6 ->
+            V6_SCHEMA.forEach(v6::execSQL)
+            v6.execSQL(
+                "INSERT INTO parties (id, gameId, status, currentDealerIndex, createdAt, endRuleType, endRuleValue, gameName, winDirection) " +
+                    "VALUES ('f', 'free', 'FINISHED', 0, 42, 'ROUND_COUNT', 3, 'Skyjo', 'LOWEST_WINS')"
+            )
+            v6.execSQL("INSERT INTO players (id, name, nameKey) VALUES ('j', 'Alice', 'alice')")
+            v6.execSQL("INSERT INTO participants (id, partyId, name, listPosition, playerId) VALUES ('a', 'f', 'Alice', 0, 'j')")
+            v6.execSQL("INSERT INTO rounds (id, partyId, roundNumber, suit) VALUES ('r', 'f', 1, NULL)")
+            v6.execSQL("INSERT INTO round_scores (roundId, participantId, points) VALUES ('r', 'a', -7)")
+            v6.version = 6
+        }
+
+        val database = Room.databaseBuilder(context, AppDatabase::class.java, DB_NAME)
+            .addMigrations(*MANUAL_MIGRATIONS)
+            .build()
+        try {
+            val party = checkNotNull(database.partyDao().getById("f"))
+            assertEquals("Skyjo", party.gameName)
+            assertEquals("LOWEST_WINS", party.winDirection)
+            assertNull(database.roundDao().getById("r")?.suit)
+            assertEquals(-7, database.roundScoreDao().getByRoundId("r").single().points)
+            assertEquals("j", database.participantDao().getByPartyId("f").single().playerId)
+            // The Tarot table exists, empty, and follows its Partie.
+            assertEquals(emptyList<TarotRoundEntity>(), database.tarotRoundDao().getAll())
+            database.partyDao().insert(PartyEntity("t", "tarot", "IN_PROGRESS", 0, 43))
+            database.tarotRoundDao().insert(TarotRoundEntity("tr", "t", 1, "a", "GARDE", 2, 50, null, null, null, null, null))
+            assertEquals("GARDE", database.tarotRoundDao().getByPartyId("t").single().contract)
+            database.partyDao().deleteById("t")
+            assertEquals(emptyList<TarotRoundEntity>(), database.tarotRoundDao().getAll())
+        } finally {
+            database.close()
+        }
+    }
+
     private companion object {
         const val DB_NAME = "migration-test.db"
+
+        /** Copied from app/schemas/com.rvetiveau.rvscorecount.data.db.AppDatabase/6.json. */
+        val V6_SCHEMA = listOf(
+            "CREATE TABLE IF NOT EXISTS `parties` (`id` TEXT NOT NULL, `gameId` TEXT NOT NULL, `status` TEXT NOT NULL, `currentDealerIndex` INTEGER NOT NULL, `createdAt` INTEGER NOT NULL, `endRuleType` TEXT DEFAULT NULL, `endRuleValue` INTEGER DEFAULT NULL, `gameName` TEXT DEFAULT NULL, `winDirection` TEXT DEFAULT NULL, PRIMARY KEY(`id`))",
+            "CREATE TABLE IF NOT EXISTS `participants` (`id` TEXT NOT NULL, `partyId` TEXT NOT NULL, `name` TEXT NOT NULL, `listPosition` INTEGER NOT NULL, `teamSide` TEXT DEFAULT NULL, `playerId` TEXT NOT NULL, PRIMARY KEY(`id`), FOREIGN KEY(`partyId`) REFERENCES `parties`(`id`) ON UPDATE NO ACTION ON DELETE CASCADE , FOREIGN KEY(`playerId`) REFERENCES `players`(`id`) ON UPDATE NO ACTION ON DELETE NO ACTION )",
+            "CREATE INDEX IF NOT EXISTS `index_participants_partyId` ON `participants` (`partyId`)",
+            "CREATE INDEX IF NOT EXISTS `index_participants_playerId` ON `participants` (`playerId`)",
+            "CREATE TABLE IF NOT EXISTS `rounds` (`id` TEXT NOT NULL, `partyId` TEXT NOT NULL, `roundNumber` INTEGER NOT NULL, `suit` TEXT, `sevenHolderId` TEXT DEFAULT NULL, PRIMARY KEY(`id`), FOREIGN KEY(`partyId`) REFERENCES `parties`(`id`) ON UPDATE NO ACTION ON DELETE CASCADE )",
+            "CREATE INDEX IF NOT EXISTS `index_rounds_partyId` ON `rounds` (`partyId`)",
+            "CREATE UNIQUE INDEX IF NOT EXISTS `index_rounds_partyId_roundNumber` ON `rounds` (`partyId`, `roundNumber`)",
+            "CREATE TABLE IF NOT EXISTS `round_scores` (`roundId` TEXT NOT NULL, `participantId` TEXT NOT NULL, `points` INTEGER NOT NULL, PRIMARY KEY(`roundId`, `participantId`), FOREIGN KEY(`roundId`) REFERENCES `rounds`(`id`) ON UPDATE NO ACTION ON DELETE CASCADE , FOREIGN KEY(`participantId`) REFERENCES `participants`(`id`) ON UPDATE NO ACTION ON DELETE CASCADE )",
+            "CREATE INDEX IF NOT EXISTS `index_round_scores_roundId` ON `round_scores` (`roundId`)",
+            "CREATE INDEX IF NOT EXISTS `index_round_scores_participantId` ON `round_scores` (`participantId`)",
+            "CREATE TABLE IF NOT EXISTS `teams` (`partyId` TEXT NOT NULL, `side` TEXT NOT NULL, `name` TEXT NOT NULL, PRIMARY KEY(`partyId`, `side`), FOREIGN KEY(`partyId`) REFERENCES `parties`(`id`) ON UPDATE NO ACTION ON DELETE CASCADE )",
+            "CREATE TABLE IF NOT EXISTS `belote_rounds` (`id` TEXT NOT NULL, `partyId` TEXT NOT NULL, `roundNumber` INTEGER NOT NULL, `takerSide` TEXT NOT NULL, `takerTrickPoints` INTEGER NOT NULL, `beloteSide` TEXT, `capotSide` TEXT, `takerPlayerId` TEXT DEFAULT NULL, PRIMARY KEY(`id`), FOREIGN KEY(`partyId`) REFERENCES `parties`(`id`) ON UPDATE NO ACTION ON DELETE CASCADE )",
+            "CREATE INDEX IF NOT EXISTS `index_belote_rounds_partyId` ON `belote_rounds` (`partyId`)",
+            "CREATE UNIQUE INDEX IF NOT EXISTS `index_belote_rounds_partyId_roundNumber` ON `belote_rounds` (`partyId`, `roundNumber`)",
+            "CREATE TABLE IF NOT EXISTS `players` (`id` TEXT NOT NULL, `name` TEXT NOT NULL, `nameKey` TEXT NOT NULL, PRIMARY KEY(`id`))",
+            "CREATE UNIQUE INDEX IF NOT EXISTS `index_players_nameKey` ON `players` (`nameKey`)",
+            "CREATE TABLE IF NOT EXISTS room_master_table (id INTEGER PRIMARY KEY,identity_hash TEXT)",
+            "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, '67d4964a43e46f6d3fa4c081f9b3988f')"
+        )
 
         /** Copied from app/schemas/com.rvetiveau.rvscorecount.data.db.AppDatabase/5.json. */
         val V5_SCHEMA = listOf(

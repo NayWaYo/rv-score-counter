@@ -14,6 +14,7 @@ import com.rvetiveau.rvscorecount.data.entity.PartyEntity
 import com.rvetiveau.rvscorecount.data.entity.PlayerEntity
 import com.rvetiveau.rvscorecount.data.entity.RoundEntity
 import com.rvetiveau.rvscorecount.data.entity.RoundScoreEntity
+import com.rvetiveau.rvscorecount.data.entity.TarotRoundEntity
 import com.rvetiveau.rvscorecount.data.entity.TeamEntity
 import com.rvetiveau.rvscorecount.domain.model.BackupContent
 import com.rvetiveau.rvscorecount.domain.model.BackupReading
@@ -45,33 +46,43 @@ class BackupRepositoryImplTest {
     private val alice = PlayerEntity(id(), "Alice", "alice")
     private val bob = PlayerEntity(id(), "Bob", "bob")
     private val eve = PlayerEntity(id(), "Eve", "eve")
+    private val fred = PlayerEntity(id(), "Fred", "fred")
     private val papayoo = PartyEntity(id(), "papayoo", "IN_PROGRESS", 1, 1_000)
     private val belote = PartyEntity(id(), "belote", "FINISHED", 0, 2_000, "TARGET_SCORE", 1000)
     private val free = PartyEntity(id(), "free", "FINISHED", 0, 3_000, gameName = "Skyjo", winDirection = "LOWEST_WINS")
+    private val tarot = PartyEntity(id(), "tarot", "IN_PROGRESS", 0, 4_000, "ROUND_COUNT", 5)
     private val papayooAlice = ParticipantEntity(id(), papayoo.id, "Alice", 0, playerId = alice.id)
     private val papayooBob = ParticipantEntity(id(), papayoo.id, "Bob", 1, playerId = bob.id)
     private val freeAlice = ParticipantEntity(id(), free.id, "Alice", 0, playerId = alice.id)
     private val freeBob = ParticipantEntity(id(), free.id, "Bob", 1, playerId = bob.id)
+    private val tarotSeats = listOf(alice, bob, fred).mapIndexed { index, player ->
+        ParticipantEntity(id(), tarot.id, player.name, index, playerId = player.id)
+    }
     private val papayooRound = RoundEntity(id(), papayoo.id, 1, "CLUB", papayooBob.id)
     private val freeRound = RoundEntity(id(), free.id, 1, suit = null)
 
     /** Every Jeu, and a Joueur without Partie. */
     private val original = BackupTables(
-        players = listOf(alice, bob, eve),
-        parties = listOf(papayoo, belote, free),
+        players = listOf(alice, bob, eve, fred),
+        parties = listOf(papayoo, belote, free, tarot),
         participants = listOf(
             papayooAlice, papayooBob,
             ParticipantEntity(id(), belote.id, "Alice", 0, "FIRST", alice.id),
             ParticipantEntity(id(), belote.id, "Bob", 1, "SECOND", bob.id),
             freeAlice, freeBob
-        ),
+        ) + tarotSeats,
         teams = listOf(TeamEntity(belote.id, "FIRST", "Nous"), TeamEntity(belote.id, "SECOND", "Eux")),
         rounds = listOf(papayooRound, freeRound),
         roundScores = listOf(
             RoundScoreEntity(papayooRound.id, papayooAlice.id, 50), RoundScoreEntity(papayooRound.id, papayooBob.id, 200),
             RoundScoreEntity(freeRound.id, freeAlice.id, -5), RoundScoreEntity(freeRound.id, freeBob.id, 12)
         ),
-        beloteRounds = listOf(BeloteRoundEntity(id(), belote.id, 1, "FIRST", 120, "FIRST", null, alice.id))
+        beloteRounds = listOf(BeloteRoundEntity(id(), belote.id, 1, "FIRST", 120, "FIRST", null, alice.id)),
+        tarotRounds = listOf(
+            TarotRoundEntity(
+                id(), tarot.id, 1, tarotSeats[2].id, "GARDE_CONTRE", 3, 70, null, "DEFENSE", "TRIPLE", null, "ANNOUNCED_MADE"
+            )
+        )
     )
 
     @Before
@@ -96,18 +107,20 @@ class BackupRepositoryImplTest {
         assertEquals(expected.rounds.toSet(), actual.rounds.toSet())
         assertEquals(expected.roundScores.toSet(), actual.roundScores.toSet())
         assertEquals(expected.beloteRounds.toSet(), actual.beloteRounds.toSet())
+        assertEquals(expected.tarotRounds.toSet(), actual.tarotRounds.toSet())
     }
 
     /** A second database, replaced by [original]'s backup. */
     private val other = BackupTables(
         players = listOf(PlayerEntity(id(), "Zoé", "zoé")),
         parties = listOf(PartyEntity(id(), "papayoo", "FINISHED", 0, 9_000)),
-        participants = emptyList(), teams = emptyList(), rounds = emptyList(), roundScores = emptyList(), beloteRounds = emptyList()
+        participants = emptyList(), teams = emptyList(), rounds = emptyList(), roundScores = emptyList(), beloteRounds = emptyList(),
+        tarotRounds = emptyList()
     )
 
     @Test
     fun countsEveryJoueurAndEveryPartie() = runTest {
-        assertEquals(BackupContent(players = 3, parties = 3), repository.observeContent().first())
+        assertEquals(BackupContent(players = 4, parties = 4), repository.observeContent().first())
     }
 
     @Test
@@ -127,7 +140,7 @@ class BackupRepositoryImplTest {
 
         repository.export(uri)
 
-        assertEquals(3, decodeBackupFile(file.readText()).parties.size)
+        assertEquals(4, decodeBackupFile(file.readText()).parties.size)
     }
 
     @Test
@@ -138,7 +151,7 @@ class BackupRepositoryImplTest {
         val reading = repository.read(uri)
 
         assertTrue(reading is BackupReading.Valid)
-        assertEquals(BackupContent(players = 3, parties = 3), (reading as BackupReading.Valid).content)
+        assertEquals(BackupContent(players = 4, parties = 4), (reading as BackupReading.Valid).content)
         assertSameRows(other, repository.readTables())
     }
 
@@ -150,12 +163,12 @@ class BackupRepositoryImplTest {
         assertTrue(repository.restore(uri) is BackupReading.Valid)
 
         assertSameRows(original, repository.readTables())
-        assertEquals(BackupContent(players = 3, parties = 3), repository.observeContent().first())
+        assertEquals(BackupContent(players = 4, parties = 4), repository.observeContent().first())
     }
 
     @Test
     fun aRefusedFileChangesNothing() = runTest {
-        file.writeText("""{"format": 2}""")
+        file.writeText("""{"format": ${BACKUP_FORMAT + 1}}""")
         assertEquals(BackupReading.NewerFormat, repository.restore(uri))
         file.writeText("pas une sauvegarde")
         assertEquals(BackupReading.NotABackup, repository.restore(uri))

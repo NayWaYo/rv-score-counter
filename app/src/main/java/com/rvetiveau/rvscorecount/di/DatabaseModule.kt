@@ -8,6 +8,7 @@ import com.rvetiveau.rvscorecount.data.dao.PartyDao
 import com.rvetiveau.rvscorecount.data.dao.PlayerDao
 import com.rvetiveau.rvscorecount.data.dao.RoundDao
 import com.rvetiveau.rvscorecount.data.dao.RoundScoreDao
+import com.rvetiveau.rvscorecount.data.dao.TarotRoundDao
 import com.rvetiveau.rvscorecount.data.dao.TeamDao
 import com.rvetiveau.rvscorecount.data.db.AppDatabase
 import com.rvetiveau.rvscorecount.data.db.MANUAL_MIGRATIONS
@@ -56,4 +57,8 @@ object DatabaseModule {
     @Provides
     @Singleton
     fun providePlayerDao(db: AppDatabase): PlayerDao = db.playerDao()
+
+    @Provides
+    @Singleton
+    fun provideTarotRoundDao(db: AppDatabase): TarotRoundDao = db.tarotRoundDao()
 }

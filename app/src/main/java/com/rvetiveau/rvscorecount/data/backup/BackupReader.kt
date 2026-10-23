@@ -55,7 +55,8 @@ fun readBackupFile(text: String): BackupFileReading {
 /**
  * Fails on any row Room would refuse or the app could not read back: values go through the Room
  * mappings, which reject unknown enum names and invalid ids. Each row's Partie is given by the file's
- * nesting, so only references between Parties, Participants, Manches and Joueurs are checked here.
+ * nesting; each kind of Manche must belong to a Partie of its Jeu, and references between Participants,
+ * Manches and Joueurs must stay within one Partie.
  */
 internal fun BackupTables.checkConsistent() {
     players.forEach { player ->
@@ -68,7 +69,7 @@ internal fun BackupTables.checkConsistent() {
 
     parties.forEach { party ->
         party.toDomain()
-        check(party.gameId in GameIds.CATALOG_ORDER) { "Partie ${party.id} has an unknown game ${party.gameId}" }
+        check(party.gameId in GameIds.STORED) { "Partie ${party.id} has an unknown game ${party.gameId}" }
     }
     checkUnique(parties.map { it.id }, "Partie")
     val gameByParty = parties.associate { it.id to it.gameId }
@@ -86,10 +87,10 @@ internal fun BackupTables.checkConsistent() {
 
     rounds.forEach { round ->
         UUID.fromString(round.id)
-        if (gameByParty[round.partyId] == GameIds.FREE) {
-            check(round.suit == null) { "Manche ${round.id} of a Jeu libre has a suit" }
-        } else {
-            round.toDomain()
+        when (gameByParty[round.partyId]) {
+            GameIds.FREE -> check(round.suit == null) { "Manche ${round.id} of a Jeu libre has a suit" }
+            GameIds.PAPAYOO -> round.toDomain()
+            else -> error("Manche ${round.id} belongs to a Partie without score rows")
         }
         round.sevenHolderId?.let { holder ->
             check(partyByParticipant[holder] == round.partyId) { "Manche ${round.id} has a 7 holder of another Partie" }
@@ -108,12 +109,31 @@ internal fun BackupTables.checkConsistent() {
     checkUnique(roundScores.map { it.roundId to it.participantId }, "score")
 
     beloteRounds.forEach { round ->
+        check(gameByParty[round.partyId] == GameIds.BELOTE) { "Manche ${round.id} of Belote belongs to another Jeu" }
         round.toDomain()
         round.takerPlayerId?.let { check(it in playerIds) { "Manche ${round.id} has an unknown taker" } }
     }
     checkUnique(beloteRounds.map { it.id }, "Manche de Belote")
     checkUnique(beloteRounds.map { it.partyId to it.roundNumber }, "Manche de Belote number")
+
+    tarotRounds.forEach { round ->
+        check(gameByParty[round.partyId] == GameIds.TAROT) { "Manche ${round.id} of Tarot belongs to another Jeu" }
+        val input = round.toDomain().input
+        check(input.attackBouts in 0..TAROT_BOUTS) { "Manche ${round.id} has ${input.attackBouts} bouts" }
+        check(input.attackPoints in 0..TAROT_POINTS) { "Manche ${round.id} has ${input.attackPoints} points" }
+        check(partyByParticipant[round.takerId] == round.partyId) { "Manche ${round.id} has a taker of another Partie" }
+        round.partnerId?.let { partner ->
+            check(partner != round.takerId) { "Manche ${round.id} has the taker as partner" }
+            check(partyByParticipant[partner] == round.partyId) { "Manche ${round.id} has a partner of another Partie" }
+        }
+    }
+    checkUnique(tarotRounds.map { it.id }, "Manche de Tarot")
+    checkUnique(tarotRounds.map { it.partyId to it.roundNumber }, "Manche de Tarot number")
 }
+
+// The Tarot's bounds (`games/tarot.md`); `data` does not depend on the engines (AD-1).
+private const val TAROT_BOUTS = 3
+private const val TAROT_POINTS = 91
 
 private fun checkUnique(keys: List<Any>, what: String) {
     val duplicate = keys.groupingBy { it }.eachCount().entries.firstOrNull { it.value > 1 }

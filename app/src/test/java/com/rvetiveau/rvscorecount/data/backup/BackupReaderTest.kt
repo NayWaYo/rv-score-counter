@@ -47,7 +47,17 @@ class BackupReaderTest {
         rounds = listOf(BackupRound(id(), 1, null, null, listOf(BackupScore(freeSeats[0].id, -12), BackupScore(freeSeats[1].id, 7))))
     )
 
-    private val valid = BackupFile(BACKUP_FORMAT, 1_761_000_000_000, listOf(alice, bob, chloe, david), listOf(papayoo, belote, free))
+    private val tarotSeats = listOf(seat(alice, 0), seat(bob, 1), seat(chloe, 2), seat(david, 3))
+    private val tarot = BackupParty(
+        id = id(), gameId = "tarot", status = "IN_PROGRESS", currentDealerIndex = 0, createdAt = 4_000,
+        participants = tarotSeats,
+        tarotRounds = listOf(
+            BackupTarotRound(id(), 1, tarotSeats[0].id, "GARDE", 2, 50, petitAuBout = "ATTACK", attackPoignee = "SIMPLE"),
+            BackupTarotRound(id(), 2, tarotSeats[1].id, "GARDE_CONTRE", 3, 91, chelem = "ANNOUNCED_MADE", defensePoignee = "TRIPLE")
+        )
+    )
+
+    private val valid = BackupFile(BACKUP_FORMAT, 1_761_000_000_000, listOf(alice, bob, chloe, david), listOf(papayoo, belote, free, tarot))
 
     private fun read(file: BackupFile) = readBackupFile(file.encode())
 
@@ -66,7 +76,7 @@ class BackupReaderTest {
 
     @Test
     fun `each Jeu alone, an empty backup and a Joueur without Partie are valid`() {
-        listOf(papayoo, belote, free).forEach { party ->
+        listOf(papayoo, belote, free, tarot).forEach { party ->
             assertTrue(read(valid.copy(parties = listOf(party))) is BackupFileReading.Valid)
         }
         assertTrue(read(BackupFile(BACKUP_FORMAT, 0, emptyList(), emptyList())) is BackupFileReading.Valid)
@@ -88,7 +98,7 @@ class BackupReaderTest {
 
     @Test
     fun `a newer format is refused as newer, whatever it holds`() {
-        assertEquals(BackupFileReading.NewerFormat, readBackupFile("""{"format": 2, "something": [1]}"""))
+        assertEquals(BackupFileReading.NewerFormat, readBackupFile("""{"format": 3, "something": [1]}"""))
         assertEquals(BackupFileReading.NewerFormat, read(valid.copy(format = BACKUP_FORMAT + 1)))
     }
 
@@ -97,7 +107,7 @@ class BackupReaderTest {
         assertDamaged(valid.copy(players = valid.players + BackupPlayer("not-a-uuid", "Eve")))
         assertDamaged(valid.copy(players = valid.players + BackupPlayer(id(), "  ")))
         assertDamaged(valid.withParty(papayoo.copy(status = "PAUSED")))
-        assertDamaged(valid.withParty(papayoo.copy(gameId = "tarot")))
+        assertDamaged(valid.withParty(papayoo.copy(gameId = "poker")))
         assertDamaged(valid.withParty(belote.copy(endRuleType = "TARGET_SCORE", endRuleValue = null)))
         assertDamaged(valid.withParty(belote.copy(endRuleType = "TIME")))
         assertDamaged(valid.withParty(free.copy(winDirection = "SIDEWAYS")))
@@ -133,5 +143,42 @@ class BackupReaderTest {
             valid.withParty(papayoo.copy(rounds = listOf(papayoo.rounds[0].copy(scores = listOf(BackupScore(freeSeats[0].id, 10))))))
         )
         assertDamaged(valid.withParty(belote.copy(beloteRounds = listOf(belote.beloteRounds[0].copy(takerPlayerId = id())))))
+    }
+
+    @Test
+    fun `a backup of format 1, from before the Tarot, is still valid`() {
+        assertTrue(read(valid.copy(format = 1, parties = valid.parties - tarot)) is BackupFileReading.Valid)
+        assertTrue(readBackupFile("""{"format": 1, "createdAt": 5, "players": [], "parties": []}""") is BackupFileReading.Valid)
+    }
+
+    private fun withTarotRound(transform: (BackupTarotRound) -> BackupTarotRound) =
+        valid.withParty(tarot.copy(tarotRounds = listOf(transform(tarot.tarotRounds[0]))))
+
+    @Test
+    fun `an impossible Manche of Tarot is refused`() {
+        assertDamaged(withTarotRound { it.copy(contract = "POUSSE") })
+        assertDamaged(withTarotRound { it.copy(petitAuBout = "BOTH") })
+        assertDamaged(withTarotRound { it.copy(attackPoignee = "QUADRUPLE") })
+        assertDamaged(withTarotRound { it.copy(chelem = "MAYBE") })
+        assertDamaged(withTarotRound { it.copy(id = "not-a-uuid") })
+        assertDamaged(withTarotRound { it.copy(attackBouts = 4) })
+        assertDamaged(withTarotRound { it.copy(attackPoints = 92) })
+        assertDamaged(withTarotRound { it.copy(attackPoints = -1) })
+        assertDamaged(withTarotRound { it.copy(takerId = freeSeats[0].id) })
+        assertDamaged(withTarotRound { it.copy(takerId = id()) })
+        assertDamaged(withTarotRound { it.copy(partnerId = it.takerId) })
+        assertDamaged(withTarotRound { it.copy(partnerId = papayooSeats[0].id) })
+        assertDamaged(valid.withParty(tarot.copy(tarotRounds = tarot.tarotRounds + tarot.tarotRounds[0])))
+        assertDamaged(valid.withParty(tarot.copy(tarotRounds = tarot.tarotRounds + tarot.tarotRounds[0].copy(id = id()))))
+    }
+
+    @Test
+    fun `each kind of Manche belongs to a Partie of its Jeu`() {
+        assertDamaged(valid.withParty(tarot.copy(rounds = listOf(BackupRound(id(), 1, "HEART", null, emptyList())))))
+        assertDamaged(valid.withParty(tarot.copy(beloteRounds = belote.beloteRounds.map { it.copy(id = id()) })))
+        assertDamaged(valid.withParty(belote.copy(rounds = listOf(BackupRound(id(), 1, "HEART", null, emptyList())))))
+        assertDamaged(
+            valid.withParty(papayoo.copy(tarotRounds = listOf(tarot.tarotRounds[0].copy(id = id(), takerId = papayooSeats[0].id))))
+        )
     }
 }

@@ -63,6 +63,7 @@ class BackupRepositoryImpl @Inject constructor(
             appDatabase.roundDao().insertAll(tables.rounds)
             appDatabase.roundScoreDao().insertAll(tables.roundScores)
             appDatabase.beloteRoundDao().insertAll(tables.beloteRounds)
+            appDatabase.tarotRoundDao().insertAll(tables.tarotRounds)
         }
     }
 
@@ -104,7 +105,8 @@ class BackupRepositoryImpl @Inject constructor(
             teams = appDatabase.teamDao().getAll(),
             rounds = appDatabase.roundDao().getAll(),
             roundScores = appDatabase.roundScoreDao().getAll(),
-            beloteRounds = appDatabase.beloteRoundDao().getAll()
+            beloteRounds = appDatabase.beloteRoundDao().getAll(),
+            tarotRounds = appDatabase.tarotRoundDao().getAll()
         )
     }
 }

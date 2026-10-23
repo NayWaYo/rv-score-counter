@@ -10,6 +10,7 @@ import com.rvetiveau.rvscorecount.data.dao.PartyDao
 import com.rvetiveau.rvscorecount.data.dao.PlayerDao
 import com.rvetiveau.rvscorecount.data.dao.RoundDao
 import com.rvetiveau.rvscorecount.data.dao.RoundScoreDao
+import com.rvetiveau.rvscorecount.data.dao.TarotRoundDao
 import com.rvetiveau.rvscorecount.data.dao.TeamDao
 import com.rvetiveau.rvscorecount.data.entity.BeloteRoundEntity
 import com.rvetiveau.rvscorecount.data.entity.ParticipantEntity
@@ -17,6 +18,7 @@ import com.rvetiveau.rvscorecount.data.entity.PartyEntity
 import com.rvetiveau.rvscorecount.data.entity.PlayerEntity
 import com.rvetiveau.rvscorecount.data.entity.RoundEntity
 import com.rvetiveau.rvscorecount.data.entity.RoundScoreEntity
+import com.rvetiveau.rvscorecount.data.entity.TarotRoundEntity
 import com.rvetiveau.rvscorecount.data.entity.TeamEntity
 
 @Database(
@@ -27,9 +29,10 @@ import com.rvetiveau.rvscorecount.data.entity.TeamEntity
         RoundScoreEntity::class,
         TeamEntity::class,
         BeloteRoundEntity::class,
-        PlayerEntity::class
+        PlayerEntity::class,
+        TarotRoundEntity::class
     ],
-    version = 6,
+    version = 7,
     exportSchema = true,
     autoMigrations = [
         // v2 : colonne rounds.sevenHolderId (qui a eu le 7 de la couleur du dé), nulle pour les manches existantes.
@@ -43,7 +46,9 @@ import com.rvetiveau.rvscorecount.data.entity.TeamEntity
         // (un Joueur par prénom, clé calculée en Kotlin), listée dans MANUAL_MIGRATIONS.
         // v6 (Jeu libre, AD-9) : colonnes parties.gameName et parties.winDirection, nulles pour les
         // autres Jeux, et rounds.suit facultative (une Manche de Jeu libre n'a pas de couleur du 7).
-        AutoMigration(from = 5, to = 6)
+        AutoMigration(from = 5, to = 6),
+        // v7 (Tarot, AD-10) : table tarot_rounds, ce qui a été saisi pour chaque Manche de Tarot.
+        AutoMigration(from = 6, to = 7)
     ]
 )
 @TypeConverters(Converters::class)
@@ -55,4 +60,5 @@ abstract class AppDatabase : RoomDatabase() {
     abstract fun teamDao(): TeamDao
     abstract fun beloteRoundDao(): BeloteRoundDao
     abstract fun playerDao(): PlayerDao
+    abstract fun tarotRoundDao(): TarotRoundDao
 }

@@ -6,6 +6,7 @@ import com.rvetiveau.rvscorecount.data.entity.PartyEntity
 import com.rvetiveau.rvscorecount.data.entity.PlayerEntity
 import com.rvetiveau.rvscorecount.data.entity.RoundEntity
 import com.rvetiveau.rvscorecount.data.entity.RoundScoreEntity
+import com.rvetiveau.rvscorecount.data.entity.TarotRoundEntity
 import com.rvetiveau.rvscorecount.data.entity.TeamEntity
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
@@ -40,7 +41,9 @@ data class BackupParty(
     val participants: List<BackupParticipant>,
     val teams: List<BackupTeam> = emptyList(),
     val rounds: List<BackupRound> = emptyList(),
-    val beloteRounds: List<BackupBeloteRound> = emptyList()
+    val beloteRounds: List<BackupBeloteRound> = emptyList(),
+    /** Since format 2 (Story 13.2). */
+    val tarotRounds: List<BackupTarotRound> = emptyList()
 )
 
 @Serializable
@@ -78,6 +81,21 @@ data class BackupBeloteRound(
     val takerPlayerId: String? = null
 )
 
+@Serializable
+data class BackupTarotRound(
+    val id: String,
+    val roundNumber: Int,
+    val takerId: String,
+    val contract: String,
+    val attackBouts: Int,
+    val attackPoints: Int,
+    val partnerId: String? = null,
+    val petitAuBout: String? = null,
+    val attackPoignee: String? = null,
+    val defensePoignee: String? = null,
+    val chelem: String? = null
+)
+
 /** Every row of the database, table by table. */
 data class BackupTables(
     val players: List<PlayerEntity>,
@@ -86,10 +104,12 @@ data class BackupTables(
     val teams: List<TeamEntity>,
     val rounds: List<RoundEntity>,
     val roundScores: List<RoundScoreEntity>,
-    val beloteRounds: List<BeloteRoundEntity>
+    val beloteRounds: List<BeloteRoundEntity>,
+    val tarotRounds: List<TarotRoundEntity>
 )
 
-const val BACKUP_FORMAT = 1
+/** 2 since the Tarot (Story 13.2), which added [BackupParty.tarotRounds]; a file of format 1 still reads. */
+const val BACKUP_FORMAT = 2
 
 private val backupJson = Json { prettyPrint = true }
 
@@ -108,6 +128,7 @@ fun BackupTables.toBackupFile(createdAt: Long): BackupFile {
     val teamsByParty = teams.byParty { it.partyId }
     val roundsByParty = rounds.byParty { it.partyId }
     val beloteRoundsByParty = beloteRounds.byParty { it.partyId }
+    val tarotRoundsByParty = tarotRounds.byParty { it.partyId }
     val roundIds = rounds.map { it.id }.toSet()
     val scoresByRound = roundScores.groupBy { it.roundId }.onEach { (id, _) ->
         check(id in roundIds) { "A score belongs to Manche $id, which does not exist" }
@@ -150,6 +171,21 @@ fun BackupTables.toBackupFile(createdAt: Long): BackupFile {
                         beloteSide = it.beloteSide,
                         capotSide = it.capotSide,
                         takerPlayerId = it.takerPlayerId
+                    )
+                },
+                tarotRounds = tarotRoundsByParty[party.id].orEmpty().sortedBy { it.roundNumber }.map {
+                    BackupTarotRound(
+                        id = it.id,
+                        roundNumber = it.roundNumber,
+                        takerId = it.takerId,
+                        contract = it.contract,
+                        attackBouts = it.attackBouts,
+                        attackPoints = it.attackPoints,
+                        partnerId = it.partnerId,
+                        petitAuBout = it.petitAuBout,
+                        attackPoignee = it.attackPoignee,
+                        defensePoignee = it.defensePoignee,
+                        chelem = it.chelem
                     )
                 }
             )
@@ -194,6 +230,25 @@ fun BackupFile.toTables(nameKey: (String) -> String): BackupTables = BackupTable
                 beloteSide = it.beloteSide,
                 capotSide = it.capotSide,
                 takerPlayerId = it.takerPlayerId
+            )
+        }
+    }
+,
+    tarotRounds = parties.flatMap { party ->
+        party.tarotRounds.map {
+            TarotRoundEntity(
+                id = it.id,
+                partyId = party.id,
+                roundNumber = it.roundNumber,
+                takerId = it.takerId,
+                contract = it.contract,
+                attackBouts = it.attackBouts,
+                attackPoints = it.attackPoints,
+                partnerId = it.partnerId,
+                petitAuBout = it.petitAuBout,
+                attackPoignee = it.attackPoignee,
+                defensePoignee = it.defensePoignee,
+                chelem = it.chelem
             )
         }
     }
