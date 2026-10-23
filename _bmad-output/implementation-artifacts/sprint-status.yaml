@@ -176,7 +176,7 @@ development_status:
   # -------------------------------------------------------
   # Epic 12: Sauvegarde et restauration (2 stories)
   # -------------------------------------------------------
-  epic-12: in-progress
+  epic-12: done
 
   12-1-exporter-une-sauvegarde: done
   12-2-restaurer-une-sauvegarde: done
@@ -186,7 +186,7 @@ development_status:
   # -------------------------------------------------------
   # Epic 13: Tarot (4 stories)
   # -------------------------------------------------------
-  epic-13: in-progress
+  epic-13: done
 
   13-1-moteur-tarot: done
   13-2-donnees-du-tarot: done
