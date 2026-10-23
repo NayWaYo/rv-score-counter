@@ -32,6 +32,25 @@
     <string name="players_rename_cancel">Annuler</string>
     <string name="players_rename_taken">%1$s existe déjà</string>
     <string name="players_rename_failed">Impossible de renommer ce joueur. Réessayez.</string>
+    <string name="backup_content_description">Sauvegarde</string>
+    <string name="backup_title">Sauvegarde</string>
+    <string name="backup_intro">Enregistrez vos joueurs et vos parties dans un fichier, par exemple dans Téléchargements ou sur Google Drive, pour les retrouver sur un autre téléphone.</string>
+    <string name="backup_content">La sauvegarde contiendra %1$s et %2$s, parties en cours comprises.</string>
+    <plurals name="backup_players">
+        <item quantity="one">%d joueur</item>
+        <item quantity="many">%d joueurs</item>
+        <item quantity="other">%d joueurs</item>
+    </plurals>
+    <plurals name="backup_parties">
+        <item quantity="one">%d partie</item>
+        <item quantity="many">%d parties</item>
+        <item quantity="other">%d parties</item>
+    </plurals>
+    <string name="backup_empty">Rien à sauvegarder pour l\'instant : jouez une première partie.</string>
+    <string name="backup_load_error">Impossible de lire les données à sauvegarder.</string>
+    <string name="backup_export">Exporter</string>
+    <string name="backup_exported">Sauvegarde enregistrée.</string>
+    <string name="backup_export_failed">Impossible d\'enregistrer la sauvegarde. Réessayez.</string>
     <string name="profile_not_found">Ce joueur n\'existe plus.</string>
     <string name="profile_load_error">Impossible de calculer le palmarès.</string>
     <string name="profile_no_finished_party">Aucune partie terminée pour l\'instant : le palmarès se remplit à la fin de chaque partie.</string>

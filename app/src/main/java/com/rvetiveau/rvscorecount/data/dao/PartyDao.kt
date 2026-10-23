@@ -16,6 +16,12 @@ interface PartyDao {
     @Update
     suspend fun update(party: PartyEntity)
 
+    @Query("SELECT * FROM parties")
+    suspend fun getAll(): List<PartyEntity>
+
+    @Query("SELECT COUNT(*) FROM parties")
+    fun observeCount(): Flow<Int>
+
     @Query("SELECT * FROM parties WHERE id = :id")
     suspend fun getById(id: String): PartyEntity?
 

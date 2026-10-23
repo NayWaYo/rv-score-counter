@@ -26,4 +26,7 @@ interface RoundDao {
 
     @Query("SELECT * FROM rounds WHERE partyId = :partyId ORDER BY roundNumber ASC")
     fun observeByPartyId(partyId: String): Flow<List<RoundEntity>>
+
+    @Query("SELECT * FROM rounds")
+    suspend fun getAll(): List<RoundEntity>
 }

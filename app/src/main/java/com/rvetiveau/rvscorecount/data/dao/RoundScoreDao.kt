@@ -30,4 +30,7 @@ interface RoundScoreDao {
 
     @Query("SELECT round_scores.* FROM round_scores INNER JOIN rounds ON rounds.id = round_scores.roundId WHERE rounds.partyId = :partyId")
     fun observeByPartyId(partyId: String): Flow<List<RoundScoreEntity>>
+
+    @Query("SELECT * FROM round_scores")
+    suspend fun getAll(): List<RoundScoreEntity>
 }

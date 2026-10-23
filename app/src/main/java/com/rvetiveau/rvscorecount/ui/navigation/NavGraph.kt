@@ -17,6 +17,7 @@ import com.rvetiveau.rvscorecount.ui.screens.free.FreePartyRoute
 import com.rvetiveau.rvscorecount.ui.screens.free.FreeRoundRoute
 import com.rvetiveau.rvscorecount.ui.screens.free.FreeSetupRoute
 import com.rvetiveau.rvscorecount.ui.screens.history.HistoryRoute
+import com.rvetiveau.rvscorecount.ui.screens.backup.BackupRoute
 import com.rvetiveau.rvscorecount.ui.screens.home.HomeRoute
 import com.rvetiveau.rvscorecount.ui.screens.party.PartyRoute
 import com.rvetiveau.rvscorecount.ui.screens.players.PlayersRoute
@@ -78,6 +79,9 @@ fun RvScoreCounterNavHost(
         }
         composable<Routes.History> {
             HistoryRoute(onNavigate = { event -> navController.dispatch(event) })
+        }
+        composable<Routes.Backup> {
+            BackupRoute()
         }
         composable<Routes.Players> {
             PlayersRoute(onNavigate = { event -> navController.dispatch(event) })

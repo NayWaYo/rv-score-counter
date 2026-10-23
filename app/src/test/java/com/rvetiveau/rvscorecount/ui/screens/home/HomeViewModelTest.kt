@@ -76,6 +76,15 @@ class HomeViewModelTest {
     }
 
     @Test
+    fun `emits NavigateTo Backup on backup selection`() = runTest {
+        val viewModel = papayooViewModel()
+
+        viewModel.onBackupSelected()
+
+        assertEquals(NavigationEvent.NavigateTo(Routes.Backup), viewModel.navigationEvents.first())
+    }
+
+    @Test
     fun `shows the Papayoo first, then the Belote`() {
         val viewModel = HomeViewModel(
             GetGameCatalogUseCase(mapOf("belote" to FakeGame("belote"), "papayoo" to FakeGame("papayoo")))

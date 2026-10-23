@@ -105,6 +105,16 @@ class HomeScreenTest {
     }
 
     @Test
+    fun theBackupActionIsDescribedAndInvokesItsCallback() {
+        var backupSelected = false
+        setContent(threeTiles, onBackupSelected = { backupSelected = true })
+
+        composeTestRule.onNodeWithContentDescription("Sauvegarde").performClick()
+
+        assertTrue(backupSelected)
+    }
+
+    @Test
     fun tileExposesButtonRoleAndAnExplicitContentDescription() {
         setContent(threeTiles)
 
@@ -138,7 +148,8 @@ class HomeScreenTest {
         tiles: List<GameTileUiModel>,
         onGameSelected: (String) -> Unit = {},
         onHistorySelected: () -> Unit = {},
-        onPlayersSelected: () -> Unit = {}
+        onPlayersSelected: () -> Unit = {},
+        onBackupSelected: () -> Unit = {}
     ) {
         composeTestRule.setContent {
             RvScoreCounterTheme {
@@ -146,7 +157,8 @@ class HomeScreenTest {
                     state = HomeUiState(tiles = tiles),
                     onGameSelected = onGameSelected,
                     onHistorySelected = onHistorySelected,
-                    onPlayersSelected = onPlayersSelected
+                    onPlayersSelected = onPlayersSelected,
+                    onBackupSelected = onBackupSelected
                 )
             }
         }

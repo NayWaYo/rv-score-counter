@@ -173,6 +173,16 @@ development_status:
 
   epic-11-retrospective: optional
 
+  # -------------------------------------------------------
+  # Epic 12: Sauvegarde et restauration (2 stories)
+  # -------------------------------------------------------
+  epic-12: in-progress
+
+  12-1-exporter-une-sauvegarde: done
+  12-2-restaurer-une-sauvegarde: backlog
+
+  epic-12-retrospective: optional
+
 action_items:
   - epic: 1
     action: "Appliquer un préflight de compatibilité avant toute implémentation fonctionnelle d'une story modifiant la stack."

@@ -35,4 +35,7 @@ interface BeloteRoundDao {
         capotSide: String?,
         takerPlayerId: String?
     )
+
+    @Query("SELECT * FROM belote_rounds")
+    suspend fun getAll(): List<BeloteRoundEntity>
 }

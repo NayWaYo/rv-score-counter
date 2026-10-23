@@ -17,4 +17,7 @@ interface TeamDao {
 
     @Query("SELECT * FROM teams WHERE partyId = :partyId")
     fun observeByPartyId(partyId: String): Flow<List<TeamEntity>>
+
+    @Query("SELECT * FROM teams")
+    suspend fun getAll(): List<TeamEntity>
 }

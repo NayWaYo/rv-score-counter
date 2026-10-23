@@ -831,3 +831,44 @@ Afin de comparer les joueurs sur tous nos jeux.
 **Then** les résultats affichent le classement final et le ou les gagnants, avec « Rejouer » (mêmes joueurs, même jeu, mêmes règles) et « Retour accueil »
 **And** l'Historique liste ces Parties avec le nom du jeu, et leur détail en lecture seule
 **And** le profil d'un Joueur (Story 10.3) gagne une section « Jeux libres » : taux de victoire tous jeux libres confondus, puis par nom de jeu, du plus joué au moins joué
+
+## Epic 12: Sauvegarde et restauration
+
+Proposition n°3 du 2026-10-23, retenue par l'utilisateur : protéger l'historique et le palmarès (Epic 10) en les exportant dans un fichier, puis en les réimportant, par exemple sur un nouveau téléphone.
+
+Choix validés par l'utilisateur le 2026-10-23 :
+- **Contenu** : toute la base, c'est-à-dire les Joueurs et toutes les Parties (en cours et terminées) avec leurs Manches, scores, équipes et Manches de Belote ; le thème clair/sombre n'est pas sauvegardé.
+- **Fichier** : un fichier JSON (`rv-score-counter-AAAA-MM-JJ.json`) avec un numéro de format, enregistré là où l'utilisateur le choisit (Téléchargements, Google Drive…) par le sélecteur de fichiers d'Android, sans permission à accorder.
+- **Accès** : un écran « Sauvegarde » ouvert depuis une icône de l'en-tête de l'accueil, à côté de « Joueurs ».
+- **Restauration** : elle **remplace** toutes les données actuelles, après une confirmation qui annonce ce que contient le fichier (nombre de Joueurs et de Parties, date de la sauvegarde) ; un fichier invalide, abîmé ou produit par une version plus récente de l'application est refusé sans rien modifier.
+
+### Story 12.1: Exporter une sauvegarde
+
+En tant qu'utilisateur,
+Je veux enregistrer toutes mes Parties et mes Joueurs dans un fichier,
+Afin de ne pas les perdre si je change de téléphone.
+
+**Acceptance Criteria:**
+
+**Given** l'accueil
+**When** je touche l'icône « Sauvegarde » de l'en-tête
+**Then** l'écran « Sauvegarde » indique ce qui sera sauvegardé (nombre de Joueurs et de Parties) et propose « Exporter »
+**When** je touche « Exporter »
+**Then** le sélecteur de fichiers d'Android propose `rv-score-counter-AAAA-MM-JJ.json` ; le fichier écrit contient un numéro de format, la date de sauvegarde, les Joueurs et toutes les Parties avec leurs Manches, scores, équipes et Manches de Belote
+**And** un message confirme l'export, ou signale l'échec d'écriture ; annuler le sélecteur ne fait rien
+**And** la conversion entre le domaine et le format de fichier est couverte par des tests JVM (aller-retour sans perte pour chaque jeu)
+
+### Story 12.2: Restaurer une sauvegarde
+
+En tant qu'utilisateur,
+Je veux réimporter une sauvegarde,
+Afin de retrouver mon historique et mon palmarès.
+
+**Acceptance Criteria:**
+
+**Given** l'écran « Sauvegarde »
+**When** je touche « Restaurer » et choisis un fichier
+**Then** l'application lit et vérifie tout le fichier avant de demander confirmation : « Remplacer toutes les données actuelles par cette sauvegarde du JJ/MM/AAAA (N Joueurs, M Parties) ? »
+**And** après confirmation, toutes les données sont remplacées en une seule transaction Room ; en cas d'erreur, rien n'est modifié
+**And** un fichier qui n'est pas une sauvegarde, abîmé, incohérent (Manche sans Partie, Joueur inconnu…) ou d'un format plus récent est refusé avec un message clair, sans rien modifier
+**And** la restauration est couverte par des tests JVM (validation, refus) et un test instrumenté Room (remplacement complet, retour arrière en cas d'erreur)

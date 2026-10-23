@@ -32,4 +32,7 @@ interface ParticipantDao {
     /** Every seat of [fromPlayerId] becomes a seat of [toPlayerId], named [name] (Story 10.4). */
     @Query("UPDATE participants SET playerId = :toPlayerId, name = :name WHERE playerId = :fromPlayerId")
     suspend fun movePlayerSeats(fromPlayerId: String, toPlayerId: String, name: String)
+
+    @Query("SELECT * FROM participants")
+    suspend fun getAll(): List<ParticipantEntity>
 }

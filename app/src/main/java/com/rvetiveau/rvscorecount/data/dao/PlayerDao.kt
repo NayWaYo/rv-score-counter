@@ -20,6 +20,9 @@ interface PlayerDao {
     @Query("SELECT * FROM players")
     suspend fun getAll(): List<PlayerEntity>
 
+    @Query("SELECT COUNT(*) FROM players")
+    fun observeCount(): Flow<Int>
+
     /** Every Joueur, with the creation time of their latest Partie; null when they have none left. */
     @Query(
         """

@@ -48,6 +48,11 @@ sealed interface Routes {
     @SerialName("players")
     data object Players : Routes
 
+    /** Export and restore of the whole database, from the Accueil (Epic 12). */
+    @Serializable
+    @SerialName("backup")
+    data object Backup : Routes
+
     /** A Joueur's profile and records (Story 10.3). */
     @Serializable
     @SerialName("playerProfile")
