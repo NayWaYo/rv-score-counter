@@ -6,6 +6,7 @@ import com.rvetiveau.rvscorecount.domain.usecase.FakeTarotRepository
 import com.rvetiveau.rvscorecount.game.free.FreeGameEngine
 import androidx.lifecycle.SavedStateHandle
 import com.rvetiveau.rvscorecount.R
+import com.rvetiveau.rvscorecount.ui.components.TakerUiModel
 import com.rvetiveau.rvscorecount.domain.model.EndRule
 import com.rvetiveau.rvscorecount.domain.model.BeloteOutcome
 import com.rvetiveau.rvscorecount.domain.model.BeloteRound
@@ -387,7 +388,7 @@ class BeloteViewModelsTest {
         val viewModel = BeloteStatsViewModel(observe).apply { initialize(party.id) }
 
         val takers = (viewModel.uiState.value as BeloteStatsUiState.Loaded).takers
-        assertEquals(BeloteTakerUiModel("Bob", takes = 1, made = 1), takers.first())
+        assertEquals(TakerUiModel("Bob", takes = 1, made = 1), takers.first())
         assertEquals(4, takers.size)
     }
 

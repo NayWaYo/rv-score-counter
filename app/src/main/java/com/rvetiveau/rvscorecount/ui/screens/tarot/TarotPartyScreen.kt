@@ -3,6 +3,7 @@ package com.rvetiveau.rvscorecount.ui.screens.tarot
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
@@ -14,6 +15,7 @@ import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -46,7 +48,8 @@ data class TarotPartyActions(
     val onEndPartyDismissed: () -> Unit = {},
     val onEndPartyConfirmed: () -> Unit = {},
     val onBackHome: () -> Unit = {},
-    val onReplay: () -> Unit = {}
+    val onReplay: () -> Unit = {},
+    val onShowStats: () -> Unit = {}
 )
 
 /**
@@ -81,7 +84,8 @@ fun TarotPartyRoute(
             onEndPartyDismissed = viewModel::onEndPartyDismissed,
             onEndPartyConfirmed = viewModel::onEndPartyConfirmed,
             onBackHome = viewModel::onBackHome,
-            onReplay = viewModel::onReplay
+            onReplay = viewModel::onReplay,
+            onShowStats = viewModel::onShowStats
         ),
         modifier = if (isFinished) modifier else modifier.keepScreenOn()
     )
@@ -184,11 +188,18 @@ private fun LoadedParty(state: TarotPartyUiState.Loaded, modifier: Modifier, act
                 )
             }
             item {
-                Text(
-                    text = stringResource(R.string.party_rounds_title),
-                    style = MaterialTheme.typography.titleMedium,
-                    modifier = Modifier.padding(top = 8.dp)
-                )
+                Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(top = 8.dp)) {
+                    Text(
+                        text = stringResource(R.string.party_rounds_title),
+                        style = MaterialTheme.typography.titleMedium,
+                        modifier = Modifier.weight(1f)
+                    )
+                    if (state.contracts.isNotEmpty()) {
+                        TextButton(onClick = actions.onShowStats, modifier = Modifier.testTag("tarot_stats_link")) {
+                            Text(text = stringResource(R.string.stats_short_link, state.contracts.size))
+                        }
+                    }
+                }
             }
             if (state.contracts.isEmpty()) {
                 item {

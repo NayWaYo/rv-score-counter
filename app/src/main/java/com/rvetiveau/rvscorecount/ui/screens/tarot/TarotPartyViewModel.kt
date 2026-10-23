@@ -144,6 +144,9 @@ class TarotPartyViewModel @Inject constructor(
         navigate { Routes.TarotRound(it.toString(), roundNumber) }
     }
 
+    /** Open in progress as when finished, like the Belote (Story 13.4). */
+    fun onShowStats() = navigate { Routes.TarotStats(it.toString()) }
+
     fun onBackHome() {
         viewModelScope.launch { _navigationEvents.send(NavigationEvent.ReplaceAll(Routes.Home)) }
     }

@@ -71,7 +71,8 @@ class FreeRecordsAndReplayTest {
 
     private suspend fun records() = checkNotNull(
         GetPlayerRecordsUseCase(
-            players, store, FakeBeloteStore(), BeloteEngine(), mapOf(PapayooEngine.GAME_ID to PapayooEngine()), store.free, rules
+            players, store, FakeBeloteStore(), BeloteEngine(), mapOf(PapayooEngine.GAME_ID to PapayooEngine()), store.free, rules,
+            FakeTarotRepository(), TarotEngine()
         )(aliceId)
     ).free
 

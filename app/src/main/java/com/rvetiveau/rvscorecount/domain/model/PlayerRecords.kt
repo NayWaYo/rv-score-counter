@@ -7,7 +7,8 @@ data class PlayerRecords(
     val player: PlayerSummary,
     val papayoo: PapayooRecords?,
     val belote: BeloteRecords?,
-    val free: FreeRecords? = null
+    val free: FreeRecords? = null,
+    val tarot: TarotRecords? = null
 )
 
 /** [wins] over [parties]: the headline of every section. */
@@ -187,4 +188,40 @@ fun freeRecords(plays: List<FreePlay>): FreeRecords? {
         }
         .sortedWith(compareByDescending<FreeGameRecord> { it.wins.parties }.thenBy { playerNameKey(it.gameName) })
     return FreeRecords(plays.record(), byGame)
+}
+
+/**
+ * Tarot figures (Story 13.4): [takes] over every finished Partie, [made] of them, and the contract
+ * taken most often, null without any take.
+ */
+data class TarotRecords(
+    val wins: WinRecord,
+    val takes: Int,
+    val made: Int,
+    val favoriteContract: TarotContract?
+) {
+    val takesPerParty: Double get() = takes.toDouble() / wins.parties
+    val contractRate: Double? get() = made.toDouble().div(takes).takeIf { takes > 0 }
+}
+
+/** One finished Partie of Tarot and the Joueur's seat in it. */
+data class TarotPlay(val state: TarotPartyState, val seat: UUID)
+
+/**
+ * The Joueur's Tarot record, null without any Partie. A win is a total at the best rank, ties
+ * included; a Partie ended before its first Manche counts without a win. Contracts taken equally
+ * often go to the highest one.
+ */
+fun tarotRecords(plays: List<TarotPlay>): TarotRecords? {
+    if (plays.isEmpty()) return null
+    val wins = plays.count { play -> play.state.rounds.isNotEmpty() && play.state.leaders.any { it.id == play.seat } }
+    val taken = plays.flatMap { play ->
+        play.state.rounds.zip(play.state.results).filter { (round, _) -> round.input.takerId == play.seat }
+    }
+    val favorite = taken.groupingBy { (round, _) -> round.input.contract }.eachCount()
+        .entries
+        .sortedWith(compareByDescending<Map.Entry<TarotContract, Int>> { it.value }.thenByDescending { it.key.multiplier })
+        .firstOrNull()
+        ?.key
+    return TarotRecords(WinRecord(wins, plays.size), taken.size, taken.count { (_, result) -> result.made }, favorite)
 }

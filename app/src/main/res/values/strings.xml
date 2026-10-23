@@ -106,6 +106,10 @@
     <string name="profile_best_teammate_label">🤝 Meilleur coéquipier</string>
     <string name="profile_worst_teammate_label">💔 Pire coéquipier</string>
     <string name="profile_free_by_game">Par jeu</string>
+    <string name="profile_tarot_takes_caption">%1$s par partie</string>
+    <string name="profile_tarot_favorite_label">Contrat préféré</string>
+    <string name="profile_tarot_favorite_caption">le plus souvent pris</string>
+    <string name="profile_tarot_no_take">aucune prise</string>
     <plurals name="profile_game_parties">
         <item quantity="one">%1$d partie</item>
         <item quantity="many">%1$d parties</item>
@@ -436,7 +440,8 @@
     <string name="tarot_end_manual">À la main</string>
     <string name="tarot_end_rounds">Nombre de manches</string>
     <string name="tarot_end_rounds_label">Nombre de manches</string>
-    <string name="tarot_end_value_error">Entre 1 et 99 manches.</string>
+    <string name="tarot_round_count_decrease">Une manche de moins</string>
+    <string name="tarot_round_count_increase">Une manche de plus</string>
     <string name="tarot_rules_manual">Fin à la main</string>
     <string name="tarot_rules_rounds">Fin après %1$d manches</string>
     <string name="tarot_party_progress_rounds">Manche %1$d sur %2$d</string>
@@ -481,5 +486,6 @@
     <string name="tarot_round_preview_down">Contrat chuté de %1$d (%2$d à faire) : %3$d par défenseur</string>
     <string name="tarot_round_points_line">%1$s : %2$s</string>
     <string name="tarot_round_incomplete">Choisissez le preneur, le contrat, les bouts et les points pour voir le résultat.</string>
+    <string name="tarot_stats_curve_title">Scores cumulés par joueur</string>
     <string name="tarot_round_incomplete_five">Choisissez le preneur, le contrat, le partenaire, les bouts et les points pour voir le résultat.</string>
 </resources>

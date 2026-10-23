@@ -14,6 +14,8 @@ import com.rvetiveau.rvscorecount.domain.model.FreeRecords
 import com.rvetiveau.rvscorecount.domain.model.PapayooRecords
 import com.rvetiveau.rvscorecount.domain.model.PlayerRecords
 import com.rvetiveau.rvscorecount.domain.model.PlayerSummary
+import com.rvetiveau.rvscorecount.domain.model.TarotContract
+import com.rvetiveau.rvscorecount.domain.model.TarotRecords
 import com.rvetiveau.rvscorecount.domain.model.TeammateRecord
 import com.rvetiveau.rvscorecount.domain.model.WinRecord
 import com.rvetiveau.rvscorecount.domain.model.WorstRound
@@ -169,6 +171,33 @@ class PlayerProfileScreenTest {
         assertText("profile_free_game_0_caption", "3 parties")
         assertText("profile_free_game_1_name", "Uno")
         assertText("profile_free_game_1_caption", "1 partie")
+    }
+
+    // --- Story 13.4 ---
+
+    @Test
+    fun theTarotSectionShowsTakesContractsAndTheFavouriteContract() {
+        val tarot = TarotRecords(WinRecord(2, 5), takes = 8, made = 6, favoriteContract = TarotContract.GARDE)
+        setContent(PlayerProfileUiState.Loaded(PlayerRecords(alice, papayoo = null, belote = null, tarot = tarot)))
+
+        composeTestRule.onNodeWithTag("profile_no_finished_party").assertDoesNotExist()
+        assertText("profile_tarot_win_rate", "40 %")
+        assertText("profile_tarot_takes_value", "8")
+        assertText("profile_tarot_takes_caption", "1,6 par partie")
+        assertText("profile_tarot_contracts_value", "75 %")
+        assertText("profile_tarot_contracts_caption", "6 sur 8 prises")
+        composeTestRule.onNodeWithTag("profile_tarot_favorite").performScrollTo()
+            .assertTextEquals("Contrat préféré", "Garde", "le plus souvent pris")
+    }
+
+    @Test
+    fun aTarotPlayerWhoNeverTookHasNoFavourite() {
+        val tarot = TarotRecords(WinRecord(0, 1), takes = 0, made = 0, favoriteContract = null)
+        setContent(PlayerProfileUiState.Loaded(PlayerRecords(alice, papayoo = null, belote = null, tarot = tarot)))
+
+        assertText("profile_tarot_contracts_value", "—")
+        assertText("profile_tarot_contracts_caption", "aucune prise")
+        assertText("profile_tarot_favorite_value", "—")
     }
 
     @Test

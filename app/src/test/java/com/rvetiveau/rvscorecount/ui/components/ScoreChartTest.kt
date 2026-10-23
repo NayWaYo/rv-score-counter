@@ -63,4 +63,24 @@ class ScoreChartTest {
         assertEquals(250, niceStep(1000))
         assertEquals(500, niceStep(1500))
     }
+
+    @Test
+    fun `the axis starts at 0 for positive totals, as before`() {
+        assertEquals(ValueAxis(min = 0, max = 200, step = 50), valueAxis(lowest = 0, highest = 160))
+        assertEquals(ValueAxis(min = 0, max = 1, step = 1), valueAxis(lowest = 0, highest = 0))
+    }
+
+    @Test
+    fun `negative totals stay inside the axis, which keeps 0`() {
+        // From −270 to 225, as in a Partie of Tarot: 495 points on steps of 200.
+        val tarot = valueAxis(lowest = -270, highest = 225)
+        assertEquals(ValueAxis(min = -400, max = 400, step = 200), tarot)
+        assertEquals(listOf(-400, -200, 0, 200, 400), tarot.ticks)
+        assertEquals(0.5f, tarot.fraction(0))
+        assertEquals(0f, tarot.fraction(-400))
+        assertEquals(1f, tarot.fraction(400))
+
+        // Only negative totals: 0 is the top.
+        assertEquals(ValueAxis(min = -60, max = 0, step = 20), valueAxis(lowest = -45, highest = 0))
+    }
 }

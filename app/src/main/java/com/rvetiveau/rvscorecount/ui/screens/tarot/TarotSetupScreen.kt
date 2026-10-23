@@ -9,11 +9,11 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.Button
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.OutlinedIconButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -23,7 +23,9 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -43,7 +45,7 @@ data class TarotSetupActions(
     val onRemoveParticipant: (UUID) -> Unit = {},
     val onMoveParticipant: (Int, Int) -> Unit = { _, _ -> },
     val onRoundLimitChanged: (Boolean) -> Unit = {},
-    val onRoundCountChanged: (String) -> Unit = {},
+    val onRoundCountStep: (Int) -> Unit = {},
     val onStartParty: () -> Unit = {},
     val onHistorySelected: () -> Unit = {}
 )
@@ -71,7 +73,7 @@ fun TarotSetupRoute(
             onRemoveParticipant = viewModel::onRemoveParticipant,
             onMoveParticipant = viewModel::onMoveParticipant,
             onRoundLimitChanged = viewModel::onRoundLimitChanged,
-            onRoundCountChanged = viewModel::onRoundCountChanged,
+            onRoundCountStep = viewModel::onRoundCountStep,
             onStartParty = viewModel::onStartParty,
             onHistorySelected = viewModel::onHistorySelected
         ),
@@ -164,25 +166,44 @@ private fun EndSection(state: TarotSetupUiState, actions: TarotSetupActions) {
                     style = MaterialTheme.typography.bodyLarge,
                     modifier = Modifier.weight(1f)
                 )
-                OutlinedTextField(
-                    value = state.roundCountInput,
-                    onValueChange = actions.onRoundCountChanged,
-                    singleLine = true,
-                    isError = !state.isEndValueValid,
-                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                // − and + rather than a field: the keyboard would push this row and « Commencer » off screen.
+                StepButton(
+                    text = "−",
+                    description = stringResource(R.string.tarot_round_count_decrease),
+                    enabled = state.canDecreaseRoundCount,
+                    tag = "tarot_setup_round_count_minus",
+                    onClick = { actions.onRoundCountStep(-1) }
+                )
+                Text(
+                    text = state.roundCount.toString(),
+                    style = MaterialTheme.typography.titleLarge,
+                    textAlign = TextAlign.Center,
                     modifier = Modifier
-                        .width(112.dp)
+                        .width(48.dp)
                         .testTag("tarot_setup_round_count")
                 )
-            }
-            if (!state.isEndValueValid) {
-                Text(
-                    text = stringResource(R.string.tarot_end_value_error),
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.error,
-                    modifier = Modifier.testTag("tarot_setup_round_count_error")
+                StepButton(
+                    text = "+",
+                    description = stringResource(R.string.tarot_round_count_increase),
+                    enabled = state.canIncreaseRoundCount,
+                    tag = "tarot_setup_round_count_plus",
+                    onClick = { actions.onRoundCountStep(1) }
                 )
             }
         }
+    }
+}
+
+@Composable
+private fun StepButton(text: String, description: String, enabled: Boolean, tag: String, onClick: () -> Unit) {
+    OutlinedIconButton(
+        onClick = onClick,
+        enabled = enabled,
+        modifier = Modifier
+            .size(48.dp)
+            .semantics { contentDescription = description }
+            .testTag(tag)
+    ) {
+        Text(text = text, style = MaterialTheme.typography.titleLarge)
     }
 }

@@ -9,6 +9,7 @@ import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.assertIsSelected
 import androidx.compose.ui.test.assertTextEquals
 import androidx.compose.ui.test.junit4.v2.createComposeRule
+import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
@@ -20,6 +21,7 @@ import com.rvetiveau.rvscorecount.ui.components.RoundTable
 import com.rvetiveau.rvscorecount.ui.components.RoundTablePlayer
 import com.rvetiveau.rvscorecount.ui.components.RoundTableRow
 import com.rvetiveau.rvscorecount.ui.components.StandingRow
+import com.rvetiveau.rvscorecount.ui.components.TakerUiModel
 import com.rvetiveau.rvscorecount.ui.screens.setup.ParticipantDraft
 import com.rvetiveau.rvscorecount.ui.theme.RvScoreCounterTheme
 import java.util.UUID
@@ -48,6 +50,7 @@ class TarotScreensTest {
                     state = state,
                     actions = TarotSetupActions(
                         onRoundLimitChanged = { calls += it },
+                        onRoundCountStep = { calls += "step $it" },
                         onStartParty = { calls += "start" }
                     ),
                     modifier = Modifier.fillMaxSize()
@@ -59,28 +62,31 @@ class TarotScreensTest {
     @Test
     fun setupStartsWithThreeJoueursAndShowsTheRoundCountWhenChosen() {
         val three = listOf("Alice", "Bob", "Chloé").map { ParticipantDraft(name = it) }
-        setSetup(TarotSetupUiState(participants = three, hasRoundLimit = true, roundCountInput = "8"))
+        setSetup(TarotSetupUiState(participants = three, hasRoundLimit = true, roundCount = 8))
 
         composeTestRule.onNodeWithTag("tarot_setup_title").assertTextEquals("Nouvelle partie de Tarot")
         composeTestRule.onNodeWithTag("tarot_setup_end_rounds").assertIsSelected()
-        composeTestRule.onNodeWithTag("tarot_setup_round_count").assertIsDisplayed()
+        composeTestRule.onNodeWithTag("tarot_setup_round_count").assertTextEquals("8")
+        composeTestRule.onNodeWithContentDescription("Une manche de moins").assertHeightIsAtLeast(48.dp).performClick()
+        composeTestRule.onNodeWithContentDescription("Une manche de plus").performClick()
         composeTestRule.onNodeWithTag("tarot_setup_end_manual").performClick()
         composeTestRule.onNodeWithTag("tarot_setup_start").assertIsEnabled().performClick()
 
-        assertEquals(listOf<Any>(false, "start"), calls)
+        assertEquals(listOf<Any>("step -1", "step 1", false, "start"), calls)
     }
 
     @Test
-    fun setupCannotStartWithTwoJoueursNorAnInvalidCount() {
+    fun setupCannotStartWithTwoJoueursAndTheCountStopsAtOne() {
         setSetup(
             TarotSetupUiState(
                 participants = listOf(ParticipantDraft(name = "Alice"), ParticipantDraft(name = "Bob")),
                 hasRoundLimit = true,
-                roundCountInput = "0"
+                roundCount = 1
             )
         )
         composeTestRule.onNodeWithTag("tarot_setup_start").assertIsNotEnabled()
-        composeTestRule.onNodeWithTag("tarot_setup_round_count_error").assertTextEquals("Entre 1 et 99 manches.")
+        composeTestRule.onNodeWithTag("tarot_setup_round_count_minus").assertIsNotEnabled()
+        composeTestRule.onNodeWithTag("tarot_setup_round_count_plus").assertIsEnabled()
     }
 
     private val players = listOf(alice, bob, chloe, david)
@@ -124,7 +130,8 @@ class TarotScreensTest {
                         onPlayRound = { calls += "play" },
                         onRoundSelected = { calls += it },
                         onEndPartyClick = { calls += "end" },
-                        onReplay = { calls += "replay" }
+                        onReplay = { calls += "replay" },
+                        onShowStats = { calls += "stats" }
                     ),
                     modifier = Modifier.fillMaxSize()
                 )
@@ -236,5 +243,44 @@ class TarotScreensTest {
         composeTestRule.onNodeWithTag("tarot_round_partner_${eve.participantId}").performClick()
 
         assertEquals(listOf<Any>(TarotPartnerChoice.Alone, TarotPartnerChoice.Player(eve.participantId)), calls)
+    }
+
+    // --- Story 13.4 ---
+
+    @Test
+    fun theStatistiquesLinkCountsTheManches() {
+        setParty(party(isFinished = true))
+
+        composeTestRule.onNodeWithTag("tarot_stats_link").assertTextEquals("Statistiques (2)").performClick()
+
+        assertEquals(listOf<Any>("stats"), calls)
+    }
+
+    @Test
+    fun theStatistiquesShowTheCurveAndTheChadCard() {
+        composeTestRule.setContent {
+            RvScoreCounterTheme {
+                TarotStatsScreen(
+                    state = TarotStatsUiState.Loaded(
+                        table = party().roundTable,
+                        takers = listOf(TakerUiModel("Alice", 1, 1), TakerUiModel("Bob", 1, 0), TakerUiModel("Chloé", 0, 0))
+                    ),
+                    modifier = Modifier.fillMaxSize()
+                )
+            }
+        }
+
+        composeTestRule.onNodeWithTag("tarot_stats_title").assertTextEquals("Statistiques")
+        composeTestRule.onNodeWithTag("tarot_stats_chart").assertIsDisplayed()
+        composeTestRule.onNodeWithTag("stat_card_chad").performScrollTo().assertIsDisplayed()
+    }
+
+    @Test
+    fun statistiquesBeforeTheFirstMancheSaySo() {
+        composeTestRule.setContent {
+            RvScoreCounterTheme { TarotStatsScreen(state = TarotStatsUiState.Loaded(RoundTable(), emptyList())) }
+        }
+        composeTestRule.onNodeWithTag("tarot_stats_no_round").assertIsDisplayed()
+        composeTestRule.onNodeWithTag("stat_card_chad").assertDoesNotExist()
     }
 }

@@ -7,6 +7,7 @@ import com.rvetiveau.rvscorecount.domain.model.TeamSide
 import com.rvetiveau.rvscorecount.domain.usecase.ObserveBelotePartyUseCase
 import com.rvetiveau.rvscorecount.ui.components.RoundTablePlayer
 import com.rvetiveau.rvscorecount.ui.components.ScoreSeries
+import com.rvetiveau.rvscorecount.ui.components.TakerUiModel
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -26,13 +27,11 @@ sealed interface BeloteStatsUiState {
      */
     data class Loaded(
         val series: List<ScoreSeries>,
-        val takers: List<BeloteTakerUiModel> = emptyList()
+        val takers: List<TakerUiModel> = emptyList()
     ) : BeloteStatsUiState {
         val roundCount: Int get() = (series.firstOrNull()?.points?.size ?: 1) - 1
     }
 }
-
-data class BeloteTakerUiModel(val name: String, val takes: Int, val made: Int)
 
 /** Statistiques of a Partie of Belote, in progress or finished (Story 7.4, AC 3), observed live. */
 @HiltViewModel
@@ -56,7 +55,7 @@ class BeloteStatsViewModel @Inject constructor(
                     } else {
                         BeloteStatsUiState.Loaded(
                             series = state.cumulativeSeries(),
-                            takers = state.takerRanking().map { BeloteTakerUiModel(it.player.name, it.takes, it.made) }
+                            takers = state.takerRanking().map { TakerUiModel(it.player.name, it.takes, it.made) }
                         )
                     }
                 }

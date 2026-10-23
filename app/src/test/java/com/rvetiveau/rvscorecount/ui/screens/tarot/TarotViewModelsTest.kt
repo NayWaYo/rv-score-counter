@@ -18,6 +18,7 @@ import com.rvetiveau.rvscorecount.domain.usecase.ObserveKnownPlayerNamesUseCase
 import com.rvetiveau.rvscorecount.domain.usecase.ObserveTarotPartyUseCase
 import com.rvetiveau.rvscorecount.domain.usecase.PlayTarotRoundUseCase
 import com.rvetiveau.rvscorecount.game.tarot.TarotEngine
+import com.rvetiveau.rvscorecount.ui.components.TakerUiModel
 import com.rvetiveau.rvscorecount.ui.navigation.NavigationEvent
 import com.rvetiveau.rvscorecount.ui.navigation.Routes
 import kotlinx.coroutines.Dispatchers
@@ -74,7 +75,7 @@ class TarotViewModelsTest {
     private fun TarotRoundViewModel.loaded() = uiState.value as TarotRoundUiState.Loaded
 
     @Test
-    fun `setup starts with 3 to 5 Joueurs and an end by hand, or a valid number of Manches`() = runTest {
+    fun `setup starts with 3 to 5 Joueurs and an end by hand, or a number of Manches stepped from 1 to 99`() = runTest {
         val store = FakeTarotStore()
         val vm = setupViewModel(store)
         assertFalse(vm.uiState.value.hasRoundLimit)
@@ -86,11 +87,14 @@ class TarotViewModelsTest {
 
         vm.onRoundLimitChanged(true)
         assertEquals(EndRule.RoundCount(10), vm.uiState.value.endRule)
-        vm.onRoundCountChanged("0")
-        assertFalse(vm.uiState.value.canStart)
-        vm.onRoundCountChanged("123")
-        assertEquals("0", vm.uiState.value.roundCountInput)
-        vm.onRoundCountChanged("12")
+        repeat(20) { vm.onRoundCountStep(-1) }
+        assertEquals(1, vm.uiState.value.roundCount)
+        assertFalse(vm.uiState.value.canDecreaseRoundCount)
+        repeat(200) { vm.onRoundCountStep(1) }
+        assertEquals(99, vm.uiState.value.roundCount)
+        assertFalse(vm.uiState.value.canIncreaseRoundCount)
+        repeat(87) { vm.onRoundCountStep(-1) }
+        assertTrue(vm.uiState.value.canStart)
 
         vm.onStartParty()
         val (party, seats) = store.created.single()
@@ -291,6 +295,35 @@ class TarotViewModelsTest {
         assertEquals(TarotRoundUiState.Unavailable, roundViewModel(FakeTarotStore(), correctedRoundNumber = 4).uiState.value)
         val finished = FakeTarotStore().apply { party.value = party.value?.copy(status = PartyState.FINISHED) }
         assertEquals(TarotRoundUiState.Unavailable, roundViewModel(finished).uiState.value)
+    }
+
+    // --- Story 13.4 ---
+
+    @Test
+    fun `the Partie opens its Statistiques, which follow the Manches and rank the takers`() = runTest {
+        val store = FakeTarotStore()
+        store.addRound(store.input(points = 50))
+        val party = partyViewModel(store)
+        party.onShowStats()
+        assertEquals(NavigationEvent.NavigateTo(Routes.TarotStats(store.partyId.toString())), party.navigationEvents.first())
+
+        val stats = TarotStatsViewModel(ObserveTarotPartyUseCase(store, store.tarot, rules)).also { it.initialize(store.partyId) }
+        var loaded = stats.uiState.value as TarotStatsUiState.Loaded
+        assertEquals(1, loaded.table.rows.size)
+        assertEquals(TakerUiModel("Alice", takes = 1, made = 1), loaded.takers.first())
+
+        store.addRound(store.input(points = 30, taker = store.bob))
+        loaded = stats.uiState.value as TarotStatsUiState.Loaded
+        assertEquals(2, loaded.table.rows.size)
+        assertEquals(listOf("Alice", "Bob", "Chloé", "David"), loaded.takers.map { it.name })
+        assertEquals(TakerUiModel("Bob", takes = 1, made = 0), loaded.takers[1])
+    }
+
+    @Test
+    fun `the Statistiques of a missing Partie are unavailable`() = runTest {
+        val store = FakeTarotStore().apply { party.value = null }
+        val stats = TarotStatsViewModel(ObserveTarotPartyUseCase(store, store.tarot, rules)).also { it.initialize(store.partyId) }
+        assertEquals(TarotStatsUiState.Unavailable, stats.uiState.value)
     }
 
     private fun TarotRoundViewModel.fill(store: FakeTarotStore) {

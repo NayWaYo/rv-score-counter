@@ -41,7 +41,8 @@ data class TarotSetupUiState(
     val knownPlayerNames: List<String> = emptyList(),
     @StringRes val messageRes: Int? = null,
     val hasRoundLimit: Boolean = false,
-    val roundCountInput: String = DEFAULT_ROUND_COUNT.toString(),
+    /** Chosen with − and +, no keyboard: always within 1 to [CreateTarotPartyUseCase.MAX_ROUND_COUNT]. */
+    val roundCount: Int = DEFAULT_ROUND_COUNT,
     val isCreatingParty: Boolean = false,
     val creationCompleted: Boolean = false,
     @StringRes val creationErrorRes: Int? = null
@@ -52,15 +53,14 @@ data class TarotSetupUiState(
     val nameSuggestions: List<String>
         get() = if (canAdd) suggestPlayerNames(knownPlayerNames, nameInput, participants.map { it.name }) else emptyList()
 
-    private val roundCount: Int? get() = roundCountInput.toIntOrNull()?.takeIf { it in 1..CreateTarotPartyUseCase.MAX_ROUND_COUNT }
+    val canDecreaseRoundCount: Boolean get() = roundCount > 1
+    val canIncreaseRoundCount: Boolean get() = roundCount < CreateTarotPartyUseCase.MAX_ROUND_COUNT
 
-    val isEndValueValid: Boolean get() = !hasRoundLimit || roundCount != null
-
-    /** Null for an end by hand, or while the count is invalid. */
-    val endRule: EndRule.RoundCount? get() = if (hasRoundLimit) roundCount?.let(EndRule::RoundCount) else null
+    /** Null for an end by hand. */
+    val endRule: EndRule.RoundCount? get() = if (hasRoundLimit) EndRule.RoundCount(roundCount) else null
 
     val canStart: Boolean
-        get() = participants.size in minPlayers..maxPlayers && isEndValueValid && !isCreatingParty && !creationCompleted
+        get() = participants.size in minPlayers..maxPlayers && !isCreatingParty && !creationCompleted
 
     companion object {
         const val DEFAULT_ROUND_COUNT = 10
@@ -121,10 +121,14 @@ class TarotSetupViewModel @Inject constructor(
         _uiState.update { it.copy(hasRoundLimit = hasRoundLimit, creationErrorRes = null) }
     }
 
-    /** Digits only, at most two: the value is checked by [TarotSetupUiState.isEndValueValid]. */
-    fun onRoundCountChanged(value: String) {
-        if (value.length > MAX_ROUND_DIGITS || !value.all(Char::isDigit)) return
-        _uiState.update { it.copy(roundCountInput = value, creationErrorRes = null) }
+    /** One Manche more ([delta] 1) or less (−1), kept within 1 to [CreateTarotPartyUseCase.MAX_ROUND_COUNT]. */
+    fun onRoundCountStep(delta: Int) {
+        _uiState.update { state ->
+            state.copy(
+                roundCount = (state.roundCount + delta).coerceIn(1, CreateTarotPartyUseCase.MAX_ROUND_COUNT),
+                creationErrorRes = null
+            )
+        }
     }
 
     /** Guards a double tap: [TarotSetupUiState.canStart] excludes an in-flight or completed creation. */
@@ -162,9 +166,5 @@ class TarotSetupViewModel @Inject constructor(
     /** Historique of the Tarot only (Story 8.2); the draft stays below it on the back stack. */
     fun onHistorySelected() {
         viewModelScope.launch { _navigationEvents.send(NavigationEvent.NavigateTo(Routes.GameHistory(GameIds.TAROT))) }
-    }
-
-    private companion object {
-        const val MAX_ROUND_DIGITS = 2
     }
 }

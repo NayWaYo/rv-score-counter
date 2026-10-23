@@ -122,6 +122,11 @@ sealed interface Routes {
     @SerialName("tarotRound")
     data class TarotRound(val partyId: String, val correctedRoundNumber: Int? = null) : Routes
 
+    /** Statistiques of a Partie of Tarot, in progress or finished (Story 13.4). */
+    @Serializable
+    @SerialName("tarotStats")
+    data class TarotStats(val partyId: String) : Routes
+
     /** Résultats of a Partie of Tarot just ended, with « Rejouer ». */
     @Serializable
     @SerialName("tarotResults")

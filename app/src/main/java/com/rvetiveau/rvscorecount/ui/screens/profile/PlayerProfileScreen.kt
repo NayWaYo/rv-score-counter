@@ -43,10 +43,12 @@ import com.rvetiveau.rvscorecount.domain.model.BeloteRecords
 import com.rvetiveau.rvscorecount.domain.model.FreeRecords
 import com.rvetiveau.rvscorecount.domain.model.PapayooRecords
 import com.rvetiveau.rvscorecount.domain.model.PlayerRecords
+import com.rvetiveau.rvscorecount.domain.model.TarotRecords
 import com.rvetiveau.rvscorecount.domain.model.TeammateRecord
 import com.rvetiveau.rvscorecount.domain.model.WinRecord
 import com.rvetiveau.rvscorecount.ui.components.ScreenHeader
 import com.rvetiveau.rvscorecount.ui.components.gamePresentation
+import com.rvetiveau.rvscorecount.ui.screens.tarot.labelRes
 import java.time.Instant
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
@@ -57,8 +59,8 @@ import kotlin.math.roundToInt
 /**
  * Stateless profile of a Joueur (Story 10.3): two summary chips, then one card per Jeu they finished
  * a Partie of. Each card leads with the win rate and its bar, then tiles of two (a large figure and
- * a short caption, so that nothing wraps mid-value), then the teammates for the Belote and each
- * game for the Jeu libre.
+ * a short caption, so that nothing wraps mid-value), then the teammates for the Belote, the favourite
+ * contract for the Tarot and each game for the Jeu libre.
  */
 @Composable
 fun PlayerProfileScreen(
@@ -109,13 +111,57 @@ private fun Records(records: PlayerRecords) {
             SummaryChip(stringResource(R.string.players_no_party))
         }
     }
-    if (records.papayoo == null && records.belote == null && records.free == null) {
+    if (records.papayoo == null && records.belote == null && records.tarot == null && records.free == null) {
         Message(stringResource(R.string.profile_no_finished_party), "profile_no_finished_party")
         return
     }
     records.papayoo?.let { PapayooSection(it, dateFormatter) }
     records.belote?.let { BeloteSection(it) }
+    records.tarot?.let { TarotSection(it) }
     records.free?.let { FreeSection(it) }
+}
+
+/** Takes and contracts made (Story 13.4), then the contract taken most often. */
+@Composable
+private fun TarotSection(records: TarotRecords) {
+    GameCard(gameId = GameIds.TAROT, wins = records.wins, tag = "profile_tarot") {
+        TileRow(
+            start = {
+                StatTile(
+                    label = stringResource(R.string.profile_takes_label),
+                    value = records.takes.toString(),
+                    caption = stringResource(
+                        R.string.profile_tarot_takes_caption,
+                        String.format(Locale.FRANCE, "%.1f", records.takesPerParty)
+                    ),
+                    tag = "profile_tarot_takes"
+                )
+            },
+            end = {
+                StatTile(
+                    label = stringResource(R.string.profile_contracts_label),
+                    value = records.contractRate?.let { stringResource(R.string.profile_percent, it.percent()) }
+                        ?: stringResource(R.string.profile_no_value),
+                    caption = if (records.takes > 0) {
+                        pluralStringResource(R.plurals.profile_contracts_caption, records.takes, records.takes, records.made)
+                    } else {
+                        stringResource(R.string.profile_tarot_no_take)
+                    },
+                    tag = "profile_tarot_contracts"
+                )
+            }
+        )
+        Box(modifier = Modifier.fillMaxWidth()) {
+            StatTile(
+                label = stringResource(R.string.profile_tarot_favorite_label),
+                value = records.favoriteContract?.let { stringResource(it.labelRes) } ?: stringResource(R.string.profile_no_value),
+                caption = stringResource(
+                    if (records.favoriteContract != null) R.string.profile_tarot_favorite_caption else R.string.profile_tarot_no_take
+                ),
+                tag = "profile_tarot_favorite"
+            )
+        }
+    }
 }
 
 /** Every game together in the card's headline, then each game, the most played first (Story 11.4). */

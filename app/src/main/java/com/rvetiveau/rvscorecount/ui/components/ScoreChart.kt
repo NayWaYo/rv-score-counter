@@ -94,6 +94,27 @@ internal fun niceStep(max: Int, maxTicks: Int = 4): Int {
     return step.roundToInt().coerceAtLeast(1)
 }
 
+/**
+ * The vertical axis from [min] to [max] by [step]: it always holds 0, and holds negative totals too
+ * (Tarot, Jeu libre), so that no line leaves the plot.
+ */
+internal data class ValueAxis(val min: Int, val max: Int, val step: Int) {
+    val ticks: List<Int> get() = (min..max step step).toList()
+
+    /** 0 at [min], 1 at [max]. */
+    fun fraction(value: Int): Float = (value - min).toFloat() / (max - min)
+}
+
+/** The axis for totals from [lowest] to [highest], on clean steps of [niceStep]. */
+internal fun valueAxis(lowest: Int, highest: Int): ValueAxis {
+    val low = minOf(lowest, 0)
+    val high = maxOf(highest, 0)
+    val step = niceStep(high - low)
+    val min = Math.floorDiv(low, step) * step
+    val max = (-Math.floorDiv(-high, step) * step).coerceAtLeast(min + step)
+    return ValueAxis(min, max, step)
+}
+
 private val ChartHeight = 200.dp
 private const val DIRECT_LABEL_MAX_SERIES = 4
 
@@ -130,6 +151,7 @@ fun ScoreChart(series: List<ScoreSeries>, modifier: Modifier = Modifier) {
     val chartSeries = RvTheme.colors.chartSeries
     val mutedInk = ink.copy(alpha = 0.7f)
     val grid = ink.copy(alpha = 0.12f)
+    val zeroLine = ink.copy(alpha = 0.4f)
     val axisStyle = MaterialTheme.typography.labelSmall.copy(color = mutedInk)
     val valueStyle = MaterialTheme.typography.labelMedium.copy(color = ink)
     val textMeasurer = rememberTextMeasurer()
@@ -177,10 +199,11 @@ fun ScoreChart(series: List<ScoreSeries>, modifier: Modifier = Modifier) {
                         )
                     }
             ) {
-                val maxValue = series.maxOf { s -> s.points.maxOf { it ?: 0 } }
-                val step = niceStep(maxValue)
-                val yMax = (ceil(maxValue.toDouble() / step).toInt() * step).coerceAtLeast(step)
-                val yLabels = (0..yMax step step).map { it to textMeasurer.measure(it.toString(), axisStyle) }
+                val axis = valueAxis(
+                    lowest = series.minOf { s -> s.points.minOf { it ?: 0 } },
+                    highest = series.maxOf { s -> s.points.maxOf { it ?: 0 } }
+                )
+                val yLabels = axis.ticks.map { it to textMeasurer.measure(it.toString(), axisStyle) }
                 val left = yLabels.maxOf { it.second.size.width } + 6.dp.toPx()
                 val top = 8.dp.toPx()
                 val bottom = size.height - textMeasurer.measure("0", axisStyle).size.height - 6.dp.toPx()
@@ -188,7 +211,7 @@ fun ScoreChart(series: List<ScoreSeries>, modifier: Modifier = Modifier) {
                 val endLabels = if (series.size <= DIRECT_LABEL_MAX_SERIES) {
                     series.map { textMeasurer.measure(it.total.toString(), valueStyle) }
                         .takeIf { labels ->
-                            series.map { bottom - (bottom - top) * it.total / yMax }.sorted()
+                            series.map { bottom - (bottom - top) * axis.fraction(it.total) }.sorted()
                                 .zipWithNext()
                                 .none { (a, b) -> b - a < labels.maxOf { it.size.height } }
                         }
@@ -203,14 +226,15 @@ fun ScoreChart(series: List<ScoreSeries>, modifier: Modifier = Modifier) {
                     right = size.width - right,
                     bottom = bottom,
                     roundCount = roundCount,
-                    yMax = yMax
+                    axis = axis
                 )
                 geometry.current = g
 
-                // Recessive hairline grid with its tick values.
+                // Recessive hairline grid with its tick values; the 0 line stands out once totals go below it.
                 yLabels.forEach { (value, layout) ->
                     val y = g.y(value)
-                    drawLine(grid, Offset(g.left, y), Offset(g.right, y), strokeWidth = 1.dp.toPx())
+                    val line = if (value == 0 && axis.min < 0) zeroLine else grid
+                    drawLine(line, Offset(g.left, y), Offset(g.right, y), strokeWidth = 1.dp.toPx())
                     drawText(layout, topLeft = Offset(g.left - 6.dp.toPx() - layout.size.width, y - layout.size.height / 2f))
                 }
                 val labelEvery = ceil(roundCount / 8.0).toInt()
@@ -248,10 +272,10 @@ private class ChartGeometry(
     val right: Float,
     val bottom: Float,
     val roundCount: Int,
-    val yMax: Int
+    val axis: ValueAxis
 ) {
     fun x(position: Int): Float = left + (right - left) * position / roundCount
-    fun y(value: Int): Float = bottom - (bottom - top) * value / yMax
+    fun y(value: Int): Float = bottom - (bottom - top) * axis.fraction(value)
 
     /** Nearest Manche (1..N) to a touch anywhere on the chart, the margins included. */
     fun roundAt(touchX: Float): Int =

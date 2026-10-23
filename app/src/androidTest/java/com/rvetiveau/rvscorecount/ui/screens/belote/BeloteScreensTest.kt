@@ -14,6 +14,7 @@ import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
+import com.rvetiveau.rvscorecount.ui.components.TakerUiModel
 import com.rvetiveau.rvscorecount.domain.model.BeloteOutcome
 import com.rvetiveau.rvscorecount.domain.model.BeloteRoundResult
 import com.rvetiveau.rvscorecount.domain.model.PartySummary
@@ -156,10 +157,10 @@ class BeloteScreensTest {
     fun statsShowTheChadCardWithTheRanking() {
         val series = listOf("Nous", "Eux").map { ScoreSeries(RoundTablePlayer(UUID.randomUUID(), it), listOf(0, 100)) }
         val takers = listOf(
-            BeloteTakerUiModel("Chloé", takes = 2, made = 1),
-            BeloteTakerUiModel("David", takes = 1, made = 1),
-            BeloteTakerUiModel("Alice", takes = 0, made = 0),
-            BeloteTakerUiModel("Bob", takes = 0, made = 0)
+            TakerUiModel("Chloé", takes = 2, made = 1),
+            TakerUiModel("David", takes = 1, made = 1),
+            TakerUiModel("Alice", takes = 0, made = 0),
+            TakerUiModel("Bob", takes = 0, made = 0)
         )
         setContent { BeloteStatsScreen(BeloteStatsUiState.Loaded(series, takers)) }
 

@@ -30,6 +30,7 @@ import com.rvetiveau.rvscorecount.ui.screens.stats.StatsRoute
 import com.rvetiveau.rvscorecount.ui.screens.tarot.TarotPartyRoute
 import com.rvetiveau.rvscorecount.ui.screens.tarot.TarotRoundRoute
 import com.rvetiveau.rvscorecount.ui.screens.tarot.TarotSetupRoute
+import com.rvetiveau.rvscorecount.ui.screens.tarot.TarotStatsRoute
 import java.util.UUID
 
 /** Single NavHost registering every destination (AD-6). */
@@ -155,6 +156,10 @@ fun RvScoreCounterNavHost(
                 isResults = true,
                 onNavigate = { event -> navController.dispatch(event) }
             )
+        }
+        composable<Routes.TarotStats> { backStackEntry ->
+            val route: Routes.TarotStats = backStackEntry.toRoute()
+            TarotStatsRoute(partyId = UUID.fromString(route.partyId))
         }
         composable<Routes.TarotRound> { backStackEntry ->
             val route: Routes.TarotRound = backStackEntry.toRoute()

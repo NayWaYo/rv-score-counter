@@ -10,6 +10,7 @@ import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.consumeWindowInsets
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.height
@@ -56,12 +57,18 @@ class MainActivity : ComponentActivity() {
                     LocalThemeSwitch provides ThemeSwitch(darkTheme) { appearanceViewModel.onToggle(darkTheme) }
                 ) {
                     // safeDrawing includes the IME: edge-to-edge ignores adjustResize, so the content
-                    // is padded above the keyboard here and focused fields can scroll into view.
+                    // is padded above the keyboard here and focused fields can scroll into view. The
+                    // padding is consumed, so that a screen's own imePadding() does not count the
+                    // keyboard a second time and squeeze its content to nothing.
                     Scaffold(
                         modifier = Modifier.fillMaxSize(),
                         contentWindowInsets = WindowInsets.safeDrawing
                     ) { innerPadding ->
-                        RvScoreCounterRoot(modifier = Modifier.padding(innerPadding))
+                        RvScoreCounterRoot(
+                            modifier = Modifier
+                                .padding(innerPadding)
+                                .consumeWindowInsets(innerPadding)
+                        )
                     }
                 }
             }
