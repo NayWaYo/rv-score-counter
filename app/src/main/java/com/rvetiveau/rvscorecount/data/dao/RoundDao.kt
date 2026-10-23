@@ -14,6 +14,9 @@ interface RoundDao {
     @Insert(onConflict = OnConflictStrategy.ABORT)
     suspend fun insert(round: RoundEntity)
 
+    @Insert(onConflict = OnConflictStrategy.ABORT)
+    suspend fun insertAll(rounds: List<RoundEntity>)
+
     @Query("SELECT * FROM rounds WHERE partyId = :partyId ORDER BY roundNumber ASC")
     suspend fun getByPartyId(partyId: String): List<RoundEntity>
 

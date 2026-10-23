@@ -13,6 +13,9 @@ interface PartyDao {
     @Insert(onConflict = OnConflictStrategy.ABORT)
     suspend fun insert(party: PartyEntity)
 
+    @Insert(onConflict = OnConflictStrategy.ABORT)
+    suspend fun insertAll(parties: List<PartyEntity>)
+
     @Update
     suspend fun update(party: PartyEntity)
 
@@ -37,6 +40,10 @@ interface PartyDao {
     /** Participants, rounds and round scores follow through the CASCADE foreign keys. */
     @Query("DELETE FROM parties WHERE id = :id")
     suspend fun deleteById(id: String)
+
+    /** Every Partie, with all its rows through the CASCADE foreign keys (Story 12.2). */
+    @Query("DELETE FROM parties")
+    suspend fun deleteAll()
 
     /** One row per exact game name of the Jeu libre (Story 11.2), with the creation time of its latest Partie. */
     @Query(

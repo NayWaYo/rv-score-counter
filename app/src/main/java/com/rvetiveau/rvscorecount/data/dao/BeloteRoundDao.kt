@@ -14,6 +14,9 @@ interface BeloteRoundDao {
     @Insert(onConflict = OnConflictStrategy.ABORT)
     suspend fun insert(round: BeloteRoundEntity)
 
+    @Insert(onConflict = OnConflictStrategy.ABORT)
+    suspend fun insertAll(rounds: List<BeloteRoundEntity>)
+
     @Query("SELECT * FROM belote_rounds WHERE id = :id")
     suspend fun getById(id: String): BeloteRoundEntity?
 

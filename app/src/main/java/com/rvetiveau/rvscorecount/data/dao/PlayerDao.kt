@@ -14,6 +14,13 @@ interface PlayerDao {
     @Insert(onConflict = OnConflictStrategy.ABORT)
     suspend fun insert(player: PlayerEntity)
 
+    @Insert(onConflict = OnConflictStrategy.ABORT)
+    suspend fun insertAll(players: List<PlayerEntity>)
+
+    /** Fails while a Participant still points at a Joueur: delete the Parties first (Story 12.2). */
+    @Query("DELETE FROM players")
+    suspend fun deleteAll()
+
     @Query("SELECT * FROM players WHERE nameKey = :nameKey")
     suspend fun getByNameKey(nameKey: String): PlayerEntity?
 
